@@ -1,0 +1,11 @@
+{
+    "name": "Dosen",
+    "alias": "dosen",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Dosen\\Providers\\DosenServiceProvider"
+    ],
+    "files": []
+}

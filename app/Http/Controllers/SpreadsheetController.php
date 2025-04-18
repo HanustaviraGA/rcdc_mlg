@@ -12,21 +12,32 @@ class SpreadsheetController extends Controller
             $row = 0;
             while (($data = fgetcsv($handle, 1000, ";")) !== FALSE) {
                 $row++;
-    
-                // Skip the header row
-                if ($row == 1) continue;
-    
-                // Avoid inserting if kode_dosen already exists
+                if ($row == 1){
+                    continue;
+                }
                 $kodeDosen = $data[0];
                 if (!Dosen::where('kode_dosen', $kodeDosen)->exists()) {
-                    $ft = explode(' ', $data[4]);
+                    $ft = explode(' ', $data[5]);
                     $faculty = $ft[0];
+                    $jja = preg_replace('/[^A-Z]/i', '', $data[4]);
                     Dosen::create([
-                        'kode_dosen' => $data[0],
+                        'kode_dosen' => $kodeDosen,
                         'nama_dosen' => $data[1],
-                        'jurusan_dosen' => $data[2],
-                        'jja_dosen'  => preg_replace('/[^A-Z]/i', '', $data[3]),
-                        'ft_dosen'   => $data[4],
+                        'pendidikan_dosen' => $data[2],
+                        'jurusan_dosen' => $data[3],
+                        'jja_dosen'  => $jja,
+                        'ft_dosen'   => $faculty,
+                    ]);
+                }else{
+                    $ft = explode(' ', $data[5]);
+                    $faculty = $ft[0];
+                    $jja = preg_replace('/[^A-Z]/i', '', $data[4]);
+                    $update = Dosen::where('kode_dosen', $kodeDosen)->update([
+                        'nama_dosen' => $data[1],
+                        'pendidikan_dosen' => $data[2],
+                        'jurusan_dosen' => $data[3],
+                        'jja_dosen'  => $jja,
+                        'ft_dosen'   => $faculty,
                     ]);
                 }
             }
@@ -36,7 +47,6 @@ class SpreadsheetController extends Controller
     
     public function count_kpi($kode_dosen){
         $dosen = Dosen::where('kode_dosen', $kode_dosen)->first();
-        // Cek JJA dan FT
         
     }
 }

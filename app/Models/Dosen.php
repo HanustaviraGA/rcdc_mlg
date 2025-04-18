@@ -13,6 +13,7 @@ class Dosen extends Model
         'kode_dosen',
         'nama_dosen',
         'jurusan_dosen',
+        'pendidikan_dosen',
         'jja_dosen',
         'ft_dosen',
         'created_at',

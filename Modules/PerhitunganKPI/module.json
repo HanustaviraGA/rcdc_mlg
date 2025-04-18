@@ -1,0 +1,11 @@
+{
+    "name": "PerhitunganKPI",
+    "alias": "perhitungankpi",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\PerhitunganKPI\\Providers\\PerhitunganKPIServiceProvider"
+    ],
+    "files": []
+}

@@ -1,0 +1,11 @@
+{
+    "name": "RCDCEvent",
+    "alias": "rcdcevent",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\RCDCEvent\\Providers\\RCDCEventServiceProvider"
+    ],
+    "files": []
+}
