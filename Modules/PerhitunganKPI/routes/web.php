@@ -14,10 +14,12 @@ use Modules\PerhitunganKPI\Http\Controllers\PerhitunganKPIController;
 |
 */
 
-Route::prefix('dashboard/perhitungankpi')->group(function() {
+Route::prefix('backoffice/perhitungankpi')->group(function() {
     Route::get('/', [PerhitunganKPIController::class, 'index'])->name('perhitungankpi.index');
     Route::post('create', [PerhitunganKPIController::class, 'create'])->name('perhitungankpi.create');
     Route::post('read', [PerhitunganKPIController::class, 'read'])->name('perhitungankpi.read');
     Route::put('update', [PerhitunganKPIController::class, 'update'])->name('perhitungankpi.update');
     Route::delete('delete', [PerhitunganKPIController::class, 'delete'])->name('perhitungankpi.delete');
+    // Custom
+    Route::post('init_table', [PerhitunganKPIController::class, 'init_table'])->name('perhitungankpi.init_table');
 });

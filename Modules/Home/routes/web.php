@@ -14,7 +14,7 @@ use Modules\Home\Http\Controllers\HomeController;
 |
 */
 
-Route::prefix('dashboard/home')->group(function() {
+Route::prefix('backoffice/home')->group(function() {
     Route::get('/', [HomeController::class, 'index'])->name('home.index');
     Route::post('create', [HomeController::class, 'create'])->name('home.create');
     Route::post('read', [HomeController::class, 'read'])->name('home.read');

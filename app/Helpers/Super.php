@@ -1,0 +1,384 @@
+<?php
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Yajra\DataTables\DataTables;
+use App\Mail\Notification;
+use GuzzleHttp\Client;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\Encoders\JpegEncoder;
+use Intervention\Image\Decoders\DataUriImageDecoder;
+use Intervention\Image\Decoders\Base64ImageDecoder;
+use Intervention\Image\Decoders\FilePathImageDecoder;
+use Intervention\Image\Image;
+use Carbon\Carbon;
+use \Mpdf\Mpdf;
+use App\Models\Dosen;
+
+/**
+ * Display a table based on given module or query.
+ * @return Renderable
+ */
+function select_table($queryOrModel){
+
+    if ($queryOrModel instanceof Model) {
+        $query = $queryOrModel->newQuery();
+    } elseif ($queryOrModel instanceof Builder) {
+        $query = $queryOrModel;
+    } elseif ($queryOrModel instanceof Collection) {
+        if ($queryOrModel->isEmpty()) {
+            return DataTables::of($queryOrModel)->make(true);
+        }
+        $query = $queryOrModel->toQuery();
+    } else {
+        throw new \InvalidArgumentException('Invalid query or model provided.');
+    }
+
+    $table = $query->getModel()->getTable();
+    $columns = Schema::getColumnListing($table);
+
+    return DataTables::of($query)
+    ->addColumn('no', function ($data) {
+        static $count = 1; // Initialize a static counter variable
+        $primaryKeyValue = base64_encode(json_encode($data->getKey())); // Assuming the primary key column is named "id"
+        return '<td><span style="margin-left: 20px !important;">' . $count++ . '.</span><input type="checkbox" name="checkbox" data-record="' . $primaryKeyValue . '" style="display: none;"></td>';
+    })
+    ->rawColumns(['no']) // Include the new 'no' column in rawColumns
+    ->make(true);
+}
+
+/**
+ * Display an encoded view of a page.
+ * @return Renderable
+ */
+function loadPage($page, $data = []){
+    $view = view($page, $data)->render(); // Render the view as a string
+    $base64 = base64_encode($view); // Encode the view as base64
+    return response()->json(['page' => $base64]);
+}
+
+/**
+ * Send an email.
+ */
+function sendEmail($data){
+    $send = Mail::to($data['to'])->send(new Notification($data));
+    if($send){
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Generate unique code.
+ */
+function generateCode($prefix = 'RCDC') {
+    $date = date('ymd');
+    $suffix = generateSuffix();
+    return $prefix . '.' . $date . '.' . $suffix;
+}
+
+/**
+ * Generate unique suffix.
+ */
+function generateSuffix() {
+    $suffix = '';
+    $length = 6; // Desired length of the suffix (5 characters)
+
+    while (strlen($suffix) < $length) {
+        $randType = rand(0, 2); // Randomly choose 0 for letter, 1 for number, 2 for alphanumeric
+
+        if ($randType === 0) {
+            $suffix .= chr(rand(65, 90)); // Random letter from A to Z
+        } elseif ($randType === 1) {
+            $suffix .= rand(0, 9); // Random number from 0 to 9
+        } else {
+            $suffix .= chr(rand(65, 90)) . rand(0, 9); // Random alphanumeric combination
+        }
+    }
+
+    // Trim or pad the suffix to ensure it has exactly 5 characters
+    $suffix = substr($suffix, 0, $length);
+
+    return $suffix;
+}
+
+/**
+ * Unix Epoch Conversion.
+ */
+function ts_conv($ts){
+    $timestamp_sec = $ts / 1000;
+    $date = date("Y-m-d H:i:s", $timestamp_sec);
+    return $date;
+}
+
+function imageUploader($data = []){
+    // Attributes
+    $file = $data['file'];
+    if(isset($data['base64']) && $data['base64'] == TRUE){
+        $img = ImageManager::gd()->read($file, [
+            DataUriImageDecoder::class,
+            Base64ImageDecoder::class,
+        ]);
+    }else{
+        $img = ImageManager::gd()->read($file);
+    }
+    $setimg = md5(base64_encode(rand(0, 100).generateCode())).'.jpg';
+    if(isset($data['filename']) && $data['filename'] !== ''){
+        $setimg = $data['filename'].'.jpg';
+    }
+    // Save the original
+    $ori = $img;
+    if(isset($data['to_base64']) && $data['to_base64'] == TRUE){
+        if(isset($data['resize']) && $data['resize'] == TRUE){
+            $ori->resize($data['width'], $data['height']);
+        }
+        $stat = $ori->toJpeg(50)->toDataUri();
+    }else{
+        $stat = true;
+        if(isset($data['filepath']) && $data['filepath'] !== ''){
+            if(isset($data['resize']) && $data['resize'] == TRUE){
+                $ori->resize($data['width'], $data['height']);
+            }
+            $stat = $ori->toJpeg(50)->save($data['filepath'].$setimg);
+        }else{
+            if(isset($data['resize']) && $data['resize'] == TRUE){
+                $ori->resize($data['width'], $data['height']);
+            }
+            $ori->toJpeg(50)->save(public_path('uploads/artikel/origins/').$setimg);
+        }
+    }
+    return [
+        'filename' => $setimg,
+        'status' => $stat
+    ];
+}
+
+function sanitizeTitle($title){
+    $sanitized = rtrim(strtolower(str_replace(" ", "-", preg_replace("/[^a-zA-Z0-9\s]/", "", $title))));
+    return $sanitized;
+}
+
+function cleanString($input) {
+    // Use a regular expression to remove all characters except letters, numbers, spaces, hyphens, and dots
+    return preg_replace("/[^a-zA-Z0-9\s\-.]/", "", $input);
+}
+
+function dateformat($tgl) {
+    try {
+        if ($tgl != null && $tgl != "" && $tgl != "0000-00-00") {
+            // Create a DateTime object
+            $date = new DateTime($tgl);
+
+            // Get day name in Indonesian
+            $day_names = array(
+                "Monday" => "Monday", "Tuesday" => "Tuesday", "Wednesday" => "Wednesday",
+                "Thursday" => "Thursday", "Friday" => "Friday", "Saturday" => "Saturday",
+                "Sunday" => "Sunday"
+            );
+            $day_name = $day_names[$date->format('l')];
+
+            // Get month name in Indonesian
+            $month_names = array(
+                "", "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+            );
+            $month_name = $month_names[intval($date->format('m'))];
+
+            // Format date
+            $tanggal = $date->format('d');
+            $tahun = $date->format('Y');
+
+            return $day_name . ", " . $tanggal . " " . $month_name . " " . $tahun;
+        }
+    } catch (Exception $e) {
+        // Handle invalid date format
+        return "Monday, 0 January 2024"; // Default date value
+    }
+    return ""; // Return an empty string if the input date is invalid
+}
+
+function datedff($dateString, $status = 0) {
+    $currentDate = new DateTime();
+    $targetDate = new DateTime($dateString);
+
+    // Calculate difference
+    $interval = $currentDate->diff($targetDate);
+    $days = (int)$interval->format('%r%a'); // %r for sign, %a for absolute days
+
+    // Check if status is > 4 (project is started)
+    if ($status > 4) {
+        return "Berakhir";
+    }
+
+    // Check if the date is today
+    if ($days === 0) {
+        return "Hari Ini";
+    } elseif ($days < 0) {
+        return "Kedaluarsa";
+    }
+
+    // Check for years, months, or days left
+    if ($interval->y > 0) {
+        return $interval->y . " Tahun Lagi";
+    } elseif ($interval->m > 0) {
+        return $interval->m . " Bulan Lagi";
+    } else {
+        return $interval->d . " Hari Lagi";
+    }
+}
+
+function monthdff($date1, $date2){
+    $createdAt = Carbon::parse($date1); // replace with your actual date
+    $comparation = Carbon::parse($date2); // replace with your actual date
+
+    // Calculate the difference in months
+    $monthsDifference = $createdAt->diffInMonths($comparation);
+
+    return round($monthsDifference);
+}
+
+function truncateDescription($description, $maxLength = 65) {
+    if (strlen($description) > $maxLength) {
+        return substr($description, 0, $maxLength) . '...';
+    }
+    return $description;
+}
+
+/**
+ * Create a PDF based on HTML given.
+ * @return Renderable
+ */
+function viewPDF($data, $config) {
+    $pdf = \PDF::loadView('pdf', $data, [], $config);
+    $pdf->save($config['filepath']);
+}
+
+function updateEnv($key, $value)
+{
+    $filePath = base_path('.env'); // Path to .env file
+    $fileContents = file_get_contents($filePath);
+
+    // Check if the key already exists in .env
+    if (preg_match("/^{$key}=.*/m", $fileContents)) {
+        // Update the existing key
+        $fileContents = preg_replace("/^{$key}=.*/m", "{$key}={$value}", $fileContents);
+    } else {
+        // Append if the key doesn't exist
+        $fileContents .= "\n{$key}={$value}\n";
+    }
+
+    file_put_contents($filePath, $fileContents);
+
+    // Clear and cache config to apply changes
+    \Artisan::call('config:clear');
+    \Artisan::call('config:cache');
+}
+
+function formatSize($size) {
+    $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    $i = 0;
+    while ($size >= 1024 && $i < count($units) - 1) {
+        $size /= 1024;
+        $i++;
+    }
+    return round($size, 2) . ' ' . $units[$i];
+}
+
+function getScore($nscopus, $scopus, $thresholds) {
+    if ($scopus >= $thresholds[5]) return 6;
+    if ($scopus >= $thresholds[4]) return 5;
+    if ($scopus >= $thresholds[3]) return 4;
+    if ($scopus >= $thresholds[2]) return 3;
+    if ($nscopus > 0) return 2;
+    return 1;
+}
+
+function tableKPI($kode_dosen, $nscopus, $scopus) {
+    // Convert #N/A or non-numeric to 0
+    if ($nscopus === '#N/A') $nscopus = 0;
+    if ($scopus === '#N/A') $scopus = 0;
+
+    if (Dosen::where('kode_dosen', $kode_dosen)->exists()) {
+        $dosen = Dosen::where('kode_dosen', $kode_dosen)->first();
+        $ft = $dosen['ft_dosen'];
+        $jja = strtoupper($dosen['jja_dosen']);
+        $pendidikan = strtoupper($dosen['pendidikan_dosen']);
+
+        $score = 0;
+
+        if($scopus == 0 && $nscopus == 0) {
+            $score = 0;
+        }else{
+            // FUNCTIONAL
+            if ($ft === 'Functional') {
+                if (($jja === 'TP' && in_array($pendidikan, ['S1', 'S2']))) {
+                    $score = getScore($nscopus, $scopus, [0, 0, 0.5, 1, 1.5, 1.5]);
+                }
+                else if ($jja === 'AA' && $pendidikan === 'S2') {
+                    $score = getScore($nscopus, $scopus, [0, 0, 0.5, 1, 1, 1]);
+                }
+                else if ($jja === 'L' && $pendidikan === 'S2') {
+                    $score = getScore($nscopus, $scopus, [0, 0, 0.5, 1, 1, 1]);
+                }
+                else if (
+                    ($jja === 'AA' && $pendidikan === 'S3') ||
+                    ($jja === 'TP' && $pendidikan === 'S3') ||
+                    ($jja === 'LK' && $pendidikan === 'S2')
+                ) {
+                    $score = getScore($nscopus, $scopus, [0, 0, 1, 2, 2, 2]);
+                }
+                else if (
+                    ($jja === 'L' && $pendidikan === 'S3') ||
+                    ($jja === 'LK' && $pendidikan === 'S3')
+                ) {
+                    $score = getScore($nscopus, $scopus, [0, 0, 1.5, 2, 2, 2]);
+                }
+                else if ($jja === 'GB') {
+                    $score = getScore($nscopus, $scopus, [0, 0, 2, 4, 4, 6]);
+                }
+            }
+
+            // PROFESSIONAL
+            else if ($ft === 'Professional') {
+                if ($jja === 'TP' && in_array($pendidikan, ['S1', 'S2'])) {
+                    $score = getScore($nscopus, $scopus, [0, 0, 0.25, 0.5, 0.5, 0.5]);
+                }
+                else if ($jja === 'AA' && $pendidikan === 'S2') {
+                    $score = getScore($nscopus, $scopus, [0, 0, 0.25, 0.5, 0.5, 0.5]);
+                }
+                else if ($jja === 'L' && $pendidikan === 'S2') {
+                    $score = getScore($nscopus, $scopus, [0, 0, 0.25, 0.5, 0.5, 0.5]);
+                }
+                else if (
+                    ($jja === 'AA' && $pendidikan === 'S3') ||
+                    ($jja === 'TP' && $pendidikan === 'S3') ||
+                    ($jja === 'LK' && $pendidikan === 'S2')
+                ) {
+                    $score = getScore($nscopus, $scopus, [0, 0, 0.75, 1, 1, 1]);
+                }
+                else if ($jja === 'L' && $pendidikan === 'S3') {
+                    $score = getScore($nscopus, $scopus, [0, 0, 1, 2, 2, 2]);
+                }
+            }
+
+            // Others fallback
+            else {
+                $score = 1;
+            }
+        }
+
+        return [
+            'score' => $score,
+            'nscopus' => $nscopus,
+            'scopus' => $scopus,
+            'dosen' => $dosen,
+        ];
+    }
+
+    return null; // dosen not found
+}
+

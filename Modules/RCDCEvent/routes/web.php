@@ -14,7 +14,7 @@ use Modules\RCDCEvent\Http\Controllers\RCDCEventController;
 |
 */
 
-Route::prefix('dashboard/rcdcevent')->group(function() {
+Route::prefix('backoffice/rcdcevent')->group(function() {
     Route::get('/', [RCDCEventController::class, 'index'])->name('rcdcevent.index');
     Route::post('create', [RCDCEventController::class, 'create'])->name('rcdcevent.create');
     Route::post('read', [RCDCEventController::class, 'read'])->name('rcdcevent.read');

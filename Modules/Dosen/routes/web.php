@@ -14,7 +14,7 @@ use Modules\Dosen\Http\Controllers\DosenController;
 |
 */
 
-Route::prefix('dashboard/dosen')->group(function() {
+Route::prefix('backoffice/dosen')->group(function() {
     Route::get('/', [DosenController::class, 'index'])->name('dosen.index');
     Route::post('create', [DosenController::class, 'create'])->name('dosen.create');
     Route::post('read', [DosenController::class, 'read'])->name('dosen.read');
