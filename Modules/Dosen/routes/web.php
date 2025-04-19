@@ -20,4 +20,6 @@ Route::prefix('backoffice/dosen')->group(function() {
     Route::post('read', [DosenController::class, 'read'])->name('dosen.read');
     Route::put('update', [DosenController::class, 'update'])->name('dosen.update');
     Route::delete('delete', [DosenController::class, 'delete'])->name('dosen.delete');
+    // Custom
+    Route::post('init_table', [DosenController::class, 'init_table'])->name('dosen.init_table');
 });

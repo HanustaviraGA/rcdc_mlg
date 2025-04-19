@@ -2,8 +2,7 @@
     @extends('home::layouts.master')
 
     @section('content')
-        <h1>Hello World</h1>
-
-        <p>Module: {!! config('home.name') !!}</p>
+        {{-- Gambar --}}
+        <img src="{{ asset('image001.png') }}" alt="" class="w-100 rounded mb-10">
     @endsection
 </div>

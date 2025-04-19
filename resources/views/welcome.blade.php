@@ -4,8 +4,8 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <title>RCDC Binus Malang</title>
-
+        <title>RCDC Binus@Malang</title>
+        <link rel="shortcut icon" href="{{ asset('20230411_163530_0000-removebg-preview.png') }}" />
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />

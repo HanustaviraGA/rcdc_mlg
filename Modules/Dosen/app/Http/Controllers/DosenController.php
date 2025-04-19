@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use App\Models\Dosen;
+use App\Models\IdentitasDosen;
 
 class DosenController extends Controller
 {
@@ -22,9 +24,18 @@ class DosenController extends Controller
      * Initialize a Datatable.
      * @return Renderable
      */
-    public function init_table()
+    public function init_table(Request $request)
     {
-
+        $data = $request->all();
+        $query = Dosen::query();
+        $query->leftJoin('identitas_dosen', 'identitas_dosen.kode_dosen', '=', 'database_dosen.kode_dosen');
+        $query->select('database_dosen.*', 'identitas_dosen.email_dosen', 'identitas_dosen.telp_dosen');
+        if(isset($data['prodi']) && $data['prodi'] != null){
+            $query->where('database_dosen.jurusan_dosen', $data['prodi']);
+        }
+        $query->orderBy('database_dosen.nama_dosen', 'asc');
+        $query->get();
+        return select_table($query);
     }
 
     /**

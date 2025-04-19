@@ -67,7 +67,7 @@ License: For each use you must have a valid license purchased only from above li
 							<!--end::Heaeder menu toggle-->
 							<!--begin::Header Logo-->
 							<div class="header-logo me-5 me-md-10 flex-grow-1 flex-lg-grow-0">
-								<a href="../../demo2/dist/index.html">
+								<a href="{{ url('/') }}">
 									{{-- <img alt="Logo" src="assets/media/logos/logo-rcdc.png" class="logo-default h-75px" />
 									<img alt="Logo" src="assets/media/logos/logo-rcdc.png" class="logo-sticky h-75px" /> --}}
 									<img alt="Logo" src="{{ asset('20230411_163530_0000-removebg-preview.png') }}" class="logo-default h-75px" />
@@ -121,7 +121,7 @@ License: For each use you must have a valid license purchased only from above li
 												<div class="separator my-2"></div>
 												<!--begin::Menu item-->
 												<div class="menu-item px-5">
-													<a href="" class="menu-link px-5">Google Sites</a>
+													<a href="https://sites.google.com/view/rcdcmalang/home?authuser=0" class="menu-link px-5">Google Sites</a>
 												</div>
 												<div class="menu-item px-5">
 													<a href="" class="menu-link px-5">Linktree RCDC</a>
@@ -243,7 +243,7 @@ License: For each use you must have a valid license purchased only from above li
 							<!--begin::Menu-->
 							<ul class="menu menu-gray-600 menu-hover-primary fw-bold order-1">
 								<li class="menu-item">
-									<a href="https://sites.google.com/view/rcdcmalang/home?authuser=0" target="_blank" class="menu-link px-2">Google Sites</a>
+									<a href="https://sites.google.com/view/rcdcmalang/home/kontak-kami" target="_blank" class="menu-link px-2">Support</a>
 								</li>
 							</ul>
 							<!--end::Menu-->
