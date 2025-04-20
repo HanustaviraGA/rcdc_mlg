@@ -46,11 +46,11 @@ class PerhitunganKPIController extends Controller
                                 <input type="hidden" name="kd_dosen['.$kpis['dosen']['kode_dosen'].']" value="'.$kpis['dosen']['kode_dosen'].'">
                                 <div class="d-flex justify-content-start flex-column">
                                     <a href="javascript:void(0)" class="text-dark fw-bolder text-hover-primary fs-6">'.$kpis['dosen']['nama_dosen'].'</a>
-                                    <span class="text-muted fw-bold text-muted d-block fs-7">'.$kpis['dosen']['kode_dosen'].' - '.$kpis['dosen']['pendidikan_dosen'].' - '.$kpis['dosen']['jurusan_dosen'].'</span>
+                                    <span class="text-muted fw-bold text-muted d-block fs-7">'.$kpis['dosen']['kode_dosen'].' | '.$kpis['dosen']['ft_dosen'].' - '.$kpis['dosen']['jja_dosen'].' '.$kpis['dosen']['pendidikan_dosen'].'</span>
                                 </div>
                             </td>
                             <td>
-                                '.$kpis['dosen']['jja_dosen'].' - '.$kpis['dosen']['ft_dosen'].'
+                                '.$kpis['dosen']['jurusan_dosen'].'
                             </td>
                             <td>
                                 <input name="nscopus['.$kpis['dosen']['kode_dosen'].']" type="number" value="'.$kpis['nscopus'].'" class="form-control form-control bg-gray-100 w-100">

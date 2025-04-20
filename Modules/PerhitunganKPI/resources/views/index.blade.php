@@ -27,8 +27,8 @@
                             <thead>
                                 <tr class="fw-bolder text-dark">
                                     <th style="width: 300px !important;">Dosen</th>
-                                    {{-- <th>Prodi</th> --}}
-                                    <th style="width: 150px !important;">JJA - FT</th>
+                                    <th>Prodi</th>
+                                    {{-- <th style="width: 150px !important;">JJA - FT</th> --}}
                                     <th>Non Scopus</th>
                                     <th>Scopus</th>
                                     <th>Skor KPI</th>
