@@ -19,11 +19,39 @@ class DashboardController extends Controller
             // $role = Auth::user()->role_id;
             $role = 'OWN001';
             $isi_roles = [];
-            $query = DB::table('view_sys_role_menu')
-            ->where('role_id', $role)
-            ->where('menu_aktif', '1')
-            ->select('menu_kode')
+            
+            // $query = DB::table('view_sys_role_menu')
+            // ->where('role_id', $role)
+            // ->where('menu_aktif', '1')
+            // ->select('menu_kode')
+            // ->get();
+
+            $query = DB::table('sys_role_menu as crm')
+            ->leftJoin('sys_menu as cm', 'crm.role_menu_menu_id', '=', 'cm.menu_id')
+            ->leftJoin('sys_role as cr', 'crm.role_menu_role_id', '=', 'cr.role_id')
+            ->where('cr.role_id', $role)
+            ->where('cm.menu_aktif', '1')
+            ->select(
+                'crm.role_menu_id',
+                'crm.role_menu_menu_id',
+                'crm.role_menu_role_id',
+                'cm.menu_id',
+                'cm.menu_kode',
+                'cm.menu_judul',
+                'cm.menu_order',
+                'cm.menu_parent',
+                'cm.menu_aktif',
+                'cm.menu_icon',
+                'cm.menu_level',
+                'cm.menu_sub',
+                'cm.created_at',
+                'cm.updated_at',
+                'cr.role_id',
+                'cr.role_name'
+            )
             ->get();
+
+
             foreach($query as $values){
                 $isi_roles[] = $values->menu_kode;
             }
@@ -133,11 +161,38 @@ class DashboardController extends Controller
             // $role = Auth::user()->role_id;
             $role = 'OWN001';
             $isi_roles = [];
-            $query = DB::table('view_sys_role_menu')
-            ->where('role_id', $role)
-            ->where('menu_aktif', '1')
-            ->select('menu_kode')
+
+            // $query = DB::table('view_sys_role_menu')
+            // ->where('role_id', $role)
+            // ->where('menu_aktif', '1')
+            // ->select('menu_kode')
+            // ->get();
+
+            $query = DB::table('sys_role_menu as crm')
+            ->leftJoin('sys_menu as cm', 'crm.role_menu_menu_id', '=', 'cm.menu_id')
+            ->leftJoin('sys_role as cr', 'crm.role_menu_role_id', '=', 'cr.role_id')
+            ->where('cr.role_id', $role)
+            ->where('cm.menu_aktif', '1')
+            ->select(
+                'crm.role_menu_id',
+                'crm.role_menu_menu_id',
+                'crm.role_menu_role_id',
+                'cm.menu_id',
+                'cm.menu_kode',
+                'cm.menu_judul',
+                'cm.menu_order',
+                'cm.menu_parent',
+                'cm.menu_aktif',
+                'cm.menu_icon',
+                'cm.menu_level',
+                'cm.menu_sub',
+                'cm.created_at',
+                'cm.updated_at',
+                'cr.role_id',
+                'cr.role_name'
+            )
             ->get();
+
             foreach($query as $values){
                 $isi_roles[] = $values->menu_kode;
             }
