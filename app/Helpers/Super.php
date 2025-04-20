@@ -18,6 +18,7 @@ use Intervention\Image\Image;
 use Carbon\Carbon;
 use \Mpdf\Mpdf;
 use App\Models\Dosen;
+use FPDF\FPDF;
 
 /**
  * Display a table based on given module or query.
@@ -382,3 +383,146 @@ function tableKPI($kode_dosen, $nscopus, $scopus) {
     return null; // dosen not found
 }
 
+// Utility function to center text
+function centerTextX($imageWidth, $fontSize, $font, $text) {
+    $bbox = imagettfbbox($fontSize, 0, $font, $text);
+    $textWidth = $bbox[2] - $bbox[0];
+    return ($imageWidth - $textWidth) / 2;
+}
+
+function fndformat($tgl) {
+    try {
+        if ($tgl != null && $tgl != "" && $tgl != "0000-00-00") {
+            // Create a DateTime object
+            $date = new DateTime($tgl);
+
+            // Get day name in Indonesian
+            $day_names = array(
+                "Monday" => "Senin", "Tuesday" => "Selasa", "Wednesday" => "Rabu",
+                "Thursday" => "Kamis", "Friday" => "Jumat", "Saturday" => "Sabtu",
+                "Sunday" => "Minggu"
+            );
+            $day_name = $day_names[$date->format('l')];
+
+            // Get month name in Indonesian
+            $month_names = array(
+                "", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+                "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+            );
+            $month_name = $month_names[intval($date->format('m'))];
+
+            // Format date
+            $tanggal = $date->format('d');
+            $tahun = $date->format('Y');
+
+            return $tanggal . " " . $month_name . " " . $tahun;
+        }
+    } catch (Exception $e) {
+        // Handle invalid date format
+        return "Senin, 0 Januari 2024"; // Default date value
+    }
+    return ""; // Return an empty string if the input date is invalid
+}
+
+function createSertif($config){
+    // Load the certificate template
+    $image = @imagecreatefrompng(public_path('assets/sertif_gen/certi2.png'));
+
+    // Set text color
+    $black = imagecolorallocate($image, 0, 0, 0);
+
+    // Font paths
+    $font = public_path('assets/sertif_gen/calibri-regular.ttf');
+    $font_bold = public_path('assets/sertif_gen/calibri-bold.ttf');
+
+    // Dynamic data
+    // $name = 'Hanustavira Guru Acarya, S.Kom.';
+    // $eventname = '"Strategi Bedah dan Menulis Paper Scopus dengan Data Sekunder"';
+    // $date = 'Malang, ' . fndformat(date('Y-m-d'));
+    // $director = 'Dr. Robertus Tang Herman, S.E, M.M';
+    // $position = 'BINUS @ Malang Campus Director';
+    // $certificateNumber = 'No.285/DIR/MLG/III/2025';
+
+    $name = $config['name'];
+    $eventname = '"'.$config['eventname'].'"';
+    $date = 'Malang, ' . fndformat($config['date']);
+    $director = 'Dr. Robertus Tang Herman, S.E, M.M';
+    $position = 'BINUS @ Malang Campus Director';
+    $certificateId = $config['number'].'/DIR/MLG/III/'.date('Y');
+    $certificateNumber = 'No.'.$certificateId.'';
+
+    // Load and resize signature
+    $signature = imagecreatefrompng(public_path('assets/sertif_gen/pak_robert.png'));
+    $signatureResized = imagecreatetruecolor(120, 75);
+    imagealphablending($signatureResized, false);
+    imagesavealpha($signatureResized, true);
+    imagecopyresampled(
+        $signatureResized, $signature,
+        0, 0, 0, 0,
+        120, 75,
+        imagesx($signature), imagesy($signature)
+    );
+
+    // Certificate width
+    $imageWidth = imagesx($image);
+
+    // Draw certificate content
+    imagettftext($image, 20, 0, centerTextX($imageWidth, 20, $font_bold, 'Certificate of Appreciation'), 130, $black, $font_bold, 'Certificate of Appreciation');
+    imagettftext($image, 11, 0, centerTextX($imageWidth, 11, $font, $certificateNumber), 155, $black, $font, $certificateNumber);
+    imagettftext($image, 14, 0, centerTextX($imageWidth, 14, $font, 'This Certificate is Presented to:'), 200, $black, $font, 'This Certificate is Presented to:');
+
+    // Draw name (centered and underlined)
+    $fontSizeName = 16;
+    $yName = 230;
+    $xName = centerTextX($imageWidth, $fontSizeName, $font_bold, $name);
+    imagettftext($image, $fontSizeName, 0, $xName, $yName, $black, $font_bold, $name);
+    imageline($image, $xName, $yName + 5, $xName + (imagettfbbox($fontSizeName, 0, $font_bold, $name)[2] - imagettfbbox($fontSizeName, 0, $font_bold, $name)[0]), $yName + 5, $black);
+
+    // Participation line
+    imagettftext($image, 11, 0, centerTextX($imageWidth, 11, $font, 'for actively participating in the'), 260, $black, $font, 'for actively participating in the');
+
+    // Event name (centered)
+    imagettftext($image, 11, 0, centerTextX($imageWidth, 11, $font_bold, $eventname), 280, $black, $font_bold, $eventname);
+
+    // Date (centered)
+    imagettftext($image, 11, 0, centerTextX($imageWidth, 11, $font, $date), 320, $black, $font, $date);
+
+    // Signature image
+    imagecopy($image, $signatureResized, 270, 325, 0, 0, 120, 75);
+
+    // Director name (centered and underlined)
+    $fontSizeDir = 12;
+    $yDir = 417;
+    $xDir = centerTextX($imageWidth, $fontSizeDir, $font_bold, $director);
+    imagettftext($image, $fontSizeDir, 0, $xDir, $yDir, $black, $font_bold, $director);
+    imageline($image, $xDir, $yDir + 5, $xDir + (imagettfbbox($fontSizeDir, 0, $font_bold, $director)[2] - imagettfbbox($fontSizeDir, 0, $font_bold, $director)[0]), $yDir + 5, $black);
+
+    // Director position (centered below the name)
+    imagettftext($image, 11, 0, centerTextX($imageWidth, 11, $font, $position), $yDir + 20, $black, $font, $position);
+
+    // Output final image
+    $filename = 'Sertifikat-'.$config['name'].'-'.$config['number'];
+    $output = public_path('uploads/sertifikat/'.$filename.'.png');
+    imagepng($image, $output, 0);
+
+    // Create a new PDF
+    $pdf = new \FPDF('L', 'mm', 'A4'); // L = Landscape
+    $pdf->AddPage();
+
+    // Get image dimensions
+    list($width, $height) = getimagesize($output);
+
+    // Convert pixels to mm (assuming 96 dpi)
+    $widthMm = $width * 25.4 / 56;
+    $heightMm = $height * 25.4 / 56;
+
+    // Fit image to page (optional: center it)
+    $pdf->Image($output, (297 - $widthMm) / 2, (210 - $heightMm) / 2, $widthMm, $heightMm);
+
+    // Output to file or browser
+    unlink(public_path('uploads/sertifikat/'.$filename.'.png'));
+    $pdf->Output('F', public_path('uploads/sertifikat/'.$filename.'.pdf')); // Save as file
+    // $string = $pdf->Output('S', '');
+    // $retdata = "data:application/pdf;base64,".base64_encode($string);
+    // return $retdata;
+}

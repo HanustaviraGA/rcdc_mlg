@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use App\Models\PresensiEvent;
+use App\Models\Dosen;
 
 class RCDCEventController extends Controller
 {
@@ -22,9 +24,23 @@ class RCDCEventController extends Controller
      * Initialize a Datatable.
      * @return Renderable
      */
-    public function init_table()
+    public function init_table(Request $request)
     {
-
+        $data = $request->all();
+        $number = (int)$data['number'];
+        $query = PresensiEvent::all();
+        foreach($query as $presensi){
+            $dosen = Dosen::where('kode_dosen', $presensi['kode_dosen'])->first();
+            createSertif([
+                'name' => $dosen['nama_dosen'],
+                'code' => $presensi['kode_dosen'],
+                'eventname' => $data['eventname'],
+                'date' => date('Y-m-d'),
+                'number' => $number,
+            ]);
+            $number++;
+        }
+        return response()->json(['success' => true, 'number' => $number], 200);
     }
 
     /**

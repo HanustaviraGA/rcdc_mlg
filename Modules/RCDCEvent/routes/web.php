@@ -20,4 +20,6 @@ Route::prefix('backoffice/rcdcevent')->group(function() {
     Route::post('read', [RCDCEventController::class, 'read'])->name('rcdcevent.read');
     Route::put('update', [RCDCEventController::class, 'update'])->name('rcdcevent.update');
     Route::delete('delete', [RCDCEventController::class, 'delete'])->name('rcdcevent.delete');
+    // Custom
+    Route::post('init_table', [RCDCEventController::class, 'init_table'])->name('rcdcevent.init_table');
 });
