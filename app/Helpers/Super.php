@@ -24,8 +24,8 @@ use FPDF\FPDF;
  * Display a table based on given module or query.
  * @return Renderable
  */
-function select_table($queryOrModel){
-
+function select_table($queryOrModel)
+{
     if ($queryOrModel instanceof Model) {
         $query = $queryOrModel->newQuery();
     } elseif ($queryOrModel instanceof Builder) {
@@ -34,7 +34,13 @@ function select_table($queryOrModel){
         if ($queryOrModel->isEmpty()) {
             return DataTables::of($queryOrModel)->make(true);
         }
-        $query = $queryOrModel->toQuery();
+        return DataTables::of($queryOrModel)
+            ->addColumn('no', function ($data) {
+                static $count = 1;
+                return '<td><span style="margin-left: 20px !important;">' . $count++ . '.</span></td>';
+            })
+            ->rawColumns(['no'])
+            ->make(true);
     } else {
         throw new \InvalidArgumentException('Invalid query or model provided.');
     }
@@ -43,13 +49,13 @@ function select_table($queryOrModel){
     $columns = Schema::getColumnListing($table);
 
     return DataTables::of($query)
-    ->addColumn('no', function ($data) {
-        static $count = 1; // Initialize a static counter variable
-        $primaryKeyValue = base64_encode(json_encode($data->getKey())); // Assuming the primary key column is named "id"
-        return '<td><span style="margin-left: 20px !important;">' . $count++ . '.</span><input type="checkbox" name="checkbox" data-record="' . $primaryKeyValue . '" style="display: none;"></td>';
-    })
-    ->rawColumns(['no']) // Include the new 'no' column in rawColumns
-    ->make(true);
+        ->addColumn('no', function ($data) {
+            static $count = 1;
+            $primaryKeyValue = base64_encode(json_encode($data->getKey()));
+            return '<td><span style="margin-left: 20px !important;">' . $count++ . '.</span><input type="checkbox" name="checkbox" data-record="' . $primaryKeyValue . '" style="display: none;"></td>';
+        })
+        ->rawColumns(['no'])
+        ->make(true);
 }
 
 /**

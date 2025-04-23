@@ -16,6 +16,7 @@ class Dosen extends Model
         'pendidikan_dosen',
         'jja_dosen',
         'ft_dosen',
+        'maxscopuskonf_dosen',
         'created_at',
         'updated_at'
     ];

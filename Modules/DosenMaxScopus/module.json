@@ -1,0 +1,11 @@
+{
+    "name": "DosenMaxScopus",
+    "alias": "dosenmaxscopus",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\DosenMaxScopus\\Providers\\DosenMaxScopusServiceProvider"
+    ],
+    "files": []
+}

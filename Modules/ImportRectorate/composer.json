@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/importrectorate",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\ImportRectorate\\": "app/",
+            "Modules\\ImportRectorate\\Database\\Factories\\": "database/factories/",
+            "Modules\\ImportRectorate\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\ImportRectorate\\Tests\\": "tests/"
+        }
+    }
+}

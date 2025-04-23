@@ -1,0 +1,11 @@
+{
+    "name": "ImportRectorate",
+    "alias": "importrectorate",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\ImportRectorate\\Providers\\ImportRectorateServiceProvider"
+    ],
+    "files": []
+}

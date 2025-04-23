@@ -2,5 +2,7 @@
     "Home": true,
     "PerhitunganKPI": true,
     "RCDCEvent": true,
-    "Dosen": true
+    "Dosen": true,
+    "ImportRectorate": true,
+    "DosenMaxScopus": true
 }
