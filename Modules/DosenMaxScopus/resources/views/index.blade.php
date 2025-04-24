@@ -3,6 +3,13 @@
         <div class="card card-bordered">
             <div class="card-body">
                 <div class="row mb-5">
+                    <div class="col-12 col-xl d-flex align-items-center justify-content-between">
+                        <div class=" d-flex align-items-center">
+                            <label for="" class="required form-label mb-3 fw-bold" style="text-align: justify;">Konferensi / seminar yang dihitung merupakan konferensi / seminar yang dilakukan dengan sumber paper Penelitian Mandiri</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-5">
                     <div class="col-12 col-xl d-flex align-items-center justify-content-between ">
                         <select required name="year" id="year" class="form-control form-control bg-gray-100 me-5" placeholder="Input Data">
                             <option selected disabled>Pilih Tahun</option>

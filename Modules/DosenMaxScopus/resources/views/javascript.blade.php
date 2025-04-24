@@ -4,6 +4,7 @@
     });
 
     function init_table(){
+        blockPage();
         var year = $('#year').val();
         var period = $('#period').val();
         var month = $('#month').val();
@@ -13,6 +14,7 @@
                 message: 'Tahun tidak boleh kosong',
                 title: 'Gagal'
             });
+            unblockPage();
             return;
         }
         if(!period){
@@ -21,6 +23,7 @@
                 message: 'Periode tidak boleh kosong',
                 title: 'Gagal'
             });
+            unblockPage();
             return;
         }
         if(!month){
@@ -29,6 +32,7 @@
                 message: 'Bulan tidak boleh kosong',
                 title: 'Gagal'
             });
+            unblockPage();
             return;
         }
         var prodi = $('#prodi').val();
@@ -150,6 +154,7 @@
             },
             columns: col,
         });
+        unblockPage();
     }
 
 </script>

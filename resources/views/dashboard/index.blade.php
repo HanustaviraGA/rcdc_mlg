@@ -333,6 +333,8 @@ License: For each use you must have a valid license purchased only from above li
 		<script src="{{ asset('assets/js/custom/apps/chat/chat.js') }}"></script>
 		<script src="{{ asset('assets/js/custom/modals/create-app.js') }}"></script>
 		<script src="{{ asset('assets/js/custom/modals/upgrade-plan.js') }}"></script> --}}
+		{{-- Pie Chart --}}
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
 		<!--end::Page Custom Javascript-->
         @include('dashboard.javascript')
 		<!--end::Javascript-->

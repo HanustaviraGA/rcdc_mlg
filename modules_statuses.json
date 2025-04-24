@@ -4,5 +4,6 @@
     "RCDCEvent": true,
     "Dosen": true,
     "ImportRectorate": true,
-    "DosenMaxScopus": true
+    "DosenMaxScopus": true,
+    "DosenNonPublikasi": true
 }

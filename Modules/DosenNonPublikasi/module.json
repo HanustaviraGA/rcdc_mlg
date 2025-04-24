@@ -1,0 +1,11 @@
+{
+    "name": "DosenNonPublikasi",
+    "alias": "dosennonpublikasi",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\DosenNonPublikasi\\Providers\\DosenNonPublikasiServiceProvider"
+    ],
+    "files": []
+}

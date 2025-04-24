@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/dosennonpublikasi",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\DosenNonPublikasi\\": "app/",
+            "Modules\\DosenNonPublikasi\\Database\\Factories\\": "database/factories/",
+            "Modules\\DosenNonPublikasi\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\DosenNonPublikasi\\Tests\\": "tests/"
+        }
+    }
+}
