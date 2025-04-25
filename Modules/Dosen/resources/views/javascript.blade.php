@@ -10,48 +10,42 @@
         }
         var col =[
             {
+                data: 'kode_dosen',
+                name: 'kode_dosen',
+                orderable: true,
+                render: function (data, type, full, meta) {
+                    if(full.kode_dosen){
+                        return full.kode_dosen;
+                    }else{
+                        return '-';
+                    }
+                }
+            },
+            {
                 data: 'nama_dosen',
                 name: 'nama_dosen',
                 orderable: true,
                 render: function (data, type, full, meta) {
-                    if(full.nama_dosen){
-                        // var nama = SUPER.trim_string(full.nama_dosen, 30);
-                        var nama = full.nama_dosen;
-                    }else{
-                        var nama = '-';
-                    }
                     var link = '{{ asset('assets/media/avatars/blank.png') }}';
                     var data = `<div class="d-flex align-items-center">
                         <div class="symbol symbol-45px me-5">
                             <img src="`+link+`" alt="" />
                         </div>
                         <div class="d-flex justify-content-start flex-column">
-                            <a href="javascript:void(0)" class="text-dark fw-bolder text-hover-primary fs-6">`+nama+`</a>
-                            <span class="text-muted fw-bold text-muted d-block fs-7">`+full.kode_dosen+` - `+full.pendidikan_dosen+` - `+full.jurusan_dosen+`</span>
+                            <a style="color: black;" href="javascript:void(0)" class="fw-bolder text-hover-primary fs-6">`+full.nama_dosen+`</a>
+                            <span class="text-muted fw-bold text-muted d-block fs-7">`+full.ft_dosen+` - `+full.jja_dosen+` `+full.pendidikan_dosen+`</span>
                         </div>
                     </div>`;
                     return data;
                 }
             },
-            // {
-            //     data: 'jurusan_dosen',
-            //     name: 'jurusan_dosen',
-            //     orderable: true,
-            //     render: function (data, type, full, meta) {
-            //         if(full.jurusan_dosen){
-            //             return full.jurusan_dosen;
-            //         }else{
-            //             return '-';
-            //         }
-            //     }
-            // },
             {
-                data: 'jja_dosen',
-                name: 'jja_dosen',
+                data: 'jurusan_dosen',
+                name: 'jurusan_dosen',
                 orderable: true,
                 render: function (data, type, full, meta) {
-                    if(full.jja_dosen){
-                        return full.jja_dosen + ' - ' + full.ft_dosen;
+                    if(full.jurusan_dosen){
+                        return full.jurusan_dosen;
                     }else{
                         return '-';
                     }

@@ -34,9 +34,10 @@
                     <table class="table table-striped table-row-bordered align-middle rounded tdFirstCenter" id="tableCourse">
                         <thead>
                             <tr class="fw-bolder text-dark">
-                                <th style="width: 300px !important;">Dosen</th>
+                                <th style="width: 100px !important;">Kode Dosen</th>
+                                <th style="width: 300px !important;">Nama Dosen</th>
                                 {{-- <th>Prodi</th> --}}
-                                <th style="width: 150px !important;">JJA - FT</th>
+                                <th style="width: 75px !important;">Program Studi</th>
                                 <th>Telp</th>
                                 <th>Email</th>
                                 <th>Aksi</th>
