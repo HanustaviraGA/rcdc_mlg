@@ -22,4 +22,5 @@ Route::prefix('backoffice/dosennonpublikasi')->group(function() {
     Route::delete('delete', [DosenNonPublikasiController::class, 'delete'])->name('dosennonpublikasi.delete');
     // Custom
     Route::post('init_table', [DosenNonPublikasiController::class, 'init_table'])->name('dosennonpublikasi.init_table');
+    Route::post('init_chart', [DosenNonPublikasiController::class, 'init_chart'])->name('dosennonpublikasi.init_chart');
 });

@@ -22,4 +22,5 @@ Route::prefix('backoffice/dosenmaxscopus')->group(function() {
     Route::delete('delete', [DosenMaxScopusController::class, 'delete'])->name('dosenmaxscopus.delete');
     // Custom
     Route::post('init_table', [DosenMaxScopusController::class, 'init_table'])->name('dosenmaxscopus.init_table');
+    Route::post('init_chart', [DosenMaxScopusController::class, 'init_chart'])->name('dosenmaxscopus.init_chart');
 });

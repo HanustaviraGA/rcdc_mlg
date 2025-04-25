@@ -54,15 +54,10 @@
                         </select>
                     </div>
                     <div class="col-12 col-xl-3 col-md-6 col-lg-6 mt-5 my-md-0">
-                        <button onclick="init_table(), init_chart()" type="button" class="btn btn-primary w-100" id="toggleFormButton"><i class="las la-plus fs-2"></i> Tampilkan</button>
+                        <button onclick="init_table()" type="button" class="btn btn-primary w-100" id="toggleFormButton"><i class="las la-plus fs-2"></i> Tampilkan</button>
                     </div>
                 </div>
-                <div class="row mb-5">
-                    <div class="col-12 col-xl d-flex align-items-center justify-content-between">
-                        <div class=" d-flex align-items-center">
-                            <canvas id="myChart" style="height: 350px !important;"></canvas>
-                        </div>
-                    </div>
+                <div id="chartContainer">
                 </div>
                 <div class="table-responsive border-2 border-top">
                     <table class="table table-striped table-row-bordered align-middle rounded tdFirstCenter" id="tableCourse">

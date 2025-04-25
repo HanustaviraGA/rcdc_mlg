@@ -1,33 +1,65 @@
 <script type="text/javascript">
     $(document).ready(function() {
-        init_chart();
+        // init_chart();
     });
 
-    function init_chart(){
-        var xValues = ["Italy", "France", "Spain", "USA", "Argentina"];
-        var yValues = [55, 49, 44, 24, 15];
-        var barColors = [
-            "#b91d47",
-            "#00aba9",
-            "#2b5797",
-            "#e8c3b9",
-            "#1e7145"
-        ];
-
-        new Chart("myChart", {
-            type: "pie",
+    function init_chart(year, month, period, prodi = null) {
+        $('#chartContainer').empty().html('<div class="row mb-5"><div class="col-12 col-xl d-flex align-items-center"><div class=" d-flex align-items-center" style="margin-left: 80px !important;"><canvas id="myChart" style="height: 350px !important;"></canvas></div></div></div>');
+        $.ajax({
+            url: '{{ route('dosennonpublikasi.init_chart') }}', 
+            method: 'POST',
             data: {
-                labels: xValues,
-                datasets: [{
-                    backgroundColor: barColors,
-                    data: yValues
-                }]
+                year: year,
+                month: month,
+                period: period,
+                prodi: prodi
             },
-            options: {
-                title: {
-                    display: true,
-                    text: "World Wide Wine Production 2018"
+            headers:{
+                'X-CSRF-TOKEN' : '{{ csrf_token() }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    const data = response.data;
+
+                    const xValues = data.map(item => item.category);
+                    const yValues = data.map(item => item.jumlah_dosen);
+
+                    const barColors = [
+                        "#4e73df",  // Blue
+                        "#1cc88a",  // Green
+                        "#36b9cc",  // Cyan
+                        "#f6c23e"   // Yellow
+                    ];
+
+                    new Chart("myChart", {
+                        type: "pie",
+                        data: {
+                            labels: xValues,
+                            datasets: [{
+                                backgroundColor: barColors,
+                                data: yValues
+                            }]
+                        },
+                        options: {
+                            title: {
+                                display: true,
+                                text: "Perbandingan Dosen Scopus dan Non Scopus"
+                            }
+                        }
+                    });
+                    var canvas1 = document.getElementById("myChart");
+                    if (canvas1.getContext) {
+                        // var ctx = canvas1.getContext("2d");                
+                        // var myImage = canvas1.toDataURL("image/png");
+                        // var myImage = canvas1.toDataURL("image/png").replace("image/png", "image/octet-stream");
+                        // window.open(myImage);    
+                    }
+                } else {
+                    console.error('Data fetch unsuccessful:', response);
                 }
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX Error:', error);
             }
         });
     }
@@ -65,6 +97,7 @@
             return;
         }
         var prodi = $('#prodi').val();
+        init_chart(year, month, period, prodi);
         if ($.fn.DataTable.isDataTable('#tableCourse')) {
             $('#tableCourse').DataTable().destroy();
         }

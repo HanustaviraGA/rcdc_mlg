@@ -60,6 +60,62 @@ class DosenNonPublikasiController extends Controller
         return select_table($query);
     }
 
+    public function init_chart(Request $request){
+        $year = (int) $request->input('year');
+        $month = (int) $request->input('month');
+        $period = (int) $request->input('period');
+        $prodi = $request->input('prodi');
+
+        $bindings = [
+            'year' => $year,
+            'month' => $month,
+            'period' => $period,
+        ];
+
+        $query = '
+            SELECT
+                CASE
+                    WHEN jml_scopus > 0 AND jml_nscopus = 0 THEN "Hanya Scopus"
+                    WHEN jml_scopus = 0 AND jml_nscopus > 0 THEN "Hanya Non Scopus"
+                    WHEN jml_scopus > 0 AND jml_nscopus > 0 THEN "Scopus dan Non Scopus"
+                    ELSE "Tidak Keduanya"
+                END AS category,
+                COUNT(*) AS jumlah_dosen
+            FROM (
+                SELECT
+                    dd.kode_dosen,
+                    SUM(CASE 
+                        WHEN rd.tipe_publikasi = "Nscopus" AND rd.jenis = "Jurnal" THEN rd.bobot 
+                        ELSE 0 
+                    END) AS jml_nscopus,
+                    SUM(CASE 
+                        WHEN rd.tipe_publikasi = "Scopus" AND rd.jenis = "Jurnal" THEN rd.bobot 
+                        ELSE 0 
+                    END) AS jml_scopus
+                FROM database_dosen dd
+                LEFT JOIN rectorate_dosen rd 
+                    ON rd.kode_dosen = dd.kode_dosen
+                    AND rd.year = :year
+                    AND rd.period = :period
+                    AND rd.month = :month';
+
+        if ($prodi && $prodi !== 'Semua Prodi') {
+            $query .= ' WHERE dd.jurusan_dosen = :prodi';
+            $bindings['prodi'] = $prodi;
+        }
+
+        $query .= ' GROUP BY dd.kode_dosen
+            ) AS grouped
+            GROUP BY category';
+
+        $select = \DB::select($query, $bindings);
+
+        return response()->json([
+            'success' => true,
+            'data' => $select
+        ], 200);
+    }
+
     /**
      * Store a newly created resource in storage.
      * @param Request $request

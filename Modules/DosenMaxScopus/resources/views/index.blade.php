@@ -69,6 +69,8 @@
                         <button onclick="init_table()" type="button" class="btn btn-primary w-100" id="toggleFormButton"><i class="las la-plus fs-2"></i> Tampilkan</button>
                     </div>
                 </div>
+                <div id="chartContainer">
+                </div>
                 <div class="table-responsive border-2 border-top">
                     <table class="table table-striped table-row-bordered align-middle rounded tdFirstCenter" id="tableCourse">
                         <thead>

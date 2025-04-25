@@ -1,0 +1,11 @@
+{
+    "name": "ExportReport",
+    "alias": "exportreport",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\ExportReport\\Providers\\ExportReportServiceProvider"
+    ],
+    "files": []
+}

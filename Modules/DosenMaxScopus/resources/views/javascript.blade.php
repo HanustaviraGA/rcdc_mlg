@@ -3,6 +3,65 @@
         // init_table();
     });
 
+    function init_chart(year, month, period, prodi = null) {
+        $('#chartContainer').empty().html('<div class="row mb-5"><div class="col-12 col-xl d-flex align-items-center"><div class=" d-flex align-items-center" style="margin-left: 80px !important;"><canvas id="myChart" style="height: 350px !important;"></canvas></div></div></div>');
+        $.ajax({
+            url: '{{ route('dosenmaxscopus.init_chart') }}',
+            method: 'POST',
+            data: {
+                year: year,
+                month: month,
+                period: period,
+                prodi: prodi,
+            },
+            headers:{
+                'X-CSRF-TOKEN' : '{{ csrf_token() }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    const data = response.data;
+
+                    const labelMap = {
+                        "mandiri_less": "Kurang Dari Batas",
+                        "mandiri_more": "Melebihi Batas",
+                        "mandiri_equal": "Sesuai Batas",
+                        "mandiri_0": "Tidak Memiliki Konferensi"
+                    };
+
+                    const xValues = data.map(item => labelMap[item.category]);
+                    const yValues = data.map(item => item.jumlah_dosen);
+
+                    const barColors = [
+                        "#36a2eb",  // Blue
+                        "#f44336",  // Red
+                        "#4caf50",  // Green
+                        "#9e9e9e"   // Grey
+                    ];
+
+                    new Chart("myChart", {
+                        type: "pie",
+                        data: {
+                            labels: xValues,
+                            datasets: [{
+                                backgroundColor: barColors,
+                                data: yValues
+                            }]
+                        },
+                        options: {
+                            title: {
+                                display: true,
+                                text: "Perbandingan Konferensi/Seminar Dosen"
+                            }
+                        }
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error("Error fetching chart data:", error);
+            }
+        });
+    }
+
     function init_table(){
         blockPage();
         var year = $('#year').val();
@@ -36,6 +95,7 @@
             return;
         }
         var prodi = $('#prodi').val();
+        init_chart(year, month, period, prodi);
         if ($.fn.DataTable.isDataTable('#tableCourse')) {
             $('#tableCourse').DataTable().destroy();
         }

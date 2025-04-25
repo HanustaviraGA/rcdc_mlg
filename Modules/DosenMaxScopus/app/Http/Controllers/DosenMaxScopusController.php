@@ -62,6 +62,61 @@ class DosenMaxScopusController extends Controller
         return select_table($query);
     }
 
+    public function init_chart(Request $request){
+        $year = (int) $request->input('year');
+        $month = (int) $request->input('month');
+        $period = (int) $request->input('period');
+        $prodi = $request->input('prodi');
+
+        $bindings = [
+            'year' => $year,
+            'month' => $month,
+            'period' => $period,
+        ];
+
+        $query = '
+            SELECT
+                CASE
+                    WHEN mandiri_seminar_scopus = 0 THEN "mandiri_0"
+                    WHEN mandiri_seminar_scopus < max_mandiri_scopus THEN "mandiri_less"
+                    WHEN mandiri_seminar_scopus > max_mandiri_scopus THEN "mandiri_more"
+                    WHEN mandiri_seminar_scopus = max_mandiri_scopus THEN "mandiri_equal"
+                END AS category,
+                COUNT(*) AS jumlah_dosen
+            FROM (
+                SELECT
+                    dd.kode_dosen,
+                    dd.maxscopuskonf_dosen AS max_mandiri_scopus,
+                    COALESCE(SUM(CASE 
+                        WHEN rd.jenis = "Seminar" 
+                        AND rd.sumber_paper = "Penelitian Mandiri" 
+                        AND rd.tipe_publikasi = "Scopus" 
+                        THEN rd.bobot ELSE 0 
+                    END), 0) AS mandiri_seminar_scopus
+                FROM database_dosen dd
+                LEFT JOIN rectorate_dosen rd 
+                    ON rd.kode_dosen = dd.kode_dosen
+                    AND rd.year = :year
+                    AND rd.period = :period
+                    AND rd.month = :month';
+
+        if ($prodi && $prodi !== 'Semua Prodi') {
+            $query .= ' WHERE dd.jurusan_dosen = :prodi';
+            $bindings['prodi'] = $prodi;
+        }
+
+        $query .= ' GROUP BY dd.kode_dosen, dd.maxscopuskonf_dosen
+            ) AS grouped
+            GROUP BY category';
+
+        $result = \DB::select($query, $bindings);
+
+        return response()->json([
+            'success' => true,
+            'data' => $result
+        ], 200);
+    }
+
     /**
      * Store a newly created resource in storage.
      * @param Request $request
