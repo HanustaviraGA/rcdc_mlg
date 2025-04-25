@@ -101,6 +101,18 @@
         }
         var col =[
             {
+                data: 'kode_dosen',
+                name: 'kode_dosen',
+                orderable: true,
+                render: function (data, type, full, meta) {
+                    if(full.kode_dosen){
+                        return full.kode_dosen;
+                    }else{
+                        return '-';
+                    }
+                }
+            },
+            {
                 data: 'nama_dosen',
                 name: 'nama_dosen',
                 orderable: true,
@@ -135,19 +147,19 @@
                         </div>
                         <div class="d-flex justify-content-start flex-column">
                             <a style="color: `+color+`" href="javascript:void(0)" class="fw-bolder text-hover-primary fs-6">`+nama+`</a>
-                            <span class="text-muted fw-bold text-muted d-block fs-7">`+full.kode_dosen+` - `+full.pendidikan_dosen+` - `+full.jurusan_dosen+`</span>
+                            <span class="text-muted fw-bold text-muted d-block fs-7">`+full.ft_dosen+` - `+full.jja_dosen+` `+full.pendidikan_dosen+`</span>
                         </div>
                     </div>`;
                     return data;
                 }
             },
             {
-                data: 'jja_dosen',
-                name: 'jja_dosen',
+                data: 'jurusan_dosen',
+                name: 'jurusan_dosen',
                 orderable: true,
                 render: function (data, type, full, meta) {
-                    if(full.jja_dosen){
-                        return full.jja_dosen + ' - ' + full.ft_dosen;
+                    if(full.jurusan_dosen){
+                        return full.jurusan_dosen;
                     }else{
                         return '-';
                     }
