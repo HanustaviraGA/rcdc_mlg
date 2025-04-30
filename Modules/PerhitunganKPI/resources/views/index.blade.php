@@ -11,15 +11,9 @@
                                     </svg></p>
                                 <h3 class="mt-1 mb-5 ms-5">KPI</h3>
                             </div>
-                            <div class=" col-lg-6 d-none d-xl-block">
-                                <p class="mt-4 mb-5 ms-5 text-end">Unggah File :</p>
-                            </div>
-                        </div>
-                        <div class="col-12 col-xl-4 col-md-6 col-lg-6 d-flex align-items-center mt-5 mt-md-0">
-                            <input type="file" class="form-control form-control bg-gray-100" id="uploadFile">
                         </div>
                         <div class="col-12 col-xl-3 col-md-6 col-lg-6 mt-5 my-md-0">
-                            <button type="button" class="btn btn-primary w-100" onclick="onAdd()" id="toggleFormButton"><i class="las la-plus fs-2"></i> Unggah</button>
+                            <button type="button" class="btn btn-primary w-100" onclick="onAdd()" id="toggleFormButton"><i class="las la-plus fs-2"></i> Tampilkan</button>
                         </div>
                     </div>
                     <div class="table-responsive border-2 border-top">

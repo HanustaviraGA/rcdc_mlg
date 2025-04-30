@@ -23,7 +23,7 @@ class PerhitunganKPIController extends Controller
      * Initialize a Datatable.
      * @return Renderable
      */
-    public function init_table()
+    public function init_table_file()
     {
         $html = '';
         if (($handle = fopen("DOSEN.csv", "r")) !== FALSE) {
@@ -67,6 +67,10 @@ class PerhitunganKPIController extends Controller
             fclose($handle);
         }
         return response()->json(['html' => $html], 200);
+    }
+
+    public function init_table(Request $request){
+        $data = $request->all();
     }
 
     /**

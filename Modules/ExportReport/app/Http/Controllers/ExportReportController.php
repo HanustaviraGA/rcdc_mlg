@@ -47,7 +47,7 @@ class ExportReportController extends Controller
             if ($previousJurusan !== $row->jurusan_dosen) {
                 // Optional: Add a group label row (can be removed if not needed)
                 $reportHtml .= '<tr>';
-                $reportHtml .= '<td colspan="8" style="background-color: #f0f0f0; font-weight: bold; text-align:left;">JURUSAN: ' . htmlspecialchars($row->jurusan_dosen) . '</td>';
+                $reportHtml .= '<td colspan="8" style="background-color: #f0f0f0; font-weight: bold; text-align:left;">PRODI: ' . htmlspecialchars($row->jurusan_dosen) . '</td>';
                 $reportHtml .= '</tr>';
         
                 // Re-add the table header row
