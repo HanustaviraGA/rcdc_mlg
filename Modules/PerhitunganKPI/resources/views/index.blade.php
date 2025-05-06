@@ -49,7 +49,7 @@
     function onAdd(){
         blockPage();
         $.ajax({
-            url: "{{ route('perhitungankpi.init_table') }}",
+            url: "{{ route('perhitungankpi.cek_kpi') }}",
             type: "POST",
             // dataType: "html",
             headers:{
@@ -57,7 +57,8 @@
             },  
             success: function (response) {
                 unblockPage();
-                $('#table_kpi').empty().html(response.html);
+                // $('#table_kpi').empty().html(response.html);
+                alert(response.data);
             }
         });
     }

@@ -18,6 +18,7 @@ use Intervention\Image\Image;
 use Carbon\Carbon;
 use \Mpdf\Mpdf;
 use App\Models\Dosen;
+use App\Models\RectorateDosen;
 use FPDF\FPDF;
 
 /**
@@ -295,13 +296,83 @@ function formatSize($size) {
     return round($size, 2) . ' ' . $units[$i];
 }
 
-function getScore($nscopus, $scopus, $thresholds) {
+function getScore($scopus, $nscopus, $thresholds) {
     if ($scopus >= $thresholds[5]) return 6;
     if ($scopus >= $thresholds[4]) return 5;
     if ($scopus >= $thresholds[3]) return 4;
     if ($scopus >= $thresholds[2]) return 3;
-    if ($nscopus > 0) return 2;
-    return 1;
+    if ($scopus > 0) return 2;      // only if there's some Scopus
+    if ($nscopus > 0) return 1;     // has only non-Scopus
+    return 0;                       // no publications at all
+}
+
+function getScoreNew($kode_dosen, $scopus, $nscopus) {
+    $query = Dosen::where('kode_dosen', $kode_dosen)->first();
+    $ft = $query['ft_dosen'];
+    $jja = $query['jja_dosen'];
+    $pendidikan = $query['pendidikan_dosen'];
+    $skor = 0;
+    switch($ft){
+        case 'Functional':
+            switch($jja){
+                case 'TP':
+                    if($pendidikan == 'S1' || $pendidikan == 'S2'){
+                        $rectorate = RectorateDosen::where('kode_dosen', $kode_dosen)->get();
+                        foreach($rectorate as $dosen){
+                            
+                        }
+                        
+
+                    }else if($pendidikan == 'S3'){
+                        
+                    }
+                    break;
+                case 'AA':
+                    if($pendidikan == 'S2'){
+
+                    }else if($pendidikan == 'S3'){
+                        
+                    }
+                    break;
+                case 'L':
+                    if($pendidikan == 'S2'){
+
+                    }else if($pendidikan == 'S3'){
+                        
+                    }
+                    break;
+                case 'LK':
+                    if($pendidikan == 'S2'){
+
+                    }else if($pendidikan == 'S3'){
+                        
+                    }
+                    break;
+                case 'GB':
+                    break;
+                default:
+                    return null;
+            }
+            break;
+        case 'Professional':
+            switch($jja){
+                case 'TP':
+                    break;
+                case 'AA':
+                    break;
+                case 'L':
+                    break;
+                case 'LK':
+                    break;
+                case 'GB':
+                    break;
+                default:
+                    return null;
+            }
+            break;
+        default:
+            return null;
+    }
 }
 
 function tableKPI($kode_dosen, $nscopus, $scopus) {
@@ -388,6 +459,423 @@ function tableKPI($kode_dosen, $nscopus, $scopus) {
 
     return null; // dosen not found
 }
+
+// Functional
+function TP12Func($kode_dosen) {
+    $publications = RectorateDosen::where('kode_dosen', $kode_dosen)->get();
+
+    $has_scopus = false;
+    $has_seminar_nscopus_sinta = false;
+    $has_seminar_nscopus_proceeding = false;
+    $has_scopus_q_nonfirst = false;
+    $has_nscopus_sinta6_first = false;
+    $has_nscopus_proceeding = false;
+    $has_seminar_scopus = false;
+    $has_journal_scopus = false;
+
+    foreach ($publications as $pub) {
+        $jenis = strtolower($pub->jenis);
+        $tipe = strtolower($pub->tipe_publikasi);
+        $quartile = strtolower($pub->quartile_jurnal ?? '');
+        $first_author = strtoupper($pub->first_author) === 'Y';
+
+        $is_jurnal_or_seminar = $jenis === 'Jurnal' || $jenis === 'Seminar';
+        $is_scopus = $tipe === 'Scopus';
+        $is_nscopus = $tipe === 'Nscopus';
+
+        // Any scopus publication
+        if ($is_scopus) {
+            $has_scopus = true;
+        }
+
+        // Skor 1
+        if ($is_jurnal_or_seminar && $is_nscopus && str_contains($quartile, 'Jurnal Sinta')) {
+            $has_seminar_nscopus_sinta = true;
+        }
+
+        // Skor 2
+        if ($is_jurnal_or_seminar && $is_nscopus && $quartile === 'Proceeding') {
+            $has_seminar_nscopus_proceeding = true;
+        }
+
+        // Skor 3
+        if ($is_jurnal_or_seminar && $is_scopus && str_contains($quartile, 'Q') && !$first_author) {
+            $has_scopus_q_nonfirst = true;
+        }
+
+        // Skor 4
+        if ($jenis === 'Jurnal') {
+            if ($is_nscopus && $quartile === 'Jurnal Sinta 6' && $first_author) {
+                $has_nscopus_sinta6_first = true;
+            }
+            if ($is_nscopus && $quartile === 'Proceeding') {
+                $has_nscopus_proceeding = true;
+            }
+        }
+
+        // Skor 5
+        if ($jenis === 'Seminar' && $is_scopus || $jenis === 'Book Chapter' && $is_scopus) {
+            $has_seminar_scopus = true;
+        }
+
+        // Skor 6
+        if ($jenis === 'Jurnal' && $is_scopus) {
+            $has_journal_scopus = true;
+        }
+    }
+
+    if (($has_nscopus_sinta6_first || $has_nscopus_proceeding) && $has_journal_scopus) return 6;
+    if (($has_nscopus_sinta6_first || $has_nscopus_proceeding) && $has_seminar_scopus) return 5;
+    if ($has_nscopus_sinta6_first || $has_nscopus_proceeding) return 4;
+    if ($has_scopus_q_nonfirst) return 3;
+    if ($has_seminar_nscopus_proceeding && !$has_scopus) return 2;
+    if ($has_seminar_nscopus_sinta && !$has_scopus) return 1;
+
+    return 0; // Default score if no match
+}
+
+function AA2Func($kodeDosen){
+    $data = RectorateDosen::where('kode_dosen', $kodeDosen)->get();
+    // Get total bobot from all scopus-type seminar/jurnal/book chapter
+    $scopusItems = $data->filter(function ($item) {
+        return strtolower($item->tipe_publikasi) === 'scopus' &&
+            in_array(strtolower($item->jenis), ['seminar', 'jurnal', 'book chapter']);
+    });
+    $totalBobot = $scopusItems->sum('bobot');
+    // Skor 5
+    if ($scopusItems->contains(fn($item) => $item->bobot >= 1.5)) {
+        $score = 5;
+    }
+    // Skor 4
+    elseif ($scopusItems->contains(fn($item) => $item->bobot >= 1 && $item->bobot <= 1.4)) {
+        // Check for Skor 6:
+        $hasExtraScopusJurnal = $scopusItems->filter(function ($item) {
+            return strtolower($item->jenis) === 'jurnal';
+        })->count() > 1;
+        if ($hasExtraScopusJurnal) {
+            $score = 6;
+        }else{
+            $score = 4;
+        }
+    }
+    // Skor 3
+    elseif ($scopusItems->contains(fn($item) => $item->bobot == 0.5)) {
+        $score = 3;
+    }
+    // Skor 2
+    elseif ($scopusItems->contains(fn($item) => $item->bobot < 0.5)) {
+        $score = 2;
+    }
+    // Skor 1
+    elseif ($data->contains(function ($item) {
+        return in_array(strtolower($item->jenis), ['seminar', 'jurnal']) &&
+            strtolower($item->tipe_publikasi) === 'nscopus' &&
+            str_contains(strtolower($item->quartile_jurnal), 'jurnal sinta');
+    })) {
+        $score = 1;
+    }
+    // No matching data
+    else {
+        $score = 0;
+    }
+    return [
+        'kpi' => $score,
+        'total_bobot' => $totalBobot,
+    ];
+}
+
+function L2Func($kodeDosen) {
+    $data = RectorateDosen::where('kode_dosen', $kodeDosen)->get();
+
+    // Total bobot from all scopus seminar/jurnal/book chapter
+    $scopusItems = $data->filter(function ($item) {
+        return strtolower($item->tipe_publikasi) === 'scopus' &&
+            in_array(strtolower($item->jenis), ['seminar', 'jurnal', 'book chapter']);
+    });
+
+    $totalBobot = $scopusItems->sum('bobot');
+
+    // Base for Skor 4 requirement
+    $mainScopus = $scopusItems->filter(function ($item) {
+        return $item->bobot >= 1 && $item->bobot <= 1.4;
+    });
+
+    // Additional for Skor 5: Jurnal Scopus with bobot >= 0.25 and < 1
+    $additionalJurnalFor5 = $scopusItems->filter(function ($item) {
+        return strtolower($item->jenis) === 'jurnal' && 
+               $item->bobot >= 0.25 && $item->bobot < 1;
+    });
+
+    // Additional for Skor 6: Jurnal Scopus with bobot >= 1
+    $additionalJurnalFor6 = $scopusItems->filter(function ($item) {
+        return strtolower($item->jenis) === 'jurnal' && 
+               $item->bobot >= 1;
+    });
+
+    if ($mainScopus->isNotEmpty() && $additionalJurnalFor6->count() > 1) {
+        $score = 6;
+    } elseif ($mainScopus->isNotEmpty() && $additionalJurnalFor5->isNotEmpty()) {
+        $score = 5;
+    } elseif ($mainScopus->isNotEmpty()) {
+        $score = 4;
+    } elseif ($scopusItems->contains(fn($item) => $item->bobot == 0.5)) {
+        $score = 3;
+    } elseif ($scopusItems->contains(fn($item) => $item->bobot < 0.5)) {
+        $score = 2;
+    } elseif (
+        $data->contains(function ($item) {
+            $jenis = strtolower($item->jenis);
+            $tipe = strtolower($item->tipe_publikasi);
+            $quartile = strtolower($item->quartile_jurnal ?? '');
+            return (
+                in_array($jenis, ['seminar', 'jurnal']) &&
+                $tipe === 'nscopus' &&
+                (str_contains($quartile, 'jurnal sinta') || $jenis === 'seminar')
+            );
+        })
+    ) {
+        $score = 1;
+    } else {
+        $score = 0;
+    }
+
+    return [
+        'kpi' => $score,
+        'total_bobot' => $totalBobot,
+    ];
+}
+
+function AA3TP3LK2Func($kodeDosen) {
+    $data = RectorateDosen::where('kode_dosen', $kodeDosen)->get();
+
+    // Filter Scopus publications of type seminar/jurnal/book chapter
+    $scopusItems = $data->filter(function ($item) {
+        return strtolower($item->tipe_publikasi) === 'scopus' &&
+            in_array(strtolower($item->jenis), ['seminar', 'jurnal', 'book chapter']);
+    });
+
+    $totalBobot = $scopusItems->sum('bobot');
+
+    // Main scopus item with bobot >= 2 (Skor 4 requirement)
+    $mainScopus = $scopusItems->filter(function ($item) {
+        return $item->bobot >= 2;
+    });
+
+    // Additional jurnal scopus with bobot >= 1.5 (Skor 6)
+    $additionalJurnalFor6 = $scopusItems->filter(function ($item) {
+        return strtolower($item->jenis) === 'jurnal' && $item->bobot >= 1.5;
+    });
+
+    // Additional jurnal scopus with bobot >= 0.25 and < 1.5 (Skor 5)
+    $additionalJurnalFor5 = $scopusItems->filter(function ($item) {
+        return strtolower($item->jenis) === 'jurnal' &&
+               $item->bobot >= 0.25 && $item->bobot < 1.5;
+    });
+
+    if ($mainScopus->isNotEmpty() && $additionalJurnalFor6->count() > 1) {
+        $score = 6;
+    } elseif ($mainScopus->isNotEmpty() && $additionalJurnalFor5->isNotEmpty()) {
+        $score = 5;
+    } elseif ($mainScopus->isNotEmpty()) {
+        $score = 4;
+    } elseif ($scopusItems->contains(fn($item) => $item->bobot >= 1 && $item->bobot < 2)) {
+        $score = 3;
+    } elseif ($scopusItems->contains(fn($item) => $item->bobot < 1)) {
+        $score = 2;
+    } elseif (
+        $data->contains(function ($item) {
+            $jenis = strtolower($item->jenis);
+            $tipe = strtolower($item->tipe_publikasi);
+            $quartile = strtolower($item->quartile_jurnal ?? '');
+            return (
+                in_array($jenis, ['seminar', 'jurnal']) &&
+                $tipe === 'nscopus' &&
+                (str_contains($quartile, 'jurnal sinta') || $jenis === 'seminar')
+            );
+        })
+    ) {
+        $score = 1;
+    } else {
+        $score = 0;
+    }
+
+    return [
+        'kpi' => $score,
+        'total_bobot' => $totalBobot,
+    ];
+}
+
+function L3LK3Func($kodeDosen) {
+    $data = RectorateDosen::where('kode_dosen', $kodeDosen)->get();
+
+    // Filter Scopus publications of type seminar/jurnal/book chapter
+    $scopusItems = $data->filter(function ($item) {
+        return strtolower($item->tipe_publikasi) === 'scopus' &&
+            in_array(strtolower($item->jenis), ['seminar', 'jurnal', 'book chapter']);
+    });
+
+    $totalBobot = $scopusItems->sum('bobot');
+
+    // Main Scopus item with bobot >= 4 (Skor 4 requirement)
+    $mainScopus = $scopusItems->filter(function ($item) {
+        return $item->bobot >= 4;
+    });
+
+    // Additional jurnal scopus with bobot >= 2 (Skor 6)
+    $additionalJurnalFor6 = $scopusItems->filter(function ($item) {
+        return strtolower($item->jenis) === 'jurnal' && $item->bobot >= 2;
+    });
+
+    // Additional jurnal scopus with bobot >= 0.25 and < 2 (Skor 5)
+    $additionalJurnalFor5 = $scopusItems->filter(function ($item) {
+        return strtolower($item->jenis) === 'jurnal' &&
+               $item->bobot >= 0.25 && $item->bobot < 2;
+    });
+
+    if ($mainScopus->isNotEmpty() && $additionalJurnalFor6->count() > 1) {
+        $score = 6;
+    } elseif ($mainScopus->isNotEmpty() && $additionalJurnalFor5->isNotEmpty()) {
+        $score = 5;
+    } elseif ($mainScopus->isNotEmpty()) {
+        $score = 4;
+    } elseif ($scopusItems->contains(fn($item) => $item->bobot >= 3 && $item->bobot < 4)) {
+        $score = 3;
+    } elseif ($scopusItems->contains(fn($item) => $item->bobot < 3)) {
+        $score = 2;
+    } elseif (
+        $data->contains(function ($item) {
+            $jenis = strtolower($item->jenis);
+            $tipe = strtolower($item->tipe_publikasi);
+            $quartile = strtolower($item->quartile_jurnal ?? '');
+            return (
+                in_array($jenis, ['seminar', 'jurnal']) &&
+                $tipe === 'nscopus' &&
+                (str_contains($quartile, 'jurnal sinta') || $jenis === 'seminar')
+            );
+        })
+    ) {
+        $score = 1;
+    } else {
+        $score = 0;
+    }
+
+    return [
+        'kpi' => $score,
+        'total_bobot' => $totalBobot,
+    ];
+}
+
+function GBFunc($kodeDosen) {
+    $data = RectorateDosen::where('kode_dosen', $kodeDosen)->get();
+
+    // Filter Scopus publications of type seminar/jurnal/book chapter
+    $scopusItems = $data->filter(function ($item) {
+        return strtolower($item->tipe_publikasi) === 'scopus' &&
+            in_array(strtolower($item->jenis), ['seminar', 'jurnal', 'book chapter']);
+    });
+
+    $totalBobot = $scopusItems->sum('bobot');
+
+    // Main Scopus item with bobot >= 6 (Skor 4 requirement)
+    $mainScopus = $scopusItems->filter(function ($item) {
+        return $item->bobot >= 6;
+    });
+
+    // Additional jurnal scopus with bobot >= 2 OR any book chapter (Skor 6)
+    $additionalFor6 = $scopusItems->filter(function ($item) {
+        return (strtolower($item->jenis) === 'jurnal' && $item->bobot >= 2) ||
+               strtolower($item->jenis) === 'book chapter';
+    });
+
+    // Additional jurnal scopus with bobot >= 0.25 and < 2 (Skor 5)
+    $additionalFor5 = $scopusItems->filter(function ($item) {
+        return strtolower($item->jenis) === 'jurnal' &&
+               $item->bobot >= 0.25 && $item->bobot < 2;
+    });
+
+    if ($mainScopus->isNotEmpty() && $additionalFor6->count() > 1) {
+        $score = 6;
+    } elseif ($mainScopus->isNotEmpty() && $additionalFor5->isNotEmpty()) {
+        $score = 5;
+    } elseif ($mainScopus->isNotEmpty()) {
+        $score = 4;
+    } elseif ($scopusItems->contains(fn($item) => $item->bobot >= 5 && $item->bobot < 6)) {
+        $score = 3;
+    } elseif ($scopusItems->contains(fn($item) => $item->bobot < 5)) {
+        $score = 2;
+    } elseif (
+        $data->contains(function ($item) {
+            $jenis = strtolower($item->jenis);
+            $tipe = strtolower($item->tipe_publikasi);
+            $quartile = strtolower($item->quartile_jurnal ?? '');
+            return (
+                in_array($jenis, ['seminar', 'jurnal']) &&
+                $tipe === 'nscopus' &&
+                (str_contains($quartile, 'jurnal sinta') || $jenis === 'seminar')
+            );
+        })
+    ) {
+        $score = 1;
+    } else {
+        $score = 0;
+    }
+
+    return [
+        'kpi' => $score,
+        'total_bobot' => $totalBobot,
+    ];
+}
+
+// function AAFunc($kode_dosen) {
+//     $publications = RectorateDosen::where('kode_dosen', $kode_dosen)->get();
+
+//     $has_sinta_nscopus = false;
+//     $scopus_under_05 = 0;
+//     $scopus_eq_05 = 0;
+//     $scopus_1_to_1_4 = 0;
+//     $scopus_gte_1_5 = 0;
+//     $extra_scopus_journal = 0;
+
+//     foreach ($publications as $pub) {
+//         $jenis = strtolower($pub->jenis);
+//         $tipe = strtolower($pub->tipe_publikasi);
+//         $quartile = strtolower($pub->quartile_jurnal ?? '');
+//         $bobot = floatval($pub->bobot ?? 0);
+
+//         $is_jurnal_or_seminar_or_bc = in_array($jenis, ['seminar', 'jurnal', 'book chapter']);
+//         $is_nscopus = $tipe === 'nscopus';
+//         $is_scopus = $tipe === 'scopus';
+
+//         // Skor 1: nscopus publications
+//         if (
+//             ($jenis === 'seminar' || $jenis === 'jurnal') && $is_nscopus ||
+//             ($jenis === 'jurnal' && $is_nscopus && str_contains($quartile, 'jurnal sinta'))
+//         ) {
+//             $has_sinta_nscopus = true;
+//         }
+
+//         // Skor 2–6: scopus-based scoring
+//         if ($is_scopus && $is_jurnal_or_seminar_or_bc) {
+//             if ($bobot < 0.5) $scopus_under_05++;
+//             elseif ($bobot == 0.5) $scopus_eq_05++;
+//             elseif ($bobot >= 1 && $bobot <= 1.4) $scopus_1_to_1_4++;
+//             elseif ($bobot >= 1.5) $scopus_gte_1_5++;
+
+//             // Count scopus *journals* separately for Skor 6 condition
+//             if ($jenis === 'jurnal') $extra_scopus_journal++;
+//         }
+//     }
+
+//     // Evaluate score in priority order
+//     if ($scopus_1_to_1_4 >= 1 && $extra_scopus_journal >= 2) return 6;
+//     if ($scopus_gte_1_5 >= 1) return 5;
+//     if ($scopus_1_to_1_4 >= 1) return 4;
+//     if ($scopus_eq_05 >= 1) return 3;
+//     if ($scopus_under_05 >= 1) return 2;
+//     if ($has_sinta_nscopus) return 1;
+
+//     return 0; // No score
+// }
 
 // Utility function to center text
 function centerTextX($imageWidth, $fontSize, $font, $text) {
