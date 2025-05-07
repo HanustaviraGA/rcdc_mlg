@@ -826,6 +826,339 @@ function GBFunc($kodeDosen) {
     ];
 }
 
+// Professional
+
+function TP12Prof($kodeDosen) {
+    $data = RectorateDosen::where('kode_dosen', $kodeDosen)->get();
+
+    $hasScopus = $data->contains(fn($item) => strtolower($item->tipe_publikasi) === 'scopus');
+
+    // Skor 6: Syarat skor 4 terpenuhi + jurnal scopus
+    $skor4Eligible = $data->contains(function ($item) {
+        $jenis = strtolower($item->jenis);
+        $tipe = strtolower($item->tipe_publikasi);
+        $quartile = strtolower($item->quartile_jurnal ?? '');
+        $firstAuthor = strtoupper($item->first_author) === 'Y';
+
+        return (
+            ($jenis === 'jurnal' && $tipe === 'nscopus' && $quartile === 'jurnal sinta 6' && $firstAuthor) ||
+            ($jenis === 'jurnal' && $tipe === 'nscopus' && $firstAuthor)
+        );
+    });
+
+    $hasJurnalScopus = $data->contains(function ($item) {
+        return strtolower($item->jenis) === 'jurnal' &&
+               strtolower($item->tipe_publikasi) === 'scopus';
+    });
+
+    $hasSeminarOrBookScopus = $data->contains(function ($item) {
+        return (
+            (strtolower($item->jenis) === 'seminar' && strtolower($item->tipe_publikasi) === 'scopus') ||
+            (strtolower($item->jenis) === 'book chapter' && strtolower($item->tipe_publikasi) === 'scopus')
+        );
+    });
+
+    $hasScopusNotFirstAuthor = $data->contains(function ($item) {
+        return in_array(strtolower($item->jenis), ['seminar', 'jurnal']) &&
+               strtolower($item->tipe_publikasi) === 'scopus' &&
+               strtoupper($item->first_author) === 'N';
+    });
+
+    $hasNScopusProceeding = $data->contains(function ($item) {
+        return in_array(strtolower($item->jenis), ['seminar', 'jurnal']) &&
+               strtolower($item->tipe_publikasi) === 'nscopus' &&
+               strtolower($item->quartile_jurnal ?? '') === 'proceeding';
+    });
+
+    $hasNScopusSinta = $data->contains(function ($item) {
+        return in_array(strtolower($item->jenis), ['seminar', 'jurnal']) &&
+               strtolower($item->tipe_publikasi) === 'nscopus' &&
+               str_contains(strtolower($item->quartile_jurnal ?? ''), 'jurnal sinta');
+    });
+
+    // Determine score
+    if ($skor4Eligible && $hasJurnalScopus) {
+        $score = 6;
+    } elseif ($skor4Eligible && $hasSeminarOrBookScopus) {
+        $score = 5;
+    } elseif ($skor4Eligible) {
+        $score = 4;
+    } elseif ($hasScopusNotFirstAuthor) {
+        $score = 3;
+    } elseif ($hasNScopusProceeding && !$hasScopus) {
+        $score = 2;
+    } elseif ($hasNScopusSinta && !$hasScopus) {
+        $score = 1;
+    } else {
+        $score = 0;
+    }
+
+    return [
+        'kpi' => $score,
+    ];
+}
+
+function AA2Prof($kodeDosen) {
+    $data = RectorateDosen::where('kode_dosen', $kodeDosen)->get();
+
+    // Skor 6: Skor 4 terpenuhi + ada jurnal scopus dengan bobot >= 0.25
+    $skor4Eligible = $data->contains(function ($item) {
+        return in_array(strtolower($item->jenis), ['seminar', 'jurnal', 'book chapter']) &&
+               strtolower($item->tipe_publikasi) === 'scopus' &&
+               floatval($item->bobot) >= 0.5;
+    });
+
+    $hasJurnalScopus025 = $data->contains(function ($item) {
+        return strtolower($item->jenis) === 'jurnal' &&
+               strtolower($item->tipe_publikasi) === 'scopus' &&
+               floatval($item->bobot) >= 0.25;
+    });
+
+    $hasJurnalScopus = $data->contains(function ($item) {
+        return strtolower($item->jenis) === 'jurnal' &&
+               strtolower($item->tipe_publikasi) === 'scopus';
+    });
+
+    $hasScopusGTE025LT05 = $data->contains(function ($item) {
+        return in_array(strtolower($item->jenis), ['seminar', 'jurnal', 'book chapter']) &&
+               strtolower($item->tipe_publikasi) === 'scopus' &&
+               floatval($item->bobot) >= 0.25 &&
+               floatval($item->bobot) < 0.5;
+    });
+
+    $hasScopusLT025 = $data->contains(function ($item) {
+        return in_array(strtolower($item->jenis), ['seminar', 'jurnal', 'book chapter']) &&
+               strtolower($item->tipe_publikasi) === 'scopus' &&
+               floatval($item->bobot) < 0.25;
+    });
+
+    $hasNScopusSinta = $data->contains(function ($item) {
+        return in_array(strtolower($item->jenis), ['seminar', 'jurnal']) &&
+               strtolower($item->tipe_publikasi) === 'nscopus' &&
+               str_contains(strtolower($item->quartile_jurnal ?? ''), 'jurnal sinta');
+    });
+
+    // Determine score
+    if ($skor4Eligible && $hasJurnalScopus025) {
+        $score = 6;
+    } elseif ($skor4Eligible && $hasJurnalScopus) {
+        $score = 5;
+    } elseif ($skor4Eligible) {
+        $score = 4;
+    } elseif ($hasScopusGTE025LT05) {
+        $score = 3;
+    } elseif ($hasScopusLT025) {
+        $score = 2;
+    } elseif ($hasNScopusSinta) {
+        $score = 1;
+    } else {
+        $score = 0;
+    }
+
+    return [
+        'kpi' => $score,
+    ];
+}
+
+function L2Prof($kodeDosen) {
+    $data = RectorateDosen::where('kode_dosen', $kodeDosen)->get();
+
+    // Skor 4: minimal ada 1 publikasi (seminar/jurnal/book chapter) scopus dengan bobot >= 0.5
+    $skor4Eligible = $data->contains(function ($item) {
+        return in_array(strtolower($item->jenis), ['seminar', 'jurnal', 'book chapter']) &&
+               strtolower($item->tipe_publikasi) === 'scopus' &&
+               floatval($item->bobot) >= 0.5;
+    });
+
+    // Skor 6: Skor 4 terpenuhi + ada tambahan jurnal scopus dengan bobot >= 0.5
+    $skor6AdditionalJurnal = $data->filter(function ($item) {
+        return strtolower($item->jenis) === 'jurnal' &&
+               strtolower($item->tipe_publikasi) === 'scopus' &&
+               floatval($item->bobot) >= 0.5;
+    });
+
+    // Skor 5: Skor 4 terpenuhi + ada jurnal scopus (tanpa syarat bobot)
+    $hasJurnalScopus = $data->contains(function ($item) {
+        return strtolower($item->jenis) === 'jurnal' &&
+               strtolower($item->tipe_publikasi) === 'scopus';
+    });
+
+    $hasScopusGTE025LT05 = $data->contains(function ($item) {
+        return in_array(strtolower($item->jenis), ['seminar', 'jurnal', 'book chapter']) &&
+               strtolower($item->tipe_publikasi) === 'scopus' &&
+               floatval($item->bobot) >= 0.25 &&
+               floatval($item->bobot) < 0.5;
+    });
+
+    $hasScopusLT025 = $data->contains(function ($item) {
+        return in_array(strtolower($item->jenis), ['seminar', 'jurnal', 'book chapter']) &&
+               strtolower($item->tipe_publikasi) === 'scopus' &&
+               floatval($item->bobot) < 0.25;
+    });
+
+    $hasNScopusSinta = $data->contains(function ($item) {
+        return in_array(strtolower($item->jenis), ['seminar', 'jurnal']) &&
+               strtolower($item->tipe_publikasi) === 'nscopus' &&
+               str_contains(strtolower($item->quartile_jurnal ?? ''), 'jurnal sinta');
+    });
+
+    // Determine score
+    if ($skor4Eligible && $skor6AdditionalJurnal->count() > 1) {
+        $score = 6;
+    } elseif ($skor4Eligible && $hasJurnalScopus) {
+        $score = 5;
+    } elseif ($skor4Eligible) {
+        $score = 4;
+    } elseif ($hasScopusGTE025LT05) {
+        $score = 3;
+    } elseif ($hasScopusLT025) {
+        $score = 2;
+    } elseif ($hasNScopusSinta) {
+        $score = 1;
+    } else {
+        $score = 0;
+    }
+
+    return [
+        'kpi' => $score,
+    ];
+}
+
+function AA3TP3LK2Prof($kodeDosen) {
+    $data = RectorateDosen::where('kode_dosen', $kodeDosen)->get();
+
+    // Skor 4: ada Scopus (seminar/jurnal/book chapter) dengan bobot >= 1
+    $skor4Eligible = $data->contains(function ($item) {
+        return in_array(strtolower($item->jenis), ['seminar', 'jurnal', 'book chapter']) &&
+               strtolower($item->tipe_publikasi) === 'scopus' &&
+               floatval($item->bobot) >= 1;
+    });
+
+    // Skor 6: Skor 4 terpenuhi + jurnal Scopus tambahan bobot >= 1
+    $skor6Additional = $data->filter(function ($item) {
+        return strtolower($item->jenis) === 'jurnal' &&
+               strtolower($item->tipe_publikasi) === 'scopus' &&
+               floatval($item->bobot) >= 1;
+    });
+
+    // Skor 5: Skor 4 terpenuhi + jurnal Scopus (tanpa syarat bobot)
+    $hasJurnalScopus = $data->contains(function ($item) {
+        return strtolower($item->jenis) === 'jurnal' &&
+               strtolower($item->tipe_publikasi) === 'scopus';
+    });
+
+    // Skor 3: Scopus dengan bobot >= 0.75 dan < 1
+    $hasScopus075To099 = $data->contains(function ($item) {
+        return in_array(strtolower($item->jenis), ['seminar', 'jurnal', 'book chapter']) &&
+               strtolower($item->tipe_publikasi) === 'scopus' &&
+               floatval($item->bobot) >= 0.75 &&
+               floatval($item->bobot) < 1;
+    });
+
+    // Skor 2: Scopus dengan bobot < 0.75
+    $hasScopusLT075 = $data->contains(function ($item) {
+        return in_array(strtolower($item->jenis), ['seminar', 'jurnal', 'book chapter']) &&
+               strtolower($item->tipe_publikasi) === 'scopus' &&
+               floatval($item->bobot) < 0.75;
+    });
+
+    // Skor 1: nscopus atau jurnal dengan quartile LIKE 'Jurnal SINTA%'
+    $hasNScopusSinta = $data->contains(function ($item) {
+        return in_array(strtolower($item->jenis), ['seminar', 'jurnal']) &&
+               strtolower($item->tipe_publikasi) === 'nscopus' &&
+               str_contains(strtolower($item->quartile_jurnal ?? ''), 'jurnal sinta');
+    });
+
+    // Determine score
+    if ($skor4Eligible && $skor6Additional->count() > 1) {
+        $score = 6;
+    } elseif ($skor4Eligible && $hasJurnalScopus) {
+        $score = 5;
+    } elseif ($skor4Eligible) {
+        $score = 4;
+    } elseif ($hasScopus075To099) {
+        $score = 3;
+    } elseif ($hasScopusLT075) {
+        $score = 2;
+    } elseif ($hasNScopusSinta) {
+        $score = 1;
+    } else {
+        $score = 0;
+    }
+
+    return [
+        'kpi' => $score,
+    ];
+}
+
+function L3Prof($kodeDosen) {
+    $data = RectorateDosen::where('kode_dosen', $kodeDosen)->get();
+
+    // Skor 4: seminar/jurnal/book chapter Scopus dengan bobot >= 2
+    $skor4Eligible = $data->contains(function ($item) {
+        return in_array(strtolower($item->jenis), ['seminar', 'jurnal', 'book chapter']) &&
+               strtolower($item->tipe_publikasi) === 'scopus' &&
+               floatval($item->bobot) >= 2;
+    });
+
+    // Skor 6: Skor 4 terpenuhi + jurnal Scopus dengan bobot >= 1
+    $skor6Additional = $data->filter(function ($item) {
+        return strtolower($item->jenis) === 'jurnal' &&
+               strtolower($item->tipe_publikasi) === 'scopus' &&
+               floatval($item->bobot) >= 1;
+    });
+
+    // Skor 5: Skor 4 terpenuhi + ada jurnal Scopus (tanpa bobot)
+    $hasJurnalScopus = $data->contains(function ($item) {
+        return strtolower($item->jenis) === 'jurnal' &&
+               strtolower($item->tipe_publikasi) === 'scopus';
+    });
+
+    // Skor 3: Scopus dengan bobot >= 1 < 2
+    $hasScopus1To2 = $data->contains(function ($item) {
+        $bobot = floatval($item->bobot);
+        return in_array(strtolower($item->jenis), ['seminar', 'jurnal', 'book chapter']) &&
+               strtolower($item->tipe_publikasi) === 'scopus' &&
+               $bobot >= 1 && $bobot < 2;
+    });
+
+    // Skor 2: Scopus dengan bobot < 1
+    $hasScopusLT1 = $data->contains(function ($item) {
+        return in_array(strtolower($item->jenis), ['seminar', 'jurnal', 'book chapter']) &&
+               strtolower($item->tipe_publikasi) === 'scopus' &&
+               floatval($item->bobot) < 1;
+    });
+
+    // Skor 1: tipe nscopus atau quartile_jurnal LIKE 'Jurnal SINTA%'
+    $hasNScopusSinta = $data->contains(function ($item) {
+        return in_array(strtolower($item->jenis), ['seminar', 'jurnal']) &&
+               strtolower($item->tipe_publikasi) === 'nscopus' &&
+               str_contains(strtolower($item->quartile_jurnal ?? ''), 'jurnal sinta');
+    });
+
+    // Penentuan skor
+    if ($skor4Eligible && $skor6Additional->count() > 1) {
+        $score = 6;
+    } elseif ($skor4Eligible && $hasJurnalScopus) {
+        $score = 5;
+    } elseif ($skor4Eligible) {
+        $score = 4;
+    } elseif ($hasScopus1To2) {
+        $score = 3;
+    } elseif ($hasScopusLT1) {
+        $score = 2;
+    } elseif ($hasNScopusSinta) {
+        $score = 1;
+    } else {
+        $score = 0;
+    }
+
+    return [
+        'kpi' => $score,
+    ];
+}
+
+
 // function AAFunc($kode_dosen) {
 //     $publications = RectorateDosen::where('kode_dosen', $kode_dosen)->get();
 

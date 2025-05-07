@@ -156,32 +156,56 @@ class PerhitunganKPIController extends Controller
         $query = Dosen::where('ft_dosen', 'Functional')->orderBy('nama_dosen', 'ASC')->get();
         $array = [];
         foreach($query as $dosen){
-            if($dosen['jja_dosen'] == 'TP'){
-                if($dosen['pendidikan_dosen'] == 'S1' || $dosen['pendidikan_dosen'] == 'S2'){
-                    $kpi = TP12Func($dosen['kode_dosen']);
-                }else if($dosen['pendidikan_dosen'] == 'S3'){
-                    $kpi = AA3TP3LK2Func($dosen['kode_dosen']);
+            if($dosen['ft_dosen'] == 'Functional'){
+                if($dosen['jja_dosen'] == 'TP'){
+                    if($dosen['pendidikan_dosen'] == 'S1' || $dosen['pendidikan_dosen'] == 'S2'){
+                        $kpi = TP12Func($dosen['kode_dosen']);
+                    }else if($dosen['pendidikan_dosen'] == 'S3'){
+                        $kpi = AA3TP3LK2Func($dosen['kode_dosen']);
+                    }
+                }else if($dosen['jja_dosen'] == 'AA'){
+                    if($dosen['pendidikan_dosen'] == 'S2'){
+                        $kpi = AA2Func($dosen['kode_dosen']);
+                    }else if($dosen['pendidikan_dosen'] == 'S3'){
+                        $kpi = AA3TP3LK2Func($dosen['kode_dosen']);
+                    }
+                }else if($dosen['jja_dosen'] == 'L'){
+                    if($dosen['pendidikan_dosen'] == 'S2'){
+                        $kpi = L2Func($dosen['kode_dosen']);
+                    }else if($dosen['pendidikan_dosen'] == 'S3'){
+                        $kpi = L3LK3Func($dosen['kode_dosen']);
+                    }
+                }else if($dosen['jja_dosen'] == 'LK'){
+                    if($dosen['pendidikan_dosen'] == 'S2'){
+                        $kpi = AA3TP3LK2Func($dosen['kode_dosen']);
+                    }else if($dosen['pendidikan_dosen'] == 'S3'){
+                        $kpi = L3LK3Func($dosen['kode_dosen']);
+                    }
+                }else if($dosen['jja_dosen'] == 'GB'){
+                    $kpi = GBFunc($dosen['kode_dosen']);
                 }
-            }else if($dosen['jja_dosen'] == 'AA'){
-                if($dosen['pendidikan_dosen'] == 'S2'){
-                    $kpi = AA2Func($dosen['kode_dosen']);
-                }else if($dosen['pendidikan_dosen'] == 'S3'){
-                    $kpi = AA3TP3LK2Func($dosen['kode_dosen']);
+            }else{
+                if($dosen['jja_dosen'] == 'TP'){
+                    if($dosen['pendidikan_dosen'] == 'S1' || $dosen['pendidikan_dosen'] == 'S2'){
+                        $kpi = TP12Prof($dosen['kode_dosen']);
+                    }else if($dosen['pendidikan_dosen'] == 'S3'){
+                        $kpi = AA3TP3LK2Prof($dosen['kode_dosen']);
+                    }
+                }else if($dosen['jja_dosen'] == 'AA'){
+                    if($dosen['pendidikan_dosen'] == 'S2'){
+                        $kpi = AA2Prof($dosen['kode_dosen']);
+                    }else if($dosen['pendidikan_dosen'] == 'S3'){
+                        $kpi = AA3TP3LK2Prof($dosen['kode_dosen']);
+                    }
+                }else if($dosen['jja_dosen'] == 'L'){
+                    if($dosen['pendidikan_dosen'] == 'S2'){
+                        $kpi = L2Prof($dosen['kode_dosen']);
+                    }else if($dosen['pendidikan_dosen'] == 'S3'){
+                        $kpi = L3Prof($dosen['kode_dosen']);
+                    }
+                }else if($dosen['jja_dosen'] == 'LK'){
+                    $kpi = AA3TP3LK2Prof($dosen['kode_dosen']);
                 }
-            }else if($dosen['jja_dosen'] == 'L'){
-                if($dosen['pendidikan_dosen'] == 'S2'){
-                    $kpi = L2Func($dosen['kode_dosen']);
-                }else if($dosen['pendidikan_dosen'] == 'S3'){
-                    $kpi = L3LK3Func($dosen['kode_dosen']);
-                }
-            }else if($dosen['jja_dosen'] == 'LK'){
-                if($dosen['pendidikan_dosen'] == 'S2'){
-                    $kpi = AA3TP3LK2Func($dosen['kode_dosen']);
-                }else if($dosen['pendidikan_dosen'] == 'S3'){
-                    $kpi = L3LK3Func($dosen['kode_dosen']);
-                }
-            }else if($dosen['jja_dosen'] == 'GB'){
-                $kpi = GBFunc($dosen['kode_dosen']);
             }
             $input = [
                 'nama_dosen' => $dosen['nama_dosen'],
