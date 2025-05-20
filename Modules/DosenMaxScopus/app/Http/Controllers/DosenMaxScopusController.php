@@ -25,48 +25,11 @@ class DosenMaxScopusController extends Controller
      */
     public function init_table(Request $request)
     {
-        $data = $request->all();
-
-        $stringq = 'SELECT
-            dd.kode_dosen,
-            dd.nama_dosen,
-            dd.ft_dosen,
-            dd.jja_dosen,
-            dd.pendidikan_dosen,
-            dd.jurusan_dosen,
-            dd.maxscopuskonf_dosen AS max_mandiri_scopus,
-            COALESCE(SUM(CASE 
-                WHEN rd.jenis = "Seminar" 
-                AND rd.sumber_paper = "Penelitian Mandiri" 
-                AND rd.tipe_publikasi = "Scopus" 
-                THEN rd.bobot ELSE 0 END), 0) AS mandiri_seminar_scopus
-        FROM database_dosen dd
-        LEFT JOIN rectorate_dosen rd 
-            ON rd.kode_dosen = dd.kode_dosen
-            AND rd.year = "'.$data['year'].'"
-            AND rd.period = "'.$data['period'].'"
-            AND rd.month = "'.$data['month'].'"';
-
-        // Start the WHERE clause (if needed)
-        if (isset($data['prodi']) && $data['prodi'] !== 'Semua Prodi') {
-            $prodi = addslashes($data['prodi']); // simple security against quote injection
-            $stringq .= " WHERE dd.jurusan_dosen = '$prodi'";
-        }
-
-        // Always add GROUP BY
-        $stringq .= " GROUP BY 
-            dd.kode_dosen, dd.nama_dosen, dd.ft_dosen, dd.jja_dosen, 
-            dd.pendidikan_dosen, dd.jurusan_dosen, dd.maxscopuskonf_dosen";
-
-        $query = collect(\DB::select($stringq));
-        return select_table($query);
-    }
-
-    public function init_chart(Request $request){
         $year = (int) $request->input('year');
         $month = (int) $request->input('month');
         $period = (int) $request->input('period');
         $prodi = $request->input('prodi');
+        $kondisi = $request->input('kondisi');
 
         $bindings = [
             'year' => $year,
@@ -74,13 +37,116 @@ class DosenMaxScopusController extends Controller
             'period' => $period,
         ];
 
+        $whereClauses = [];
+        if ($prodi && $prodi !== 'Semua Prodi') {
+            $whereClauses[] = 'dd.jurusan_dosen = :prodi';
+            $bindings['prodi'] = $prodi;
+        }
+
+        $query = '
+            SELECT
+                dd.kode_dosen,
+                dd.nama_dosen,
+                dd.ft_dosen,
+                dd.jja_dosen,
+                dd.pendidikan_dosen,
+                dd.jurusan_dosen,
+                dd.maxscopuskonf_dosen AS max_mandiri_scopus,
+                COALESCE(SUM(CASE 
+                    WHEN rd.jenis = "Seminar" 
+                        AND rd.sumber_paper = "Penelitian Mandiri" 
+                        AND rd.tipe_publikasi = "Scopus" 
+                    THEN rd.bobot ELSE 0 END), 0) AS mandiri_seminar_scopus
+            FROM database_dosen dd
+            LEFT JOIN rectorate_dosen rd 
+                ON rd.kode_dosen = dd.kode_dosen
+                AND rd.year = :year
+                AND rd.period = :period
+                AND rd.month = :month';
+
+        if (!empty($whereClauses)) {
+            $query .= ' WHERE ' . implode(' AND ', $whereClauses);
+        }
+
+        $query .= '
+            GROUP BY 
+                dd.kode_dosen, dd.nama_dosen, dd.ft_dosen, dd.jja_dosen, 
+                dd.pendidikan_dosen, dd.jurusan_dosen, dd.maxscopuskonf_dosen
+        ';
+
+        // Now filter the result using HAVING clause (aggregated data comparison)
+        $havingClause = '';
+        if ($kondisi && $kondisi !== 'SK') {
+            switch ($kondisi) {
+                case 'ME':
+                    $havingClause = 'HAVING mandiri_seminar_scopus > max_mandiri_scopus';
+                    break;
+                case 'SE':
+                    $havingClause = 'HAVING mandiri_seminar_scopus = max_mandiri_scopus';
+                    break;
+                case 'KR':
+                    $havingClause = 'HAVING mandiri_seminar_scopus < max_mandiri_scopus';
+                    break;
+                case 'TK':
+                    $havingClause = 'HAVING mandiri_seminar_scopus = 0';
+                    break;
+            }
+        }
+
+        if (!empty($havingClause)) {
+            $query .= ' ' . $havingClause;
+        }
+
+        $results = collect(\DB::select($query, $bindings));
+
+        return select_table($results);
+    }
+
+    public function init_chart(Request $request)
+    {
+        $year = (int) $request->input('year');
+        $month = (int) $request->input('month');
+        $period = (int) $request->input('period');
+        $prodi = $request->input('prodi');
+        $kondisi = $request->input('kondisi');
+
+        $bindings = [
+            'year' => $year,
+            'month' => $month,
+            'period' => $period,
+        ];
+
+        $whereClauses = [];
+        if ($prodi && $prodi !== 'Semua Prodi') {
+            $whereClauses[] = 'dd.jurusan_dosen = :prodi';
+            $bindings['prodi'] = $prodi;
+        }
+
+        $havingClause = '';
+        if ($kondisi && $kondisi !== 'SK') {
+            switch ($kondisi) {
+                case 'ME':
+                    $havingClause = 'HAVING mandiri_seminar_scopus > max_mandiri_scopus';
+                    break;
+                case 'SE':
+                    $havingClause = 'HAVING mandiri_seminar_scopus = max_mandiri_scopus';
+                    break;
+                case 'KR':
+                    $havingClause = 'HAVING mandiri_seminar_scopus < max_mandiri_scopus';
+                    break;
+                case 'TK':
+                    $havingClause = 'HAVING mandiri_seminar_scopus = 0';
+                    break;
+            }
+        }
+
         $query = '
             SELECT
                 CASE
-                    WHEN mandiri_seminar_scopus = 0 THEN "mandiri_0"
-                    WHEN mandiri_seminar_scopus < max_mandiri_scopus THEN "mandiri_less"
-                    WHEN mandiri_seminar_scopus > max_mandiri_scopus THEN "mandiri_more"
-                    WHEN mandiri_seminar_scopus = max_mandiri_scopus THEN "mandiri_equal"
+                    WHEN mandiri_seminar_scopus = 0 THEN "Tidak Memiliki Konferensi"
+                    WHEN mandiri_seminar_scopus < max_mandiri_scopus THEN "Kurang Dari Batas"
+                    WHEN mandiri_seminar_scopus > max_mandiri_scopus THEN "Melebihi Batas"
+                    WHEN mandiri_seminar_scopus = max_mandiri_scopus THEN "Sesuai Batas"
                 END AS category,
                 COUNT(*) AS jumlah_dosen
             FROM (
@@ -89,10 +155,9 @@ class DosenMaxScopusController extends Controller
                     dd.maxscopuskonf_dosen AS max_mandiri_scopus,
                     COALESCE(SUM(CASE 
                         WHEN rd.jenis = "Seminar" 
-                        AND rd.sumber_paper = "Penelitian Mandiri" 
-                        AND rd.tipe_publikasi = "Scopus" 
-                        THEN rd.bobot ELSE 0 
-                    END), 0) AS mandiri_seminar_scopus
+                            AND rd.sumber_paper = "Penelitian Mandiri" 
+                            AND rd.tipe_publikasi = "Scopus" 
+                        THEN rd.bobot ELSE 0 END), 0) AS mandiri_seminar_scopus
                 FROM database_dosen dd
                 LEFT JOIN rectorate_dosen rd 
                     ON rd.kode_dosen = dd.kode_dosen
@@ -100,12 +165,20 @@ class DosenMaxScopusController extends Controller
                     AND rd.period = :period
                     AND rd.month = :month';
 
-        if ($prodi && $prodi !== 'Semua Prodi') {
-            $query .= ' WHERE dd.jurusan_dosen = :prodi';
-            $bindings['prodi'] = $prodi;
+        // Add WHERE clauses
+        if (!empty($whereClauses)) {
+            $query .= ' WHERE ' . implode(' AND ', $whereClauses);
         }
 
-        $query .= ' GROUP BY dd.kode_dosen, dd.maxscopuskonf_dosen
+        $query .= '
+                GROUP BY dd.kode_dosen, dd.maxscopuskonf_dosen';
+
+        // Add HAVING clause if needed
+        if (!empty($havingClause)) {
+            $query .= ' ' . $havingClause;
+        }
+
+        $query .= '
             ) AS grouped
             GROUP BY category';
 

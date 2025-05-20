@@ -22,5 +22,5 @@ Route::prefix('backoffice/perhitungankpi')->group(function() {
     Route::delete('delete', [PerhitunganKPIController::class, 'delete'])->name('perhitungankpi.delete');
     // Custom
     Route::post('init_table', [PerhitunganKPIController::class, 'init_table'])->name('perhitungankpi.init_table');
-    Route::post('cek_kpi', [PerhitunganKPIController::class, 'cek_kpi'])->name('perhitungankpi.cek_kpi');
+    Route::get('cek_kpi', [PerhitunganKPIController::class, 'cek_kpi'])->name('perhitungankpi.cek_kpi');
 });

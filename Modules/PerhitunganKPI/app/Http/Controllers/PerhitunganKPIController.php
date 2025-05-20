@@ -95,11 +95,11 @@ class PerhitunganKPIController extends Controller
             dd.pendidikan_dosen,
             dd.jurusan_dosen,
             COALESCE(SUM(CASE 
-                WHEN rd.tipe_publikasi = "Nscopus" AND rd.jenis = "Jurnal" THEN rd.bobot
+                WHEN rd.tipe_publikasi = "Nscopus" THEN rd.bobot
                 ELSE 0
             END), 0) AS jml_nscopus,
             COALESCE(SUM(CASE 
-                WHEN rd.tipe_publikasi = "Scopus" AND rd.jenis = "Jurnal" THEN rd.bobot
+                WHEN rd.tipe_publikasi = "Scopus" THEN rd.bobot
                 ELSE 0
             END), 0) AS jml_scopus
             FROM database_dosen dd
@@ -116,15 +116,69 @@ class PerhitunganKPIController extends Controller
 
         $query .= ' GROUP BY 
             dd.kode_dosen, dd.nama_dosen, dd.ft_dosen, dd.jja_dosen, 
-            dd.pendidikan_dosen, dd.jurusan_dosen, dd.maxscopuskonf_dosen';
+            dd.pendidikan_dosen, dd.jurusan_dosen, dd.maxscopuskonf_dosen ORDER BY dd.nama_dosen ASC';
 
         $select = \DB::select($query, $bindings);
 
         foreach ($select as $key => $value) {
             $kodeDosen = $value->kode_dosen;
+            $ftDosen = $value->ft_dosen;
+            $jjaDosen = $value->jja_dosen;
+            $pendidikanDosen = $value->pendidikan_dosen;
             $nscopus = floatval(str_replace(',', '.', $value->jml_nscopus));
             $scopus = floatval(str_replace(',', '.', $value->jml_scopus));
-            $kpis = tableKPI($kodeDosen, $nscopus, $scopus);
+            // $kpis = tableKPI($kodeDosen, $nscopus, $scopus);
+            if($ftDosen == 'Functional'){
+                if($jjaDosen == 'TP'){
+                    if($pendidikanDosen == 'S1' || $pendidikanDosen == 'S2'){
+                        $kpi = TP12Func($kodeDosen);
+                    }else if($pendidikanDosen == 'S3'){
+                        $kpi = AA3TP3LK2Func($kodeDosen);
+                    }
+                }else if($jjaDosen == 'AA'){
+                    if($pendidikanDosen == 'S2'){
+                        $kpi = AA2Func($kodeDosen);
+                    }else if($pendidikanDosen == 'S3'){
+                        $kpi = AA3TP3LK2Func($kodeDosen);
+                    }
+                }else if($jjaDosen == 'L'){
+                    if($pendidikanDosen == 'S2'){
+                        $kpi = L2Func($kodeDosen);
+                    }else if($pendidikanDosen == 'S3'){
+                        $kpi = L3LK3Func($kodeDosen);
+                    }
+                }else if($jjaDosen == 'LK'){
+                    if($pendidikanDosen == 'S2'){
+                        $kpi = AA3TP3LK2Func($kodeDosen);
+                    }else if($pendidikanDosen == 'S3'){
+                        $kpi = L3LK3Func($kodeDosen);
+                    }
+                }else if($jjaDosen == 'GB'){
+                    $kpi = GBFunc($kodeDosen);
+                }
+            }else{
+                if($jjaDosen == 'TP'){
+                    if($pendidikanDosen == 'S1' || $pendidikanDosen == 'S2'){
+                        $kpi = TP12Prof($kodeDosen);
+                    }else if($pendidikanDosen == 'S3'){
+                        $kpi = AA3TP3LK2Prof($kodeDosen);
+                    }
+                }else if($jjaDosen == 'AA'){
+                    if($pendidikanDosen == 'S2'){
+                        $kpi = AA2Prof($kodeDosen);
+                    }else if($pendidikanDosen == 'S3'){
+                        $kpi = AA3TP3LK2Prof($kodeDosen);
+                    }
+                }else if($jjaDosen == 'L'){
+                    if($pendidikanDosen == 'S2'){
+                        $kpi = L2Prof($kodeDosen);
+                    }else if($pendidikanDosen == 'S3'){
+                        $kpi = L3Prof($kodeDosen);
+                    }
+                }else if($jjaDosen == 'LK'){
+                    $kpi = AA3TP3LK2Prof($kodeDosen);
+                }
+            }
             $html .= '
                 <tr>
                     <td>   
@@ -144,7 +198,7 @@ class PerhitunganKPIController extends Controller
                         <input name="scopus['.$value->kode_dosen.']" type="number" value="'.$value->jml_scopus.'" class="form-control form-control bg-gray-100 w-100">
                     </td>
                     <td>
-                        <input name="score['.$value->kode_dosen.']" type="number" value="'.$kpis['score'].'" class="form-control form-control bg-gray-100 w-100">
+                        <input name="score['.$value->kode_dosen.']" type="number" value="'.$kpi['kpi'].'" class="form-control form-control bg-gray-100 w-100">
                     </td>
                 </tr>
             ';

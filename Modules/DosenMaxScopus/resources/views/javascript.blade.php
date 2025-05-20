@@ -3,7 +3,7 @@
         // init_table();
     });
 
-    function init_chart(year, month, period, prodi = null) {
+    function init_chart(year, month, period, prodi = null, kondisi = null) {
         $('#chartContainer').empty().html('<div class="row mb-5"><div class="col-12 col-xl d-flex align-items-center"><div class=" d-flex align-items-center" style="margin-left: 80px !important;"><canvas id="myChart" style="height: 350px !important;"></canvas></div></div></div>');
         $.ajax({
             url: '{{ route('dosenmaxscopus.init_chart') }}',
@@ -13,6 +13,7 @@
                 month: month,
                 period: period,
                 prodi: prodi,
+                kondisi: kondisi
             },
             headers:{
                 'X-CSRF-TOKEN' : '{{ csrf_token() }}'
@@ -28,7 +29,9 @@
                         "mandiri_0": "Tidak Memiliki Konferensi"
                     };
 
-                    const xValues = data.map(item => labelMap[item.category]);
+                    // const xValues = data.map(item => labelMap[item.category]);
+                    const xValues = data.map(item => item.category);                    
+
                     const yValues = data.map(item => item.jumlah_dosen);
 
                     const barColors = [
@@ -67,6 +70,7 @@
         var year = $('#year').val();
         var period = $('#period').val();
         var month = $('#month').val();
+        var kondisi = $('#kondisi').val();
         if(!year){
             SUPER.showMessage({
                 success: false,
@@ -131,9 +135,11 @@
                     }
 
                     if(parseInt(ms_sc) > parseInt(full.max_mandiri_scopus)){
-                        var color = 'orange';
-                    }else if(parseInt(ms_sc) < parseInt(full.max_mandiri_scopus)){
+                        // var color = 'orange';
                         var color = 'red';
+                    }else if(parseInt(ms_sc) < parseInt(full.max_mandiri_scopus)){
+                        // var color = 'red';
+                        var color = 'orange';
                     }else if(parseInt(ms_sc) == parseInt(full.max_mandiri_scopus)){
                         var color = 'green';
                     }else{
@@ -208,6 +214,7 @@
                     d.period = period;
                     d.month = month;
                     d.prodi = prodi;
+                    d.kondisi = kondisi;
                 },
                 error: function(xhr, status, error) {
                     if (xhr.status === 419 || xhr.status === 401) {

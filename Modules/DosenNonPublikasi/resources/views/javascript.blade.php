@@ -3,7 +3,7 @@
         // init_chart();
     });
 
-    function init_chart(year, month, period, prodi = null) {
+    function init_chart(year, month, period, prodi = null, kondisi = null) {
         $('#chartContainer').empty().html('<div class="row mb-5"><div class="col-12 col-xl d-flex align-items-center"><div class=" d-flex align-items-center" style="margin-left: 80px !important;"><canvas id="myChart" style="height: 350px !important;"></canvas></div></div></div>');
         $.ajax({
             url: '{{ route('dosennonpublikasi.init_chart') }}', 
@@ -12,7 +12,8 @@
                 year: year,
                 month: month,
                 period: period,
-                prodi: prodi
+                prodi: prodi,
+                kondisi: kondisi
             },
             headers:{
                 'X-CSRF-TOKEN' : '{{ csrf_token() }}'
@@ -69,6 +70,7 @@
         var year = $('#year').val();
         var period = $('#period').val();
         var month = $('#month').val();
+        var kondisi = $('#kondisi').val();
         if(!year){
             SUPER.showMessage({
                 success: false,
@@ -97,7 +99,7 @@
             return;
         }
         var prodi = $('#prodi').val();
-        init_chart(year, month, period, prodi);
+        init_chart(year, month, period, prodi, kondisi);
         if ($.fn.DataTable.isDataTable('#tableCourse')) {
             $('#tableCourse').DataTable().destroy();
         }
@@ -207,6 +209,7 @@
                     d.period = period;
                     d.month = month;
                     d.prodi = prodi;
+                    d.kondisi = kondisi;
                 },
                 error: function(xhr, status, error) {
                     if (xhr.status === 419 || xhr.status === 401) {

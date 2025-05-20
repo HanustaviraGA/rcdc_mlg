@@ -40,7 +40,7 @@
                             <option value="11">November</option>
                             <option value="12">Desember</option>
                         </select>
-                        <select required id="prodi" class="form-control form-control bg-gray-100">
+                        <select required id="prodi" class="form-control form-control bg-gray-100 me-5">
                             <option selected disabled>Pilih Prodi</option>
                             <option>Semua Prodi</option>
                             <option value="DI">DI</option>
@@ -51,6 +51,13 @@
                             <option value="LC">LC</option>
                             <option value="PR">PR</option>
                             <option value="BC">BC</option>
+                        </select>
+                        <select id="kondisi" class="form-control form-control bg-gray-100">
+                            <option selected disabled>Pilih Kondisi</option>
+                            <option value="SK">Semua Kondisi</option>
+                            <option value="TK">Tidak Keduanya</option>
+                            <option value="HNC">Hanya Non Scopus</option>
+                            <option value="HC">Hanya Scopus</option>
                         </select>
                     </div>
                     <div class="col-12 col-xl-3 col-md-6 col-lg-6 mt-5 my-md-0">
@@ -67,8 +74,8 @@
                                 <th style="width: 300px !important;">Nama Dosen</th>
                                 {{-- <th>Prodi</th> --}}
                                 <th style="width: 75px !important;">Program Studi</th>
-                                <th>Bobot Scopus</th>
                                 <th>Bobot Non Scopus (SINTA)</th>
+                                <th>Bobot Scopus</th>
                                 {{-- <th>Aksi</th> --}}
                             </tr>
                         </thead>

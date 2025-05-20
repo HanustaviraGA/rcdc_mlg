@@ -40,7 +40,7 @@
                             <option value="11">November</option>
                             <option value="12">Desember</option>
                         </select>
-                        <select required id="prodi" class="form-control form-control bg-gray-100">
+                        <select required id="prodi" class="form-control form-control bg-gray-100 me-5">
                             <option selected disabled>Pilih Prodi</option>
                             <option>Semua Prodi</option>
                             <option value="DI">DI</option>
@@ -51,6 +51,14 @@
                             <option value="LC">LC</option>
                             <option value="PR">PR</option>
                             <option value="BC">BC</option>
+                        </select>
+                        <select id="kondisi" class="form-control form-control bg-gray-100">
+                            <option selected disabled>Pilih Kondisi</option>
+                            <option value="SK">Semua Kondisi</option>
+                            <option value="ME">Melewati</option>
+                            <option value="SE">Sesuai</option>
+                            <option value="KR">Kurang</option>
+                            <option value="TK">Tidak Memiliki</option>
                         </select>
                     </div>
                     {{-- <div class="col-12 col-xl-4 col-md-6 col-lg-6 d-flex align-items-center mt-5 mt-md-0">
