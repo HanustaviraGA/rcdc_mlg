@@ -120,6 +120,7 @@ class PerhitunganKPIController extends Controller
 
         $select = \DB::select($query, $bindings);
 
+        $ctr = 1;
         foreach ($select as $key => $value) {
             $kodeDosen = $value->kode_dosen;
             $ftDosen = $value->ft_dosen;
@@ -181,6 +182,9 @@ class PerhitunganKPIController extends Controller
             }
             $html .= '
                 <tr>
+                    <td>
+                        '.$ctr.'
+                    </td>
                     <td>   
                         <input type="hidden" name="kd_dosen['.$value->kode_dosen.']" value="'.$value->kode_dosen.'">
                         <div class="d-flex justify-content-start flex-column">
@@ -202,6 +206,7 @@ class PerhitunganKPIController extends Controller
                     </td>
                 </tr>
             ';
+            $ctr++;
         }
         return response()->json(['html' => $html], 200);
     }

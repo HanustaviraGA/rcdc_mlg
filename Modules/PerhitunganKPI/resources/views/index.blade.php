@@ -20,6 +20,7 @@
                         <table class="table table-striped table-row-bordered align-middle rounded tdFirstCenter" id="tableCourse">
                             <thead>
                                 <tr class="fw-bolder text-dark">
+                                    <th>No.</th>
                                     <th style="width: 300px !important;">Dosen</th>
                                     <th>Prodi</th>
                                     {{-- <th style="width: 150px !important;">JJA - FT</th> --}}
@@ -30,7 +31,7 @@
                             </thead>
                             <tbody id="table_kpi">
                                 <tr id="package_empty">
-                                    <td colspan="6" id="empty-message-package" class="text-center">Tidak ada Data</td>
+                                    <td colspan="7" id="empty-message-package" class="text-center">Tidak ada Data</td>
                                 </tr>
                             </tbody>
                         </table>

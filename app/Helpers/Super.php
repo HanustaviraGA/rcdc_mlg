@@ -1254,6 +1254,76 @@ function GBFunc($kodeDosen) {
 
 // Professional
 
+// function TP12Prof($kodeDosen) {
+//     $data = RectorateDosen::where('kode_dosen', $kodeDosen)->get();
+
+//     $hasScopus = $data->contains(fn($item) => strtolower($item->tipe_publikasi) === 'scopus');
+
+//     // Skor 6: Syarat skor 4 terpenuhi + jurnal scopus
+//     $skor4Eligible = $data->contains(function ($item) {
+//         $jenis = strtolower($item->jenis);
+//         $tipe = strtolower($item->tipe_publikasi);
+//         $quartile = strtolower($item->quartile_jurnal ?? '');
+//         $firstAuthor = strtoupper($item->first_author) === 'Y';
+
+//         return (
+//             ($jenis === 'jurnal' && $tipe === 'nscopus' && $quartile === 'jurnal sinta 6' && $firstAuthor) ||
+//             ($jenis === 'jurnal' && $tipe === 'nscopus' && $firstAuthor)
+//         );
+//     });
+
+//     $hasJurnalScopus = $data->contains(function ($item) {
+//         return strtolower($item->jenis) === 'jurnal' &&
+//                strtolower($item->tipe_publikasi) === 'scopus';
+//     });
+
+//     $hasSeminarOrBookScopus = $data->contains(function ($item) {
+//         return (
+//             (strtolower($item->jenis) === 'seminar' && strtolower($item->tipe_publikasi) === 'scopus') ||
+//             (strtolower($item->jenis) === 'book chapter' && strtolower($item->tipe_publikasi) === 'scopus')
+//         );
+//     });
+
+//     $hasScopusNotFirstAuthor = $data->contains(function ($item) {
+//         return in_array(strtolower($item->jenis), ['seminar', 'jurnal']) &&
+//                strtolower($item->tipe_publikasi) === 'scopus' &&
+//                strtoupper($item->first_author) === 'N';
+//     });
+
+//     $hasNScopusProceeding = $data->contains(function ($item) {
+//         return in_array(strtolower($item->jenis), ['seminar', 'jurnal']) &&
+//                strtolower($item->tipe_publikasi) === 'nscopus' &&
+//                strtolower($item->quartile_jurnal ?? '') === 'proceeding';
+//     });
+
+//     $hasNScopusSinta = $data->contains(function ($item) {
+//         return in_array(strtolower($item->jenis), ['seminar', 'jurnal']) &&
+//                strtolower($item->tipe_publikasi) === 'nscopus' &&
+//                str_contains(strtolower($item->quartile_jurnal ?? ''), 'jurnal sinta');
+//     });
+
+//     // Determine score
+//     if ($skor4Eligible && $hasJurnalScopus) {
+//         $score = 6;
+//     } elseif ($skor4Eligible && $hasSeminarOrBookScopus) {
+//         $score = 5;
+//     } elseif ($skor4Eligible) {
+//         $score = 4;
+//     } elseif ($hasScopusNotFirstAuthor) {
+//         $score = 3;
+//     } elseif ($hasNScopusProceeding && !$hasScopus) {
+//         $score = 2;
+//     } elseif ($hasNScopusSinta && !$hasScopus) {
+//         $score = 1;
+//     } else {
+//         $score = 0;
+//     }
+
+//     return [
+//         'kpi' => $score,
+//     ];
+// }
+
 function TP12Prof($kodeDosen) {
     $data = RectorateDosen::where('kode_dosen', $kodeDosen)->get();
 
@@ -1302,6 +1372,12 @@ function TP12Prof($kodeDosen) {
                str_contains(strtolower($item->quartile_jurnal ?? ''), 'jurnal sinta');
     });
 
+    $hasBookChapterNScopusNonScopus = $data->contains(function ($item) {
+        return strtolower($item->jenis) === 'book chapter' &&
+               strtolower($item->tipe_publikasi) === 'nscopus' &&
+               strtolower($item->quartile_jurnal ?? '') === 'book chapter non scopus';
+    });
+
     // Determine score
     if ($skor4Eligible && $hasJurnalScopus) {
         $score = 6;
@@ -1312,6 +1388,8 @@ function TP12Prof($kodeDosen) {
     } elseif ($hasScopusNotFirstAuthor) {
         $score = 3;
     } elseif ($hasNScopusProceeding && !$hasScopus) {
+        $score = 2;
+    } elseif ($hasBookChapterNScopusNonScopus && !$hasScopus) {
         $score = 2;
     } elseif ($hasNScopusSinta && !$hasScopus) {
         $score = 1;
@@ -1437,9 +1515,13 @@ function AA2Prof($kodeDosen) {
         $jenis = strtolower($item->jenis);
         $tipe = strtolower($item->tipe_publikasi);
         $quartile = strtolower($item->quartile_jurnal ?? '');
-        return in_array($jenis, ['seminar', 'jurnal']) &&
-               $tipe === 'nscopus' &&
-               (str_contains($quartile, 'jurnal sinta') || empty($quartile));
+        return in_array($jenis, ['seminar', 'jurnal']) 
+    && $tipe === 'nscopus' 
+    && (
+        str_contains($quartile, 'jurnal sinta') 
+        || str_contains($quartile, 'proceeding') 
+        || empty($quartile)
+    );
     })) {
         $score = 1;
     } else {
