@@ -26,7 +26,7 @@
                             <option value="BC">BC</option>
                         </select>
                     </div>
-                    <div class="col-12 col-xl-3 col-md-6 col-lg-6 mt-5 my-md-0">
+                    <div data-roleable="true" data-role="editdosen" class="col-12 col-xl-3 col-md-6 col-lg-6 mt-5 my-md-0">
                         <button type="button" class="btn btn-primary w-100" id="toggleFormButton"><i class="las la-plus fs-2"></i> Tambah</button>
                     </div>
                 </div>

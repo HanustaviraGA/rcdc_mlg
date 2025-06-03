@@ -6,5 +6,6 @@
     "ImportRectorate": true,
     "DosenMaxScopus": true,
     "DosenNonPublikasi": true,
-    "ExportReport": true
+    "ExportReport": true,
+    "PerhitunganKPIDosen": true
 }

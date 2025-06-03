@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/perhitungankpidosen",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\PerhitunganKPIDosen\\": "app/",
+            "Modules\\PerhitunganKPIDosen\\Database\\Factories\\": "database/factories/",
+            "Modules\\PerhitunganKPIDosen\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\PerhitunganKPIDosen\\Tests\\": "tests/"
+        }
+    }
+}

@@ -4,8 +4,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SpreadsheetController;
 use App\Http\Controllers\DashboardController;
+use Illuminate\Support\Facades\Auth;
+// use Session;
 
 Route::get('/', function () {
+    // Session::flush();
+    Auth::logout();
     return view('welcome');
 })->name('landing');
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('index');
@@ -16,3 +20,5 @@ Route::post('loadpage', function(Request $request){
 })->name('loadpage');
 Route::get('/read', [SpreadsheetController::class, 'read'])->name('read');
 
+// Change Permission
+Route::get('/change_perms', [DashboardController::class, 'change_perms'])->name('change_perms');

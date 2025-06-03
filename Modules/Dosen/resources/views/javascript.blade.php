@@ -4,10 +4,12 @@
     });
 
     function init_table(){
+        blockPage();
         var prodi = $('#prodi').val();
         if ($.fn.DataTable.isDataTable('#tableCourse')) {
             $('#tableCourse').DataTable().destroy();
         }
+        let roles = (SUPER.get_role_access('editdosen'));
         var col =[
             {
                 data: 'kode_dosen',
@@ -78,7 +80,7 @@
             {
                 data: null,
                 orderable: false,
-                // visible: roles,
+                visible: roles,
                 render: function (data, type, full, meta) {
                     var btn_aksi = '';
                     // btn_aksi += `<button data-id="`+full.id_kol+`" onclick="onEdit(this)" class="btn btn-light btn-sm btn-active-light-warning">Edit</button>`;
@@ -146,6 +148,7 @@
             },
             columns: col,
         });
+        unblockPage();
     }
 
 </script>

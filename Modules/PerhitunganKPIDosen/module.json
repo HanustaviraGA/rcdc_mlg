@@ -1,0 +1,11 @@
+{
+    "name": "PerhitunganKPIDosen",
+    "alias": "perhitungankpidosen",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\PerhitunganKPIDosen\\Providers\\PerhitunganKPIDosenServiceProvider"
+    ],
+    "files": []
+}

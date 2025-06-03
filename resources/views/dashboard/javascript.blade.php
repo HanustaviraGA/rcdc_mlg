@@ -1,6 +1,6 @@
 <script type="text/javascript">
     $(document).ready(function() {
-        // SUPER.set_role_access(<?php echo $roles?>);
+        SUPER.set_role_access(<?php echo $roles?>);
         // pusher();
         router();
     });
