@@ -44,11 +44,11 @@
                     </div>
                 </div>
             </div>
-            <div class="card card-bordered mt-5">
+            {{-- <div class="card card-bordered mt-5">
                 <div class="card-body">
                     <button type="button" class="btn btn-primary w-20" onclick="onAdd()" id="toggleFormButton"><i class="las la-download fs-2"></i> Download Matrix</button>
                 </div>
-            </div>
+            </div> --}}
         </form>
     </div>
 </div>

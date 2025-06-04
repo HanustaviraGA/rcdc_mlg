@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\Auth;
 Route::get('/', function () {
     // Session::flush();
     Auth::logout();
-    return view('welcome');
+    // return view('welcome');
+    return redirect()->to('/dashboard/perhitungankpidosen');
 })->name('landing');
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('index');
 Route::get('/dashboard/{any}', [DashboardController::class, 'index_spec'])->name('index_spec');
