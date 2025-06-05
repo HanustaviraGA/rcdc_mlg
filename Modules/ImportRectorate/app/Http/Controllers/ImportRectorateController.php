@@ -40,6 +40,15 @@ class ImportRectorateController extends Controller
         $data = $request->all();
         $period = $data['period'];
         $month = $data['month'];
+        // if($month == 1 || $month == 2 || $month == 3){
+        //     $period = 1;
+        // }else if($month == 4 || $month == 5 || $month == 6){
+        //     $period = 2;
+        // }else if($month == 7 || $month == 8 || $month == 9){
+        //     $period = 3;
+        // }else if($month == 10 || $month == 11 || $month == 12){
+        //     $period = 4;
+        // }
         $year = $data['year'];
         $check = RectorateDosen::where('year', $year)->where('period', $period)->where('month', $month)->exists();
         if($check){
@@ -57,6 +66,27 @@ class ImportRectorateController extends Controller
                 if ($row == 1 || $read[9] !== 'MALANG'){
                     continue;
                 }
+
+                // Adjustment untuk scopus
+                $bobot = floatval(str_replace(',', '.', $read[12]));
+                if($read[16] == 'Scopus'){
+                    // Kalau tipenya jurnal
+                    if($read[15] == 'Jurnal'){
+                        if($read[21] == 'Q1'){
+                            $bobot = 3;
+                        }else if($read[21] == 'Q2'){
+                            $bobot = 2;
+                        }else if($read[21] == 'Q3' || $read[21] == 'Q4'){
+                            $bobot = 1;
+                        }else if($read[21] == 'Q2/Q3'){ // Samakan dengan Q3
+                            $bobot = 1;
+                        }
+                    // Kalau tipenya seminar/konferensi
+                    }else if($read[15] == 'Seminar'){
+                        $bobot = 1;
+                    }
+                }
+
                 RectorateDosen::create([
                     'id_rectorate' => md5(rand(0, 100).generateCode().date('Y-m-d H:i:s')),
                     'request_code' => $read[0],
@@ -64,7 +94,8 @@ class ImportRectorateController extends Controller
                     'kode_dosen' => $read[3],
                     'first_author' => $read[10],
                     'sumber_paper' => $read[11],
-                    'bobot' => floatval(str_replace(',', '.', $read[12])),
+                    'bobot' => $bobot,
+                    'bobot_asli' => floatval(str_replace(',', '.', $read[12])),
                     'submitted' => $read[13],
                     'status' => $read[14],
                     'jenis' => $read[15],

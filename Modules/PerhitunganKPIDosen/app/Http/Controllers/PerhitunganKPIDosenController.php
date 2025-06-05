@@ -34,10 +34,28 @@ class PerhitunganKPIDosenController extends Controller
             </tr>
         ';
 
+        // Adjustment bulan
+        $month = date('m') - 1;
+        // if($month - 1 == 0){
+        //     $month = 12;
+        //     $year = $year - 1;
+        // }
+
+        // Adjustment period
+        if($month == 1 || $month == 2 || $month == 3){
+            $period = 1;
+        }else if($month == 4 || $month == 5 || $month == 6){
+            $period = 2;
+        }else if($month == 7 || $month == 8 || $month == 9){
+            $period = 3;
+        }else if($month == 10 || $month == 11 || $month == 12){
+            $period = 4;
+        }
+
         $bindings = [
             'year' => $year,
-            // 'month' => $month,
-            // 'period' => $period,
+            'month' => $month,
+            'period' => $period,
         ];
 
         $query = 'SELECT
@@ -58,7 +76,9 @@ class PerhitunganKPIDosenController extends Controller
             FROM database_dosen dd
             LEFT JOIN rectorate_dosen rd 
             ON rd.kode_dosen = dd.kode_dosen
-            AND rd.year = :year';
+            AND rd.year = :year
+            AND rd.period = :period
+            AND rd.month = :month';
 
         if ($kode_dosen && $kode_dosen !== '') {
             $query .= ' WHERE dd.kode_dosen = :kode_dosen';

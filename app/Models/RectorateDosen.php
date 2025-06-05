@@ -18,6 +18,7 @@ class RectorateDosen extends Model
         'first_author',
         'sumber_paper',
         'bobot',
+        'bobot_asli',
         'submitted',
         'status',
         'jenis',

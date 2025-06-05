@@ -70,13 +70,22 @@ class PerhitunganKPIController extends Controller
     }
 
     public function init_table(Request $request){
-        // $year = (int) $request->input('year');
-        // $month = (int) $request->input('month');
-        // $period = (int) $request->input('period');
+        $year = (int) $request->input('year');
+        $month = (int) $request->input('month');
+        // if($month == 1 || $month == 2 || $month == 3){
+        //     $period = 1;
+        // }else if($month == 4 || $month == 5 || $month == 6){
+        //     $period = 2;
+        // }else if($month == 7 || $month == 8 || $month == 9){
+        //     $period = 3;
+        // }else if($month == 10 || $month == 11 || $month == 12){
+        //     $period = 4;
+        // }
+        $period = (int) $request->input('period');
 
-        $year = 2025;
-        $month = 3;
-        $period = 1;
+        // $year = 2025;
+        // $month = 4;
+        // $period = 1;
 
         $prodi = $request->input('prodi');
         $html = '';
