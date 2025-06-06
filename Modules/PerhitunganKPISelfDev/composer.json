@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/perhitungankpiselfdev",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\PerhitunganKPISelfDev\\": "app/",
+            "Modules\\PerhitunganKPISelfDev\\Database\\Factories\\": "database/factories/",
+            "Modules\\PerhitunganKPISelfDev\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\PerhitunganKPISelfDev\\Tests\\": "tests/"
+        }
+    }
+}

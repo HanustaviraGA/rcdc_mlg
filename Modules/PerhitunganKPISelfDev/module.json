@@ -1,0 +1,11 @@
+{
+    "name": "PerhitunganKPISelfDev",
+    "alias": "perhitungankpiselfdev",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\PerhitunganKPISelfDev\\Providers\\PerhitunganKPISelfDevServiceProvider"
+    ],
+    "files": []
+}

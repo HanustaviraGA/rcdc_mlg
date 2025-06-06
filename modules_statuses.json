@@ -7,5 +7,6 @@
     "DosenMaxScopus": true,
     "DosenNonPublikasi": true,
     "ExportReport": true,
-    "PerhitunganKPIDosen": true
+    "PerhitunganKPIDosen": true,
+    "PerhitunganKPISelfDev": true
 }
