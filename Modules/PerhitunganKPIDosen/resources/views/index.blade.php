@@ -45,11 +45,17 @@
                 </div>
             </div>
         </div>
-        {{-- <div class="card card-bordered mt-5">
+        <div class="card card-bordered mt-5">
             <div class="card-body">
-                <button type="button" class="btn btn-primary w-20" onclick="onAdd()" id="toggleFormButton"><i class="las la-download fs-2"></i> Download Matrix</button>
+                <div class="row">
+                    <div class="col-12 col-xl d-flex align-items-center justify-content-between">
+                        <div class=" d-flex align-items-center">
+                            <label for="" class="required form-label fw-bold" style="text-align: justify;">Penilaian kinerja publikasi Faculty Member ditentukan berdasarkan Jenjang Jabatan Akademik/ Pendidikan.</label>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div> --}}
+        </div>
     </div>
 </div>
 <script>

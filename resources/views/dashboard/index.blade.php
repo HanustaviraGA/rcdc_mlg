@@ -171,7 +171,7 @@ License: For each use you must have a valid license purchased only from above li
 							<!--begin::Page title-->
 							<div class="page-title d-flex flex-column me-3">
 								<!--begin::Title-->
-								<h1 class="d-flex text-white fw-bolder my-1 fs-3" id="ttl-header">Dashboard</h1>
+								<h1 class="d-flex text-white fw-bolder my-1 fs-3" id="ttl-header" style="font-size: 25px !important;">Dashboard</h1>
 								<!--end::Title-->
 							</div>
 							<!--end::Page title-->
