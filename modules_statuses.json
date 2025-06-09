@@ -8,5 +8,6 @@
     "DosenNonPublikasi": true,
     "ExportReport": true,
     "PerhitunganKPIDosen": true,
-    "PerhitunganKPISelfDev": true
+    "PerhitunganKPISelfDev": true,
+    "MatrixKPIDosen": true
 }

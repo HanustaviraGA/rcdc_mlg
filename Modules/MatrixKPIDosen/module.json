@@ -1,0 +1,11 @@
+{
+    "name": "MatrixKPIDosen",
+    "alias": "matrixkpidosen",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\MatrixKPIDosen\\Providers\\MatrixKPIDosenServiceProvider"
+    ],
+    "files": []
+}
