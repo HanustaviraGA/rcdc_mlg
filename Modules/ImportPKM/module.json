@@ -1,0 +1,11 @@
+{
+    "name": "ImportPKM",
+    "alias": "importpkm",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\ImportPKM\\Providers\\ImportPKMServiceProvider"
+    ],
+    "files": []
+}

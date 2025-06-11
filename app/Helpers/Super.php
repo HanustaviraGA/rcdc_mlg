@@ -19,6 +19,7 @@ use Carbon\Carbon;
 use \Mpdf\Mpdf;
 use App\Models\Dosen;
 use App\Models\RectorateDosen;
+use App\Models\PKMDosen;
 use FPDF\FPDF;
 
 /**
@@ -1925,6 +1926,36 @@ function L3Prof($kodeDosen) {
     ];
 }
 
+function PKMScore($kodeDosen, $year, $period) {
+    $data = PKMDosen::where('kode_dosen', $kodeDosen)->where('year', $year)->where('period', $period)->get();
+    $total = $data->count();
+    $count_lapor = 0;
+    $skor = 0;
+    $list_pkm = [];
+    foreach ($data as $pkm) {
+        if (trim($pkm->judul) !== '-') {
+            $count_lapor++;
+        }
+    }
+    if ($total === 1) {
+        if($count_lapor == 0){
+            $skor = 4;
+        }else{
+            $skor = 5;
+        }
+    }
+    if ($total === 2) {
+        if($count_lapor == 1){
+            $skor = 5;
+        }else{
+            $skor = 6;
+        }
+    }
+    if ($total > 2 && $count_lapor === $total) {
+        $skor = 6;
+    }
+    return $skor;
+}
 
 // function AAFunc($kode_dosen) {
 //     $publications = RectorateDosen::where('kode_dosen', $kode_dosen)->get();

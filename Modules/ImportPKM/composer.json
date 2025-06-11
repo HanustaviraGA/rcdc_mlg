@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/importpkm",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\ImportPKM\\": "app/",
+            "Modules\\ImportPKM\\Database\\Factories\\": "database/factories/",
+            "Modules\\ImportPKM\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\ImportPKM\\Tests\\": "tests/"
+        }
+    }
+}

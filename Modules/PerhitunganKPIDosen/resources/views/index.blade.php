@@ -78,6 +78,13 @@
                 $('#skor_dosen').empty().val('Score : ' + response.kpi.kpi).trigger('change');
                 $('#table_kpi').empty().html(response.html);
                 // alert(response.data);
+            },
+            error: function(response){
+                unblockPage();
+                SUPER.showMessage({
+                    message: response.responseJSON.message,
+                    type: 'error'
+                });
             }
         });
     }

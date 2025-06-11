@@ -16,7 +16,8 @@
                     </div>
                     <div class="col-12 col-xl-4 col-md-6 col-lg-6 d-flex align-items-center mt-5 mt-md-0">
                         <select id="prodi" onchange="init_table()" class="form-control form-control bg-gray-100">
-                            <option value="DI" selected>DI</option>
+                            <option value="All" selected>Semua</option>
+                            <option value="DI">DI</option>
                             <option value="CS">CS</option>
                             <option value="DKV">DKV</option>
                             <option value="Ilkom">ILKOM</option>

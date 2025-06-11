@@ -38,6 +38,13 @@
                     </select>
                 </div>
                 <div class="fv-row mb-5 col-md-12 ">
+                    <label for="" class="required form-label mb-3 fw-bold">FM / MHS</label>
+                    <select required name="fmmhs" id="fmmhs" class="form-control bg-white border border-2 py-4 px-6 rounded-3 fw-light fs-6" placeholder="Input Data">
+                        <option value="FM">FM</option>
+                        <option value="MHS">Mahasiswa</option>
+                    </select>
+                </div>
+                <div class="fv-row mb-5 col-md-12 ">
                     <label for="" class="required form-label mb-3 fw-bold">File (.csv)</label>
                     <input type="file" accept=".csv" required name="rectorate" id="rectorate" class="form-control bg-white border border-2 py-4 px-6 rounded-3 fw-light fs-6" placeholder="Input Data">
                 </div>

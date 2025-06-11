@@ -36,21 +36,122 @@ class ExportReportController extends Controller
         $rowspan = 1;
         $no = 1;
 
-        $query = Dosen::orderBy('jurusan_dosen', 'asc')->get();
+        $year = 2025;
+        $month = 4;
+        $period = 2;
+
+        // $query = Dosen::orderBy('jurusan_dosen', 'asc')->get();
+        $bindings = [
+            'year' => $year,
+            'month' => $month,
+            'period' => $period,
+        ];
+
+        $query = 'SELECT
+            dd.kode_dosen,
+            dd.nama_dosen,
+            dd.ft_dosen,
+            dd.jja_dosen,
+            dd.pendidikan_dosen,
+            dd.jurusan_dosen,
+            COALESCE(SUM(CASE 
+                WHEN rd.tipe_publikasi = "Nscopus" THEN rd.bobot
+                ELSE 0
+            END), 0) AS jml_nscopus,
+            COALESCE(SUM(CASE 
+                WHEN rd.tipe_publikasi = "Scopus" THEN rd.bobot
+                ELSE 0
+            END), 0) AS jml_scopus
+            FROM database_dosen dd
+            LEFT JOIN rectorate_dosen rd 
+            ON rd.kode_dosen = dd.kode_dosen
+            AND rd.year = :year
+            AND rd.period = :period
+            AND rd.month = :month';
+
+        if (isset($prodi) && $prodi !== 'Semua Prodi') {
+            $query .= ' WHERE dd.jurusan_dosen = :prodi';
+            $bindings['prodi'] = $prodi;
+        }
+
+        $query .= ' GROUP BY 
+            dd.kode_dosen, dd.nama_dosen, dd.ft_dosen, dd.jja_dosen, 
+            dd.pendidikan_dosen, dd.jurusan_dosen, dd.maxscopuskonf_dosen ORDER BY dd.jurusan_dosen ASC';
+
+        $select = \DB::select($query, $bindings);
+
+        
 
         $previousJurusan = null;
+        $previousJurusanMhs = null;
 
-        foreach ($query as $index => $row) {
+        foreach ($select as $index => $row) {
+            $kodeDosen = $row->kode_dosen;
+            $ftDosen = $row->ft_dosen;
+            $jjaDosen = $row->jja_dosen;
+            $pendidikanDosen = $row->pendidikan_dosen;
+            $nscopus = floatval(str_replace(',', '.', $row->jml_nscopus));
+            $scopus = floatval(str_replace(',', '.', $row->jml_scopus));
+            // $kpis = tableKPI($kodeDosen, $nscopus, $scopus);
+            if($ftDosen == 'Functional'){
+                if($jjaDosen == 'TP'){
+                    if($pendidikanDosen == 'S1' || $pendidikanDosen == 'S2'){
+                        $kpi = TP12Func($kodeDosen);
+                    }else if($pendidikanDosen == 'S3'){
+                        $kpi = AA3TP3LK2Func($kodeDosen);
+                    }
+                }else if($jjaDosen == 'AA'){
+                    if($pendidikanDosen == 'S2'){
+                        $kpi = AA2Func($kodeDosen);
+                    }else if($pendidikanDosen == 'S3'){
+                        $kpi = AA3TP3LK2Func($kodeDosen);
+                    }
+                }else if($jjaDosen == 'L'){
+                    if($pendidikanDosen == 'S2'){
+                        $kpi = L2Func($kodeDosen);
+                    }else if($pendidikanDosen == 'S3'){
+                        $kpi = L3LK3Func($kodeDosen);
+                    }
+                }else if($jjaDosen == 'LK'){
+                    if($pendidikanDosen == 'S2'){
+                        $kpi = AA3TP3LK2Func($kodeDosen);
+                    }else if($pendidikanDosen == 'S3'){
+                        $kpi = L3LK3Func($kodeDosen);
+                    }
+                }else if($jjaDosen == 'GB'){
+                    $kpi = GBFunc($kodeDosen);
+                }
+            }else{
+                if($jjaDosen == 'TP'){
+                    if($pendidikanDosen == 'S1' || $pendidikanDosen == 'S2'){
+                        $kpi = TP12Prof($kodeDosen);
+                    }else if($pendidikanDosen == 'S3'){
+                        $kpi = AA3TP3LK2Prof($kodeDosen);
+                    }
+                }else if($jjaDosen == 'AA'){
+                    if($pendidikanDosen == 'S2'){
+                        $kpi = AA2Prof($kodeDosen);
+                    }else if($pendidikanDosen == 'S3'){
+                        $kpi = AA3TP3LK2Prof($kodeDosen);
+                    }
+                }else if($jjaDosen == 'L'){
+                    if($pendidikanDosen == 'S2'){
+                        $kpi = L2Prof($kodeDosen);
+                    }else if($pendidikanDosen == 'S3'){
+                        $kpi = L3Prof($kodeDosen);
+                    }
+                }else if($jjaDosen == 'LK'){
+                    $kpi = AA3TP3LK2Prof($kodeDosen);
+                }
+            }
+
             $bgColor = ($no % 2 == 0) ? 'white' : 'white';
         
-            // Check if jurusan_dosen changed (or first iteration)
             if ($previousJurusan !== $row->jurusan_dosen) {
-                // Optional: Add a group label row (can be removed if not needed)
                 $reportHtml .= '<tr>';
-                $reportHtml .= '<td colspan="8" style="background-color: #f0f0f0; font-weight: bold; text-align:left;">PRODI: ' . htmlspecialchars($row->jurusan_dosen) . '</td>';
+                $reportHtml .= '<td colspan="8" style="background-color: #f0f0f0; font-weight: bold; text-align:left; margin-top: 5px;">PRODI: ' . htmlspecialchars($row->jurusan_dosen) . '</td>';
                 $reportHtml .= '</tr>';
         
-                // Re-add the table header row
                 $reportHtml .= '
                     <tr>
                         <th class="t-center head" style="width:10%">KODE DOSEN</th>
@@ -62,7 +163,6 @@ class ExportReportController extends Controller
                         <th class="t-center head" style="width:10%">SCOPUS</th>
                         <th class="t-center head" style="width:10%">SKOR KPI</th>
                     </tr>';
-        
                 $previousJurusan = $row->jurusan_dosen;
             }
         
@@ -72,9 +172,9 @@ class ExportReportController extends Controller
             $reportHtml .= '<td class="t-left" style="background-color:' . $bgColor . ';" rowspan="' . $rowspan . '">' . $row->jurusan_dosen . '</td>';
             $reportHtml .= '<td class="t-left" style="background-color:' . $bgColor . ';" rowspan="' . $rowspan . '">' . $row->jja_dosen . '</td>';
             $reportHtml .= '<td class="t-left" style="background-color:' . $bgColor . ';" rowspan="' . $rowspan . '">' . $row->ft_dosen . '</td>';
-            $reportHtml .= '<td class="t-left" style="background-color:' . $bgColor . ';" rowspan="' . $rowspan . '">' . number_format(0, 0, '', '.') . '</td>';
-            $reportHtml .= '<td class="t-left" style="background-color:' . $bgColor . ';" rowspan="' . $rowspan . '">' . number_format(0, 0, '', '.') . '</td>';
-            $reportHtml .= '<td class="t-left" style="background-color:' . $bgColor . ';" rowspan="' . $rowspan . '">' . number_format(0, 0, '', '.') . '</td>';
+            $reportHtml .= '<td class="t-left" style="background-color:' . $bgColor . ';" rowspan="' . $rowspan . '">' . $row->jml_nscopus . '</td>';
+            $reportHtml .= '<td class="t-left" style="background-color:' . $bgColor . ';" rowspan="' . $rowspan . '">' . $row->jml_scopus . '</td>';
+            $reportHtml .= '<td class="t-left" style="background-color:' . $bgColor . ';" rowspan="' . $rowspan . '">' . number_format($kpi['kpi'], 0, '', '.') . '</td>';
             $reportHtml .= '</tr>';
         
             $no++;
@@ -265,7 +365,22 @@ class ExportReportController extends Controller
             <table class="laporan" cellspacing="0" style="width:100%;">
                 ' . $reportHtml . '
                 <tr><td colspan="7" style="border:none; padding:10px"></td></tr>
-            </table>';
+            </table>
+            
+            <br><br>
+
+            <div style="text-align:center;">
+                <h4 style="margin: 0;">SCOPUS MAHASISWA</h4>
+            </div>
+
+            <br><br>
+            
+            <table class="laporan" cellspacing="0" style="width:100%;">
+                ' . $reportHtmlMHS . '
+                <tr><td colspan="7" style="border:none; padding:10px"></td></tr>
+            </table>
+            
+            <br><br>';
 
         $dataprint = ['content' => $html];
 

@@ -9,5 +9,7 @@
     "ExportReport": true,
     "PerhitunganKPIDosen": true,
     "PerhitunganKPISelfDev": true,
-    "MatrixKPIDosen": true
+    "MatrixKPIDosen": true,
+    "ImportPKM": true,
+    "PerhitunganKPIPKM": true
 }

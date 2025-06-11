@@ -6,6 +6,7 @@
         formData.append('year', $('#year').val());
         formData.append('month', $('#month').val());
         formData.append('period', $('#period').val());
+        formData.append('fmmhs', $('#fmmhs').val());
         $.ajax({
             url: "{{ route('importrectorate.create') }}",
             type: "POST",

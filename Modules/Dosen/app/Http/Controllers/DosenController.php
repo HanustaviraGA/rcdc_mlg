@@ -30,7 +30,7 @@ class DosenController extends Controller
         $query = Dosen::query();
         $query->leftJoin('identitas_dosen', 'identitas_dosen.kode_dosen', '=', 'database_dosen.kode_dosen');
         $query->select('database_dosen.*', 'identitas_dosen.email_dosen', 'identitas_dosen.telp_dosen');
-        if(isset($data['prodi']) && $data['prodi'] != null){
+        if($data['prodi'] !== 'All'){
             $query->where('database_dosen.jurusan_dosen', $data['prodi']);
         }
         $query->orderBy('database_dosen.nama_dosen', 'asc');

@@ -4,8 +4,62 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "77ce4bc88193b8cb5a5dc593f44ccd88",
+    "content-hash": "1068bcf5d75320608fc3b1ca450a5d49",
     "packages": [
+        {
+            "name": "aspera/xlsx-reader",
+            "version": "v2.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AsperaGmbH/xlsx-reader.git",
+                "reference": "eb51caf89b358679572b5e92d1d66fae99891885"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/AsperaGmbH/xlsx-reader/zipball/eb51caf89b358679572b5e92d1d66fae99891885",
+                "reference": "eb51caf89b358679572b5e92d1d66fae99891885",
+                "shasum": ""
+            },
+            "require": {
+                "ext-libxml": "*",
+                "ext-xmlreader": "*",
+                "ext-zip": "*",
+                "php": ">= 8.1"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "10.*"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Aspera\\Spreadsheet\\XLSX\\": "lib/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "USU GmbH",
+                    "email": "info@usu.com",
+                    "homepage": "https://www.usu.com/"
+                }
+            ],
+            "description": "Spreadsheet reader library for XLSX files",
+            "homepage": "https://github.com/AsperaGmbH/xlsx-reader/",
+            "keywords": [
+                "excel",
+                "spreadsheet",
+                "xlsx"
+            ],
+            "support": {
+                "email": "info@usu.com",
+                "issues": "https://github.com/AsperaGmbH/xlsx-reader/issues",
+                "source": "https://github.com/AsperaGmbH/xlsx-reader/tree/v2.0.0"
+            },
+            "time": "2025-03-06T15:29:42+00:00"
+        },
         {
             "name": "brick/math",
             "version": "0.12.3",
@@ -10043,15 +10097,15 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {},
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
         "php": "^8.2"
     },
-    "platform-dev": [],
+    "platform-dev": {},
     "platform-overrides": {
         "php": "8.2.0"
     },
-    "plugin-api-version": "2.3.0"
+    "plugin-api-version": "2.6.0"
 }

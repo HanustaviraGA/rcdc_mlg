@@ -1,0 +1,11 @@
+{
+    "name": "PerhitunganKPIPKM",
+    "alias": "perhitungankpipkm",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\PerhitunganKPIPKM\\Providers\\PerhitunganKPIPKMServiceProvider"
+    ],
+    "files": []
+}

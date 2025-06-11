@@ -7,6 +7,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use App\Models\RectorateDosen;
+use App\Models\Dosen;
 
 class PerhitunganKPIDosenController extends Controller
 {
@@ -27,6 +28,12 @@ class PerhitunganKPIDosenController extends Controller
         $data = $request->all();
         $kode_dosen = $data['kode_dosen'];
         $year = $data['year'];
+
+        // Cek keberadaan kode dosen
+        $cek = Dosen::where('kode_dosen', $kode_dosen)->first();
+        if(!$cek){
+            return response()->json(['success' => false, 'message' => 'Data dosen tidak ditemukan !'], 404);
+        }
 
         $html = '
             <tr id="package_empty">
