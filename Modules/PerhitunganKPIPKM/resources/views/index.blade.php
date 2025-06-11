@@ -13,6 +13,8 @@
                             </select>
                             <select required name="year" id="year" class="form-control form-control bg-gray-100" placeholder="Tahun">
                                 <option disabled>Pilih Tahun</option>
+                                <option value="2020">2020</option>
+                                <option value="2021">2021</option>
                                 <option value="2022">2022</option>
                                 <option value="2023">2023</option>
                                 <option value="2024">2024</option>

@@ -33,10 +33,11 @@ class PerhitunganKPIPKMController extends Controller
                 <td colspan="6" id="empty-message-package" class="text-center">Tidak ada Data</td>
             </tr>
         ';
+        $periode = $data['period'] . ' ' . $data['year'];
         $dosen = Dosen::where('kode_dosen', $kode_dosen)->select('nama_dosen')->first();
         if($dosen){
-            $score = PKMScore($kode_dosen, $data['year'], $data['period']);
-            $list_pkm = PKMDosen::where('kode_dosen', $kode_dosen)->where('year', $data['year'])->where('period', $data['period'])->get();
+            $score = PKMScore($kode_dosen, $periode);
+            $list_pkm = PKMDosen::where('kode_dosen', $kode_dosen)->where('periode', 'LIKE', $periode.'%')->get();
             if($list_pkm->count() > 0){
                 $html = '';
                 foreach($list_pkm as $value){

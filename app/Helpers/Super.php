@@ -320,33 +320,33 @@ function getScoreNew($kode_dosen, $scopus, $nscopus) {
                     if($pendidikan == 'S1' || $pendidikan == 'S2'){
                         $rectorate = RectorateDosen::where('kode_dosen', $kode_dosen)->get();
                         foreach($rectorate as $dosen){
-                            
+
                         }
-                        
+
 
                     }else if($pendidikan == 'S3'){
-                        
+
                     }
                     break;
                 case 'AA':
                     if($pendidikan == 'S2'){
 
                     }else if($pendidikan == 'S3'){
-                        
+
                     }
                     break;
                 case 'L':
                     if($pendidikan == 'S2'){
 
                     }else if($pendidikan == 'S3'){
-                        
+
                     }
                     break;
                 case 'LK':
                     if($pendidikan == 'S2'){
 
                     }else if($pendidikan == 'S3'){
-                        
+
                     }
                     break;
                 case 'GB':
@@ -761,13 +761,13 @@ function AA2Func($kodeDosen) {
 
 //     // Additional for Skor 5: Jurnal Scopus with bobot >= 0.25 and < 1
 //     $additionalJurnalFor5 = $scopusItems->filter(function ($item) {
-//         return strtolower($item->jenis) === 'jurnal' && 
+//         return strtolower($item->jenis) === 'jurnal' &&
 //                $item->bobot >= 0.25 && $item->bobot < 1;
 //     });
 
 //     // Additional for Skor 6: Jurnal Scopus with bobot >= 1
 //     $additionalJurnalFor6 = $scopusItems->filter(function ($item) {
-//         return strtolower($item->jenis) === 'jurnal' && 
+//         return strtolower($item->jenis) === 'jurnal' &&
 //                $item->bobot >= 1;
 //     });
 
@@ -1516,11 +1516,11 @@ function AA2Prof($kodeDosen) {
         $jenis = strtolower($item->jenis);
         $tipe = strtolower($item->tipe_publikasi);
         $quartile = strtolower($item->quartile_jurnal ?? '');
-        return in_array($jenis, ['seminar', 'jurnal']) 
-    && $tipe === 'nscopus' 
+        return in_array($jenis, ['seminar', 'jurnal'])
+    && $tipe === 'nscopus'
     && (
-        str_contains($quartile, 'jurnal sinta') 
-        || str_contains($quartile, 'proceeding') 
+        str_contains($quartile, 'jurnal sinta')
+        || str_contains($quartile, 'proceeding')
         || empty($quartile)
     );
     })) {
@@ -1926,14 +1926,14 @@ function L3Prof($kodeDosen) {
     ];
 }
 
-function PKMScore($kodeDosen, $year, $period) {
-    $data = PKMDosen::where('kode_dosen', $kodeDosen)->where('year', $year)->where('period', $period)->get();
+function PKMScore($kodeDosen, $period) {
+    $data = PKMDosen::where('kode_dosen', $kodeDosen)->where('periode', 'LIKE', $period.'%')->get();
     $total = $data->count();
     $count_lapor = 0;
     $skor = 0;
     $list_pkm = [];
     foreach ($data as $pkm) {
-        if (trim($pkm->judul) !== '-') {
+        if ($pkm->judul_pkm !== '-') {
             $count_lapor++;
         }
     }
@@ -1944,16 +1944,25 @@ function PKMScore($kodeDosen, $year, $period) {
             $skor = 5;
         }
     }
-    if ($total === 2) {
+    if($total >= 2){
+        // Lebih dari 2, tapi baru 1 yang dilaporkan
         if($count_lapor == 1){
             $skor = 5;
-        }else{
+        // Lebih dari 2, semua/lebih dari 1 yang dilaporkan
+        }else if($count_lapor > 1 || $count_lapor == $total){
             $skor = 6;
         }
     }
-    if ($total > 2 && $count_lapor === $total) {
-        $skor = 6;
-    }
+    // if ($total === 2) {
+    //     if($count_lapor == 1){
+    //         $skor = 5;
+    //     }else{
+    //         $skor = 6;
+    //     }
+    // }
+    // if ($total > 2 && $count_lapor === $total) {
+    //     $skor = 6;
+    // }
     return $skor;
 }
 
