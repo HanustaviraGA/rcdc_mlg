@@ -19,8 +19,8 @@
                     </select>
                 </div>
                 <div class="fv-row mb-5 col-md-12 ">
-                    <label for="" class="required form-label mb-3 fw-bold">File (.csv)</label>
-                    <input type="file" accept=".csv" required name="pkm" id="pkm" class="form-control bg-white border border-2 py-4 px-6 rounded-3 fw-light fs-6" placeholder="Input Data">
+                    <label for="" class="required form-label mb-3 fw-bold">File (.xlsx)</label>
+                    <input type="file" accept=".xlsx" required name="pkm" id="pkm" class="form-control bg-white border border-2 py-4 px-6 rounded-3 fw-light fs-6" placeholder="Input Data">
                 </div>
                 <button class="btn btn-primary w-20" onclick="onAdd()" id="toggleFormButton"><i class="las la-plus fs-2"></i> Simpan</button>
             </div>

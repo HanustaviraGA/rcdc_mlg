@@ -20,6 +20,7 @@ Route::post('loadpage', function(Request $request){
     return redirect(url('backoffice/'.$destination)); // Redirect to the module route
 })->name('loadpage');
 Route::get('/read', [SpreadsheetController::class, 'read'])->name('read');
+Route::get('/read_xlsx', [SpreadsheetController::class, 'read_xlsx'])->name('read_xlsx');
 
 // Change Permission
 Route::get('/change_perms', [DashboardController::class, 'change_perms'])->name('change_perms');

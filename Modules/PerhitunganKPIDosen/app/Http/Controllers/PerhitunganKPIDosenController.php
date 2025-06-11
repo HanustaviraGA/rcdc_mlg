@@ -35,12 +35,6 @@ class PerhitunganKPIDosenController extends Controller
             return response()->json(['success' => false, 'message' => 'Data dosen tidak ditemukan !'], 404);
         }
 
-        $html = '
-            <tr id="package_empty">
-                <td colspan="5" id="empty-message-package" class="text-center">No Records Found</td>
-            </tr>
-        ';
-
         // Adjustment bulan
         $month = date('m') - 1;
         // if($month - 1 == 0){
@@ -72,16 +66,16 @@ class PerhitunganKPIDosenController extends Controller
             dd.jja_dosen,
             dd.pendidikan_dosen,
             dd.jurusan_dosen,
-            COALESCE(SUM(CASE 
+            COALESCE(SUM(CASE
                 WHEN rd.tipe_publikasi = "Nscopus" THEN rd.bobot
                 ELSE 0
             END), 0) AS jml_nscopus,
-            COALESCE(SUM(CASE 
+            COALESCE(SUM(CASE
                 WHEN rd.tipe_publikasi = "Scopus" THEN rd.bobot
                 ELSE 0
             END), 0) AS jml_scopus
             FROM database_dosen dd
-            LEFT JOIN rectorate_dosen rd 
+            LEFT JOIN rectorate_dosen rd
             ON rd.kode_dosen = dd.kode_dosen
             AND rd.year = :year
             AND rd.period = :period
@@ -92,12 +86,12 @@ class PerhitunganKPIDosenController extends Controller
             $bindings['kode_dosen'] = $kode_dosen;
         }
 
-        $query .= ' GROUP BY 
-            dd.kode_dosen, dd.nama_dosen, dd.ft_dosen, dd.jja_dosen, 
+        $query .= ' GROUP BY
+            dd.kode_dosen, dd.nama_dosen, dd.ft_dosen, dd.jja_dosen,
             dd.pendidikan_dosen, dd.jurusan_dosen, dd.maxscopuskonf_dosen ORDER BY dd.nama_dosen ASC';
 
         $select = \DB::select($query, $bindings);
-        
+
         $kodeDosen = $kode_dosen;
         $ftDosen = $select[0]->ft_dosen;
         $jjaDosen = $select[0]->jja_dosen;
@@ -158,7 +152,7 @@ class PerhitunganKPIDosenController extends Controller
         }
 
         $rectorate = RectorateDosen::where('kode_dosen', $kode_dosen)->where('year', $year)->get();
-        if($rectorate){
+        if($rectorate->count() > 0){
             $html = '';
             foreach ($rectorate as $key => $value) {
                 $html .= '
@@ -181,13 +175,26 @@ class PerhitunganKPIDosenController extends Controller
                     </tr>
                 ';
             }
+            $arr_data = [
+                'main_data' => $select[0],
+                'kpi' => $kpi,
+                'html' => $html
+            ];
+        }else{
+            $html = '
+                <tr id="package_empty">
+                    <td colspan="5" id="empty-message-package" class="text-center">No Records Found</td>
+                </tr>
+            ';
+            $arr_data = [
+                'main_data' => $select[0],
+                'kpi' => [
+                    'kpi' => 0,
+                    'total_bobot' => 0
+                ],
+                'html' => $html
+            ];
         }
-
-        $arr_data = [
-            'main_data' => $select[0],
-            'kpi' => $kpi,
-            'html' => $html
-        ];
 
         return response()->json($arr_data, 200);
     }

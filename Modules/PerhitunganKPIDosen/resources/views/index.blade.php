@@ -4,7 +4,7 @@
             <div class="card-body">
                 <form action="javascript:init_table()">
                     <div class="row mb-5">
-                        <div class="col-12 col-xl d-flex align-items-center justify-content-between ">
+                        <div class="col-12 col-xl d-flex align-items-center justify-content-between">
                             <input required type="text" name="kode_dosen" id="kode_dosen" class="form-control form-control bg-gray-100 me-5" placeholder="Kode Dosen">
                             <select required name="year" id="year" class="form-control form-control bg-gray-100" placeholder="Tahun">
                                 <option disabled>Pilih Tahun</option>
@@ -14,13 +14,17 @@
                                 <option selected value="2025">2025</option>
                             </select>
                         </div>
-                        <div class="col-12 col-xl-3 col-md-6 col-lg-6 mt-5 my-md-0">
-                            <button type="submit" class="btn btn-primary w-100" id="toggleFormButton"><i class="las la-search fs-2"></i> Search</button>
+                        <div class="col-12 col-xl-3 col-md-6 col-lg-6 mt-5 my-md-0 mx-auto">
+                            <button type="submit" class="btn btn-primary w-100" id="toggleFormButton">
+                                <i class="las la-search fs-2"></i> Search
+                            </button>
                         </div>
-                        <div class="col-12 col-xl-3 col-md-6 col-lg-6 mt-5 my-md-0">
+                    </div>
+                    <div class="row mb-5">
+                        <div class="col-12 col-xl-6 col-md-6 col-lg-6 mt-5 my-md-0">
                             <input readonly type="text" id="nama_dosen" class="form-control form-control bg-gray-100 me-5" placeholder="Nama Dosen">
                         </div>
-                        <div class="col-12 col-xl-2 col-md-4 col-lg-3 mt-5 my-md-0">
+                        <div class="col-12 col-xl-3 col-md-4 col-lg-3 mt-5 my-md-0">
                             <input readonly type="text" id="skor_dosen" class="form-control form-control bg-gray-100 me-5" placeholder="Score : -">
                         </div>
                     </div>
@@ -71,7 +75,7 @@
             // dataType: "html",
             headers:{
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },  
+            },
             success: function (response) {
                 unblockPage();
                 $('#nama_dosen').empty().val(response.main_data.nama_dosen).trigger('change');

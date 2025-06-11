@@ -88,7 +88,7 @@
             // dataType: "html",
             headers:{
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },  
+            },
             success: function (response) {
                 unblockPage();
                 $('#nama_dosen').empty().val(response.dosen).trigger('change');
