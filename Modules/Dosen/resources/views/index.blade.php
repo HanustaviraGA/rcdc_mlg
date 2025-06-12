@@ -27,8 +27,8 @@
                             <option value="BC">BC</option>
                         </select>
                     </div>
-                    <div data-roleable="true" data-role="editdosen" class="col-12 col-xl-3 col-md-6 col-lg-6 mt-5 my-md-0">
-                        <button type="button" class="btn btn-primary w-100" id="toggleFormButton"><i class="las la-plus fs-2"></i> Tambah</button>
+                    <div data-roleable="false" data-role="editdosen" class="col-12 col-xl-3 col-md-6 col-lg-6 mt-5 my-md-0">
+                        <button type="button" class="btn btn-primary w-100" onclick="$('#modalHakakses').modal('show')" id="toggleFormButton"><i class="las la-plus fs-2"></i> Perbarui Data</button>
                     </div>
                 </div>
                 <div class="table-responsive border-2 border-top">
@@ -37,7 +37,6 @@
                             <tr class="fw-bolder text-dark">
                                 <th style="width: 100px !important;">Kode Dosen</th>
                                 <th style="width: 300px !important;">Nama Dosen</th>
-                                {{-- <th>Prodi</th> --}}
                                 <th style="width: 75px !important;">Program Studi</th>
                                 <th>Telp</th>
                                 <th>Email</th>
@@ -52,6 +51,29 @@
                     </table>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="modalHakakses" tabindex="-1" aria-labelledby="modalHakakses" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="javascript:onAdd()" method="post" id="formHakakses" name="formHakakses" autocomplete="off" enctype="multipart/form-data">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="modalHakakses">Perbarui Data</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="fv-row mb-7 fv-plugins-icon-container">
+                        <label for="" class="required form-label">Data Center (.xlsx)</label>
+                        <input type="file" required id="dosen" name="dosen" class="form-control form-control-outline">
+                        <div class="fv-plugins-message-container invalid-feedback"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    <button type="submit" class="btn btn-primary">Unggah</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

@@ -13,10 +13,10 @@ License: For each use you must have a valid license purchased only from above li
 <html lang="en">
 	<!--begin::Head-->
 	<head><base href="../">
-		<title id="ttl">RCDC Binus@Malang</title>
+		<title id="ttl">SIM-KID BINUS</title>
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta charset="utf-8" />
-		<link rel="shortcut icon" href="{{ asset('20230411_163530_0000-removebg-preview.png') }}" />
+		<link rel="shortcut icon" href="{{ asset('simkid_logo.png') }}" />
 		<!--begin::Fonts-->
 		<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700" />
 		<!--end::Fonts-->
@@ -70,8 +70,8 @@ License: For each use you must have a valid license purchased only from above li
 								<a href="{{ url('/') }}">
 									{{-- <img alt="Logo" src="assets/media/logos/logo-rcdc.png" class="logo-default h-75px" />
 									<img alt="Logo" src="assets/media/logos/logo-rcdc.png" class="logo-sticky h-75px" /> --}}
-									<img alt="Logo" src="{{ asset('20230411_163530_0000-removebg-preview.png') }}" class="logo-default h-75px" />
-									<img alt="Logo" src="{{ asset('20230411_163530_0000-removebg-preview.png') }}" class="logo-sticky h-75px" />
+									<img alt="Logo" src="{{ asset('simkid_logo.png') }}" class="logo-default h-75px" />
+									<img alt="Logo" src="{{ asset('simkid_logo.png') }}" class="logo-sticky h-75px" />
 								</a>
 							</div>
 							<!--end::Header Logo-->
@@ -243,7 +243,9 @@ License: For each use you must have a valid license purchased only from above li
 							<!--begin::Menu-->
 							<ul class="menu menu-gray-600 menu-hover-primary fw-bold order-1">
 								<li class="menu-item">
-									<a href="https://sites.google.com/view/rcdcmalang/home/kontak-kami" target="_blank" class="menu-link px-2">Support</a>
+									<a href="https://sites.google.com/view/rcdcmalang/home/kontak-kami" target="_blank" class="menu-link px-2">
+										<img src="{{ asset('20230411_163530_0000-removebg-preview.png') }}" alt="Support" style="height: 36px;" />
+									</a>
 								</li>
 							</ul>
 							<!--end::Menu-->

@@ -151,4 +151,34 @@
         unblockPage();
     }
 
+    function onAdd(){
+        $('#modalHakakses').modal('hide');
+        blockPage();
+        var formData = new FormData();
+        formData.append('dosen', $('#dosen')[0].files[0]);
+        $.ajax({
+            url: "{{ route('dosen.read') }}",
+            type: "POST",
+            data: formData,
+            contentType: false,     // Important
+            processData: false,     // Important
+            headers:{
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },  
+            success: function (response) {
+                $('#formHakakses').trigger('reset');
+                unblockPage();
+                SUPER.showMessage({
+                    success: true,
+                    message: 'Sukses mengunggah data',
+                    title: 'Berhasil'
+                });
+                init_table();
+                // $('#image_pic').empty().html(response.html);
+                // window.open(response.link);
+                // $("#image_pic object").attr("data", response.data);
+            }
+        });
+    }
+
 </script>

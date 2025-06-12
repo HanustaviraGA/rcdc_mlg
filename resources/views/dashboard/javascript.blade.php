@@ -57,7 +57,7 @@
                     // Update page title
                     const pagename = clickedItem.data('page');
                     $('#ttl-header').text(pagename);
-                    $('#ttl').text('RCDC Binus@Malang - ' + pagename);
+                    $('#ttl').text('SIM-KID BINUS - ' + pagename);
                 }()).then(function () {
                     const container = $("#kt_post");
                     $.each($('[data-roleable=true]', container), function (i, v) {
