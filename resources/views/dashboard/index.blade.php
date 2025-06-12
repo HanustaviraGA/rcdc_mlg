@@ -16,7 +16,7 @@ License: For each use you must have a valid license purchased only from above li
 		<title id="ttl">SIM-KID BINUS</title>
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta charset="utf-8" />
-		<link rel="shortcut icon" href="{{ asset('simkid_logo.png') }}" />
+		<link rel="shortcut icon" href="{{ asset('simkid_removebg.png') }}" />
 		<!--begin::Fonts-->
 		<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700" />
 		<!--end::Fonts-->
@@ -70,8 +70,8 @@ License: For each use you must have a valid license purchased only from above li
 								<a href="{{ url('/') }}">
 									{{-- <img alt="Logo" src="assets/media/logos/logo-rcdc.png" class="logo-default h-75px" />
 									<img alt="Logo" src="assets/media/logos/logo-rcdc.png" class="logo-sticky h-75px" /> --}}
-									<img alt="Logo" src="{{ asset('simkid_logo.png') }}" class="logo-default h-75px" />
-									<img alt="Logo" src="{{ asset('simkid_logo.png') }}" class="logo-sticky h-75px" />
+									<img alt="Logo" src="{{ asset('simkid_removebg.png') }}" class="logo-default h-75px" />
+									<img alt="Logo" src="{{ asset('simkid_removebg.png') }}" class="logo-sticky h-75px" />
 								</a>
 							</div>
 							<!--end::Header Logo-->
