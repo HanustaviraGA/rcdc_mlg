@@ -151,7 +151,7 @@ class PerhitunganKPIDosenController extends Controller
             }
         }
 
-        $rectorate = RectorateDosen::where('kode_dosen', $kode_dosen)->where('year', $year)->get();
+        $rectorate = RectorateDosen::where('kode_dosen', $kode_dosen)->where('year', $year)->where('period', $period)->where('month', $month)->get();
         if($rectorate->count() > 0){
             $html = '';
             foreach ($rectorate as $key => $value) {

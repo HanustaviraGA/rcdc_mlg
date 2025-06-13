@@ -7,6 +7,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use App\Models\Dosen;
+use App\Models\RectorateMahasiswa;
 
 class ExportReportController extends Controller
 {
@@ -33,12 +34,28 @@ class ExportReportController extends Controller
         $data = $request->all();
 
         $reportHtml = '';
+        $reportHtmlMHS = '';
         $rowspan = 1;
         $no = 1;
+        $rowspanMHS = 1;
+        $noMHS = 1;
 
-        $year = 2025;
-        $month = 4;
-        $period = 2;
+        $year = date('Y');
+        $month = date('m') - 1;
+
+        dd($month);
+        exit;
+
+        // $period = 2;
+        if($month == 1 || $month == 2 || $month == 3){
+            $period = 1;
+        }else if($month == 4 || $month == 5 || $month == 6){
+            $period = 2;
+        }else if($month == 7 || $month == 8 || $month == 9){
+            $period = 3;
+        }else if($month == 10 || $month == 11 || $month == 12){
+            $period = 4;
+        }
 
         // $query = Dosen::orderBy('jurusan_dosen', 'asc')->get();
         $bindings = [
@@ -80,10 +97,8 @@ class ExportReportController extends Controller
 
         $select = \DB::select($query, $bindings);
 
-        
-
         $previousJurusan = null;
-        $previousJurusanMhs = null;
+        $previousJurusanMHS = null;
 
         foreach ($select as $index => $row) {
             $kodeDosen = $row->kode_dosen;
@@ -178,6 +193,28 @@ class ExportReportController extends Controller
             $reportHtml .= '</tr>';
         
             $no++;
+        }
+
+        $queryMHS = RectorateMahasiswa::where('year', $year)->where('period', $period)->where('month', $month)->get();
+        foreach($queryMHS as $mhs){
+            $bgColorMHS = ($no % 2 == 0) ? 'white' : 'white';
+            if ($previousJurusanMHS !== $mhs->dept) {
+                $reportHtmlMHS .= '<tr>';
+                $reportHtmlMHS .= '<td colspan="2" style="background-color: #f0f0f0; font-weight: bold; text-align:left; margin-top: 5px;">PRODI: ' . htmlspecialchars($mhs->dept) . '</td>';
+                $reportHtmlMHS .= '</tr>';
+        
+                $reportHtmlMHS .= '
+                    <tr>
+                        <th class="t-center head">Mhs Author</th>
+                        <th class="t-center head">Title</th>
+                    </tr>';
+                $previousJurusanMHS = $mhs->dept;
+            }
+            $reportHtmlMHS .= '<tr>';
+            $reportHtmlMHS .= '<td class="t-left" style="background-color:' . $bgColorMHS . ';" rowspan="' . $rowspanMHS . '">' . $mhs->fm_author . '</td>';
+            $reportHtmlMHS .= '<td class="t-left" style="background-color:' . $bgColorMHS . ';" rowspan="' . $rowspanMHS . '">' . $mhs->title . '</td>';
+            $reportHtmlMHS .= '</tr>';
+            $noMHS++;
         }
 
         $html = '

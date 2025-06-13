@@ -97,6 +97,7 @@
                     <div class="fv-row mb-7 fv-plugins-icon-container">
                         <label for="" class="form-label">Program Studi</label>
                         <select id="filter_prodi" name="filter_prodi" class="form-control form-control-outline">
+                            <option value="Semua Prodi">Semua Prodi</option>
                             <option value="DI">DI</option>
                             <option value="CS">CS</option>
                             <option value="DKV">DKV</option>
