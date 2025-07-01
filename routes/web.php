@@ -11,7 +11,7 @@ Route::get('/', function () {
     // Session::flush();
     Auth::logout();
     // return view('welcome');
-    return redirect()->to('/dashboard/perhitungankpidosen');
+    return redirect()->to('/dashboard/perhitungankpidosenrtto');
 })->name('landing');
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('index');
 Route::get('/dashboard/{any}', [DashboardController::class, 'index_spec'])->name('index_spec');
