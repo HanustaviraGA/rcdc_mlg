@@ -1,0 +1,11 @@
+{
+    "name": "PerhitunganKPIDosenRTTO",
+    "alias": "perhitungankpidosenrtto",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\PerhitunganKPIDosenRTTO\\Providers\\PerhitunganKPIDosenRTTOServiceProvider"
+    ],
+    "files": []
+}

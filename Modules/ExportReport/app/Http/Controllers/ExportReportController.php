@@ -43,8 +43,8 @@ class ExportReportController extends Controller
         $year = date('Y');
         $month = date('m') - 1;
 
-        dd($month);
-        exit;
+        // dd($month);
+        // exit;
 
         // $period = 2;
         if($month == 1 || $month == 2 || $month == 3){

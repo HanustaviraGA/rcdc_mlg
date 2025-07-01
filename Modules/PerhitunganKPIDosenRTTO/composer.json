@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/perhitungankpidosenrtto",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\PerhitunganKPIDosenRTTO\\": "app/",
+            "Modules\\PerhitunganKPIDosenRTTO\\Database\\Factories\\": "database/factories/",
+            "Modules\\PerhitunganKPIDosenRTTO\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\PerhitunganKPIDosenRTTO\\Tests\\": "tests/"
+        }
+    }
+}

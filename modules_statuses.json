@@ -11,5 +11,6 @@
     "PerhitunganKPISelfDev": true,
     "MatrixKPIDosen": true,
     "ImportPKM": true,
-    "PerhitunganKPIPKM": true
+    "PerhitunganKPIPKM": true,
+    "PerhitunganKPIDosenRTTO": true
 }
