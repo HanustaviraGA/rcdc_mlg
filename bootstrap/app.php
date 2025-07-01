@@ -12,7 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->validateCsrfTokens(
-            except: ['/dashboard/*', '/dashboard', '/backoffice/*', '/trial/*']
+            except: ['/dashboard/*', '/dashboard', '/backoffice/*', '/trial/*', '/loadpage']
         );
     })
     ->withExceptions(function (Exceptions $exceptions) {
