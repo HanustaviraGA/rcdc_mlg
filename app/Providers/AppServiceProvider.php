@@ -23,10 +23,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Force redirect HTTPS to HTTP
-        if (Request::secure()) {
-            $httpUrl = 'http://' . Request::getHttpHost() . Request::getRequestUri();
-            Redirect::to($httpUrl, 301)->send();
-            exit; // Prevent further Laravel processing
-        }
+        // if (Request::secure()) {
+        //     $httpUrl = 'http://' . Request::getHttpHost() . Request::getRequestUri();
+        //     Redirect::to($httpUrl, 301)->send();
+        //     exit; // Prevent further Laravel processing
+        // }
     }
 }

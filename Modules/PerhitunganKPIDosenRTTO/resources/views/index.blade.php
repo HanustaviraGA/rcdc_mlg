@@ -7,7 +7,7 @@
                         <!-- Responsive iframe container -->
                         <div style="position: relative; width: 100%; padding-top: 75%; height: 0; overflow: hidden;">
                             <iframe
-                                src="http://122.248.206.130:8503/?embed=true"
+                                src="https://rcdcmlg.com/proxy/"
                                 frameborder="0"
                                 allowfullscreen
                                 sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
