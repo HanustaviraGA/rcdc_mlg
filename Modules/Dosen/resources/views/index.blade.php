@@ -11,20 +11,30 @@
                             <h3 class="mt-1 mb-5 ms-5">Dosen</h3>
                         </div>
                         <div class=" col-lg-6 d-none d-xl-block">
-                            <p class="mt-4 mb-5 ms-5 text-end">Prodi :</p>
+                            <p class="mt-4 mb-5 ms-5 text-end">Pencarian :</p>
                         </div>
+                        <div class="col-12 col-xl-4 col-md-6 col-lg-6 d-flex align-items-center ms-5 mt-5 mt-md-0">
+                            <label for="customSearchInput" class="text-muted las la-search position-absolute ms-3 fs-2 mt-1"></label>
+                            <input type="search" class="form-control form-control ps-10 bg-gray-100" id="customSearchInput" placeholder="Cari nama">
+                        </div>
+                        {{-- <div class=" col-lg-6 d-none d-xl-block">
+                            <p class="mt-4 mb-5 ms-5 text-end">Prodi :</p>
+                        </div> --}}
                     </div>
-                    <div class="col-12 col-xl-4 col-md-6 col-lg-6 d-flex align-items-center mt-5 mt-md-0">
+                    <div class="col-12 col-xl-2 col-md-6 col-lg-6 d-flex align-items-center ms-3 mt-5 mt-md-0">
                         <select id="prodi" onchange="init_table()" class="form-control form-control bg-gray-100">
-                            <option value="All" selected>Semua</option>
-                            <option value="DI">DI</option>
+                            <option value="All" selected>Semua Prodi</option>
+                            {{-- <option value="DI">DI</option>
                             <option value="CS">CS</option>
                             <option value="DKV">DKV</option>
                             <option value="Ilkom">ILKOM</option>
                             <option value="CBDC">CBDC</option>
                             <option value="LC">LC</option>
                             <option value="PR">PR</option>
-                            <option value="BC">BC</option>
+                            <option value="BC">BC</option> --}}
+                            @foreach($program as $prodi)
+                                <option value="{{ $prodi['nama_gugus_binaan'] }}">{{ $prodi['nama_gugus_binaan'] }}</option>
+                            @endforeach
                         </select>
                     </div>
                     <div data-roleable="false" data-role="editdosen" class="col-12 col-xl-3 col-md-6 col-lg-6 mt-5 my-md-0">
@@ -36,10 +46,10 @@
                         <thead>
                             <tr class="fw-bolder text-dark">
                                 <th style="width: 100px !important;">Kode Dosen</th>
-                                <th style="width: 300px !important;">Nama Dosen</th>
-                                <th style="width: 75px !important;">Program Studi</th>
-                                <th>Telp</th>
-                                <th>Email</th>
+                                <th style="width: 400px !important;">Nama Dosen</th>
+                                <th style="width: 200px !important;">Program Studi</th>
+                                <th>Faculty Type</th>
+                                <th>JJA</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>

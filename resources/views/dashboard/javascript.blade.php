@@ -13,8 +13,12 @@
         });
 
         router.on("/:page", function (params) {
-            // Use the 'page' parameter from the 'params' object
-            loadPage(params.data.page);
+            var check = SUPER.get_role_access(params.data.page);
+            if(check){
+                loadPage(params.data.page);
+            }else{
+                loadPage('home');
+            }
         });
 
         router.resolve();
@@ -57,7 +61,7 @@
                     // Update page title
                     const pagename = clickedItem.data('page');
                     $('#ttl-header').text(pagename);
-                    $('#ttl').text('SIM-KID BINUS - ' + pagename);
+                    $('#ttl').text('ALRC - Portal Catur Dharma - ' + pagename);
                 }()).then(function () {
                     const container = $("#kt_post");
                     $.each($('[data-roleable=true]', container), function (i, v) {

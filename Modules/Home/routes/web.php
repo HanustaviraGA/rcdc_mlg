@@ -20,4 +20,6 @@ Route::prefix('backoffice/home')->group(function() {
     Route::post('read', [HomeController::class, 'read'])->name('home.read');
     Route::put('update', [HomeController::class, 'update'])->name('home.update');
     Route::delete('delete', [HomeController::class, 'delete'])->name('home.delete');
+    // Custom
+    Route::post('init_table', [HomeController::class, 'init_table'])->name('home.init_table');
 });

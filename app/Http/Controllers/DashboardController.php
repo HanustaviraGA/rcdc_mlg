@@ -61,91 +61,108 @@ class DashboardController extends Controller
             $roles = json_encode($isi_roles);
 
             // Sidebar
-            $sidebar = '';
+            $sidebar = '<div class="menu menu-column menu-title-gray-800 menu-state-title-primary menu-state-icon-primary menu-state-bullet-primary menu-arrow-gray-500" id="kt_aside_menu" data-kt-menu="true">';
             // Level 1 - Judul Menu
             $start = SysMenu::where('menu_aktif', 1)->where('menu_level', 1)->whereHas('roles', function ($query) use ($role) {
                 $query->where('role_id', $role);
             })->orderBy('menu_order', 'asc')->get();
-            foreach($start as $level_one){
-                $sidebar .= '<div class="menu-item">
-                    <div class="menu-content pb-2">
-                        <span class="menu-section text-muted text-uppercase fs-8 ls-1">'.$level_one['menu_judul'].'</span>
-                    </div>
+
+            foreach ($start as $judul) {
+                // $sidebar .= '
+                // <div class="menu-item">
+                //     <div class="menu-content pb-2">
+                //         <span style="text-weight: bold !important; color: white !important;" class="menu-section text-muted text-uppercase fs-8 ls-1">'.$judul['menu_judul'].'</span>
+                //         <span class="menu-arrow" style="color: white !important;">X</span>
+                //     </div>
+                // </div>';
+                if (isset($judul['menu_link']) && $judul['menu_link'] !== '') {
+                    $link = $judul['menu_link'];
+                } else {
+                    $link = 'javascript:void(0)';
+                }
+
+                if ($judul['menu_kode'] == 'home') {
+                    $span = '';
+                } else {
+                    // $span = '<span class="menu-arrow"></span>';
+                    $span = '<span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="12" height="12" fill="rgba(152,153,172,1)"><path d="M10 6V8H5V19H16V14H18V20C18 20.5523 17.5523 21 17 21H4C3.44772 21 3 20.5523 3 20V7C3 6.44772 3.44772 6 4 6H10ZM21 3V11H19L18.9999 6.413L11.2071 14.2071L9.79289 12.7929L17.5849 5H13V3H21Z"></path></svg></span>';
+                }
+
+                $sidebar .= '
+                <div class="menu-item menu-accordion">
+                    <a href="javascript:void(0)" class="menu-link">
+                        <span class="menu-title text-white fw-bold">' . $judul['menu_judul'] . '</span>
+                    </a>
                 </div>';
-                if($level_one['menu_sub']){
+                if ($judul['menu_sub']) {
                     // Level 2 - Sub Menu Level 2
-                    $second = SysMenu::where('menu_aktif', 1)->where('menu_level', 2)->where('menu_parent', $level_one['menu_id'])->whereHas('roles', function ($query) use ($role) {
+                    $start_c1 = SysMenu::where('menu_aktif', 1)->where('menu_level', 2)->where('menu_parent', $judul['menu_id'])->whereHas('roles', function ($query) use ($role) {
                         $query->where('role_id', $role);
                     })->orderBy('menu_order', 'asc')->get();
-                    foreach($second as $level_two){
-                        // Nested
-                        if($level_two['menu_sub']){
-                            $sidebar .= '<div data-kt-menu-trigger="click" class="menu-item menu-accordion">
+                    foreach ($start_c1 as $values) {
+                        if ($values['menu_sub'] == 1) {
+                            $sidebar .= '
+                            <div data-kt-menu-trigger="click" class="menu-item menu-accordion">
                                 <span class="menu-link">
                                     <span class="menu-bullet">
                                         <span class="bullet bullet-dot"></span>
                                     </span>
-                                    <span class="menu-title">'.$level_two['menu_judul'].'</span>
+                                    <span class="menu-title">' . $values['menu_judul'] . '</span>
                                     <span class="menu-arrow"></span>
                                 </span>
-                                <div class="menu-sub menu-sub-accordion menu-active-bg">';
-                                // Level 3 - Sub Menu Level 3
-                                $third = SysMenu::where('menu_aktif', 1)->where('menu_level', 3)->where('menu_parent', $level_two['menu_id'])->whereHas('roles', function ($query) use ($role) {
+                                <div class="menu-sub menu-sub-accordion">';
+
+                            $extend = SysMenu::where('menu_aktif', 1)
+                                ->where('menu_parent', $values['menu_id'])
+                                ->where('menu_level', 3)
+                                ->whereHas('roles', function ($query) use ($role) {
                                     $query->where('role_id', $role);
-                                })->orderBy('menu_order', 'asc')->get();
-                                foreach($third as $level_three){
-                                    if($level_three['menu_sub']){
-                                        $sidebar .= '<div data-kt-menu-trigger="click" class="menu-item menu-accordion">
-                                            <span class="menu-link">
-                                                <span class="menu-bullet">
-                                                    <span class="bullet bullet-dot"></span>
-                                                </span>
-                                                <span class="menu-title">'.$level_three['menu_judul'].'</span>
-                                                <span class="menu-arrow"></span>
-                                            </span>
-                                            <div class="menu-sub menu-sub-accordion menu-active-bg">';
-                                                // Level 4 - Sub Menu Level 4
-                                                $fourth = SysMenu::where('menu_aktif', 1)->where('menu_level', 4)->where('menu_parent', $level_three['menu_id'])->whereHas('roles', function ($query) use ($role) {
-                                                    $query->where('role_id', $role);
-                                                })->orderBy('menu_order', 'asc')->get();
-                                                foreach($fourth as $level_four){
-                                                    $sidebar .= '<div class="menu-item">
-                                                        <a data-page="' . $level_four['menu_judul'] . '" id="lnk-'.$level_four['menu_kode'].'" class="menu-link" href="/'.$level_four['menu_kode'].'" data-navigo>
-                                                            <span class="menu-bullet">
-                                                                <span class="bullet bullet-dot"></span>
-                                                            </span>
-                                                            <span class="menu-title">'.$level_four['menu_judul'].'</span>
-                                                        </a>
-                                                    </div>';
-                                                }
-                                        $sidebar .= '</div></div>';
-                                    }else{
-                                        $sidebar .= '<div class="menu-item">
-                                            <a data-page="' . $level_three['menu_judul'] . '" id="lnk-'.$level_three['menu_kode'].'" class="menu-link" href="/'.$level_three['menu_kode'].'" data-navigo>
-                                                <span class="menu-bullet">
-                                                    <span class="bullet bullet-dot"></span>
-                                                </span>
-                                                <span class="menu-title">'.$level_three['menu_judul'].'</span>
-                                            </a>
-                                        </div>';
-                                    }
-                                }
-                            $sidebar .= '</div></div>';
-                        }
-                        // Non - nested
-                        else{
-                            $sidebar .= '<div class="menu-item">
-                                <a data-page="' . $level_two['menu_judul'] . '" id="lnk-'.$level_two['menu_kode'].'" class="menu-link" href="/'.$level_two['menu_kode'].'" data-navigo>
-                                    <span class="menu-bullet">
-                                        <span class="bullet bullet-dot"></span>
-                                    </span>
-                                    <span class="menu-title">'.$level_two['menu_judul'].'</span>
-                                </a>
-                            </div>';
+                                })
+                                ->orderBy('menu_order', 'asc')
+                                ->get();
+
+                            foreach ($extend as $valext) {
+                                $sidebar .= '
+                                <div class="menu-item">
+                                    <a data-page-parent="' . $values['menu_judul'] . '" data-page="' . $valext['menu_judul'] . '"
+                                    id="lnk-' . $valext['menu_kode'] . '"
+                                    class="menu-link" href="/' . $valext['menu_kode'] . '" data-navigo>
+                                        <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                        <span class="menu-title">' . $valext['menu_judul'] . '</span>
+                                    </a>
+                                </div>';
+                            }
+
+                            $sidebar .= '</div></div>'; // close submenu + parent
+                        } else {
+                            if ($values['menu_kode'] == 'dashboard') {
+                                $sidebar .= '
+                                <div class="menu-item">
+                                    <a data-page-parent="' . $judul['menu_judul'] . '" data-page="' . $values['menu_judul'] . '" id="lnk-' . $values['menu_kode'] . '" class="menu-link active" href="/" data-navigo>
+                                        <span class="menu-bullet">
+                                            <span class="bullet bullet-dot"></span>
+                                        </span>
+                                        <span class="menu-title">' . $values['menu_judul'] . '</span>
+                                    </a>
+                                </div>';
+                            } else {
+                                $sidebar .= '
+                                <div class="menu-item">
+                                    <a data-page-parent="' . $judul['menu_judul'] . '" data-page="' . $values['menu_judul'] . '" id="lnk-' . $values['menu_kode'] . '" class="menu-link" href="/' . $values['menu_kode'] . '" data-navigo>
+                                        <span class="menu-bullet">
+                                            <span class="bullet bullet-dot"></span>
+                                        </span>
+                                        <span class="menu-title">' . $values['menu_judul'] . '</span>
+                                    </a>
+                                </div>';
+                            }
                         }
                     }
                 }
             }
+
+            $sidebar .= '</div>';
+
             return view('dashboard.index', compact('destination', 'ucf', 'roles', 'sidebar'));
         }else{
             $destination = 'home';
@@ -194,91 +211,108 @@ class DashboardController extends Controller
             $roles = json_encode($isi_roles);
 
             // Sidebar
-            $sidebar = '';
+            $sidebar = '<div class="menu menu-column menu-title-gray-800 menu-state-title-primary menu-state-icon-primary menu-state-bullet-primary menu-arrow-gray-500" id="kt_aside_menu" data-kt-menu="true">';
             // Level 1 - Judul Menu
             $start = SysMenu::where('menu_aktif', 1)->where('menu_level', 1)->whereHas('roles', function ($query) use ($role) {
                 $query->where('role_id', $role);
             })->orderBy('menu_order', 'asc')->get();
-            foreach($start as $level_one){
-                $sidebar .= '<div class="menu-item">
-                    <div class="menu-content pb-2">
-                        <span class="menu-section text-muted text-uppercase fs-8 ls-1">'.$level_one['menu_judul'].'</span>
-                    </div>
+
+            foreach ($start as $judul) {
+                // $sidebar .= '
+                // <div class="menu-item">
+                //     <div class="menu-content pb-2">
+                //         <span style="text-weight: bold !important; color: white !important;" class="menu-section text-muted text-uppercase fs-8 ls-1">'.$judul['menu_judul'].'</span>
+                //         <span class="menu-arrow" style="color: white !important;">X</span>
+                //     </div>
+                // </div>';
+                if (isset($judul['menu_link']) && $judul['menu_link'] !== '') {
+                    $link = $judul['menu_link'];
+                } else {
+                    $link = 'javascript:void(0)';
+                }
+
+                if ($judul['menu_kode'] == 'home') {
+                    $span = '';
+                } else {
+                    // $span = '<span class="menu-arrow"></span>';
+                    $span = '<span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="12" height="12" fill="rgba(152,153,172,1)"><path d="M10 6V8H5V19H16V14H18V20C18 20.5523 17.5523 21 17 21H4C3.44772 21 3 20.5523 3 20V7C3 6.44772 3.44772 6 4 6H10ZM21 3V11H19L18.9999 6.413L11.2071 14.2071L9.79289 12.7929L17.5849 5H13V3H21Z"></path></svg></span>';
+                }
+
+                $sidebar .= '
+                <div class="menu-item menu-accordion">
+                    <a href="javascript:void(0)" class="menu-link">
+                        <span class="menu-title text-white fw-bold">' . $judul['menu_judul'] . '</span>
+                    </a>
                 </div>';
-                if($level_one['menu_sub']){
+                if ($judul['menu_sub']) {
                     // Level 2 - Sub Menu Level 2
-                    $second = SysMenu::where('menu_aktif', 1)->where('menu_level', 2)->where('menu_parent', $level_one['menu_id'])->whereHas('roles', function ($query) use ($role) {
+                    $start_c1 = SysMenu::where('menu_aktif', 1)->where('menu_level', 2)->where('menu_parent', $judul['menu_id'])->whereHas('roles', function ($query) use ($role) {
                         $query->where('role_id', $role);
                     })->orderBy('menu_order', 'asc')->get();
-                    foreach($second as $level_two){
-                        // Nested
-                        if($level_two['menu_sub']){
-                            $sidebar .= '<div data-kt-menu-trigger="click" class="menu-item menu-accordion">
+                    foreach ($start_c1 as $values) {
+                        if ($values['menu_sub'] == 1) {
+                            $sidebar .= '
+                            <div data-kt-menu-trigger="click" class="menu-item menu-accordion">
                                 <span class="menu-link">
                                     <span class="menu-bullet">
                                         <span class="bullet bullet-dot"></span>
                                     </span>
-                                    <span class="menu-title">'.$level_two['menu_judul'].'</span>
+                                    <span class="menu-title">' . $values['menu_judul'] . '</span>
                                     <span class="menu-arrow"></span>
                                 </span>
-                                <div class="menu-sub menu-sub-accordion menu-active-bg">';
-                                // Level 3 - Sub Menu Level 3
-                                $third = SysMenu::where('menu_aktif', 1)->where('menu_level', 3)->where('menu_parent', $level_two['menu_id'])->whereHas('roles', function ($query) use ($role) {
+                                <div class="menu-sub menu-sub-accordion">';
+
+                            $extend = SysMenu::where('menu_aktif', 1)
+                                ->where('menu_parent', $values['menu_id'])
+                                ->where('menu_level', 3)
+                                ->whereHas('roles', function ($query) use ($role) {
                                     $query->where('role_id', $role);
-                                })->orderBy('menu_order', 'asc')->get();
-                                foreach($third as $level_three){
-                                    if($level_three['menu_sub']){
-                                        $sidebar .= '<div data-kt-menu-trigger="click" class="menu-item menu-accordion">
-                                            <span class="menu-link">
-                                                <span class="menu-bullet">
-                                                    <span class="bullet bullet-dot"></span>
-                                                </span>
-                                                <span class="menu-title">'.$level_three['menu_judul'].'</span>
-                                                <span class="menu-arrow"></span>
-                                            </span>
-                                            <div class="menu-sub menu-sub-accordion menu-active-bg">';
-                                                // Level 4 - Sub Menu Level 4
-                                                $fourth = SysMenu::where('menu_aktif', 1)->where('menu_level', 4)->where('menu_parent', $level_three['menu_id'])->whereHas('roles', function ($query) use ($role) {
-                                                    $query->where('role_id', $role);
-                                                })->orderBy('menu_order', 'asc')->get();
-                                                foreach($fourth as $level_four){
-                                                    $sidebar .= '<div class="menu-item">
-                                                        <a data-page="' . $level_four['menu_judul'] . '" id="lnk-'.$level_four['menu_kode'].'" class="menu-link" href="/'.$level_four['menu_kode'].'" data-navigo>
-                                                            <span class="menu-bullet">
-                                                                <span class="bullet bullet-dot"></span>
-                                                            </span>
-                                                            <span class="menu-title">'.$level_four['menu_judul'].'</span>
-                                                        </a>
-                                                    </div>';
-                                                }
-                                        $sidebar .= '</div></div>';
-                                    }else{
-                                        $sidebar .= '<div class="menu-item">
-                                            <a data-page="' . $level_three['menu_judul'] . '" id="lnk-'.$level_three['menu_kode'].'" class="menu-link" href="/'.$level_three['menu_kode'].'" data-navigo>
-                                                <span class="menu-bullet">
-                                                    <span class="bullet bullet-dot"></span>
-                                                </span>
-                                                <span class="menu-title">'.$level_three['menu_judul'].'</span>
-                                            </a>
-                                        </div>';
-                                    }
-                                }
-                            $sidebar .= '</div></div>';
-                        }
-                        // Non - nested
-                        else{
-                            $sidebar .= '<div class="menu-item">
-                                <a data-page="' . $level_two['menu_judul'] . '" id="lnk-'.$level_two['menu_kode'].'" class="menu-link" href="/'.$level_two['menu_kode'].'" data-navigo>
-                                    <span class="menu-bullet">
-                                        <span class="bullet bullet-dot"></span>
-                                    </span>
-                                    <span class="menu-title">'.$level_two['menu_judul'].'</span>
-                                </a>
-                            </div>';
+                                })
+                                ->orderBy('menu_order', 'asc')
+                                ->get();
+
+                            foreach ($extend as $valext) {
+                                $sidebar .= '
+                                <div class="menu-item">
+                                    <a data-page-parent="' . $values['menu_judul'] . '" data-page="' . $valext['menu_judul'] . '"
+                                    id="lnk-' . $valext['menu_kode'] . '"
+                                    class="menu-link" href="/' . $valext['menu_kode'] . '" data-navigo>
+                                        <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                        <span class="menu-title">' . $valext['menu_judul'] . '</span>
+                                    </a>
+                                </div>';
+                            }
+
+                            $sidebar .= '</div></div>'; // close submenu + parent
+                        } else {
+                            if ($values['menu_kode'] == 'dashboard') {
+                                $sidebar .= '
+                                <div class="menu-item">
+                                    <a data-page-parent="' . $judul['menu_judul'] . '" data-page="' . $values['menu_judul'] . '" id="lnk-' . $values['menu_kode'] . '" class="menu-link active" href="/" data-navigo>
+                                        <span class="menu-bullet">
+                                            <span class="bullet bullet-dot"></span>
+                                        </span>
+                                        <span class="menu-title">' . $values['menu_judul'] . '</span>
+                                    </a>
+                                </div>';
+                            } else {
+                                $sidebar .= '
+                                <div class="menu-item">
+                                    <a data-page-parent="' . $judul['menu_judul'] . '" data-page="' . $values['menu_judul'] . '" id="lnk-' . $values['menu_kode'] . '" class="menu-link" href="/' . $values['menu_kode'] . '" data-navigo>
+                                        <span class="menu-bullet">
+                                            <span class="bullet bullet-dot"></span>
+                                        </span>
+                                        <span class="menu-title">' . $values['menu_judul'] . '</span>
+                                    </a>
+                                </div>';
+                            }
                         }
                     }
                 }
             }
+
+            $sidebar .= '</div>';
+
             return view('dashboard.index', compact('destination', 'ucf', 'roles', 'sidebar'));
         }
     }
@@ -332,91 +366,108 @@ class DashboardController extends Controller
             $roles = json_encode($isi_roles);
 
             // Sidebar
-            $sidebar = '';
+            $sidebar = '<div class="menu menu-column menu-title-gray-800 menu-state-title-primary menu-state-icon-primary menu-state-bullet-primary menu-arrow-gray-500" id="kt_aside_menu" data-kt-menu="true">';
             // Level 1 - Judul Menu
             $start = SysMenu::where('menu_aktif', 1)->where('menu_level', 1)->whereHas('roles', function ($query) use ($role) {
                 $query->where('role_id', $role);
             })->orderBy('menu_order', 'asc')->get();
-            foreach($start as $level_one){
-                $sidebar .= '<div class="menu-item">
-                    <div class="menu-content pb-2">
-                        <span class="menu-section text-muted text-uppercase fs-8 ls-1">'.$level_one['menu_judul'].'</span>
-                    </div>
+
+            foreach ($start as $judul) {
+                // $sidebar .= '
+                // <div class="menu-item">
+                //     <div class="menu-content pb-2">
+                //         <span style="text-weight: bold !important; color: white !important;" class="menu-section text-muted text-uppercase fs-8 ls-1">'.$judul['menu_judul'].'</span>
+                //         <span class="menu-arrow" style="color: white !important;">X</span>
+                //     </div>
+                // </div>';
+                if (isset($judul['menu_link']) && $judul['menu_link'] !== '') {
+                    $link = $judul['menu_link'];
+                } else {
+                    $link = 'javascript:void(0)';
+                }
+
+                if ($judul['menu_kode'] == 'home') {
+                    $span = '';
+                } else {
+                    // $span = '<span class="menu-arrow"></span>';
+                    $span = '<span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="12" height="12" fill="rgba(152,153,172,1)"><path d="M10 6V8H5V19H16V14H18V20C18 20.5523 17.5523 21 17 21H4C3.44772 21 3 20.5523 3 20V7C3 6.44772 3.44772 6 4 6H10ZM21 3V11H19L18.9999 6.413L11.2071 14.2071L9.79289 12.7929L17.5849 5H13V3H21Z"></path></svg></span>';
+                }
+
+                $sidebar .= '
+                <div class="menu-item menu-accordion">
+                    <a href="javascript:void(0)" class="menu-link">
+                        <span class="menu-title text-white fw-bold">' . $judul['menu_judul'] . '</span>
+                    </a>
                 </div>';
-                if($level_one['menu_sub']){
+                if ($judul['menu_sub']) {
                     // Level 2 - Sub Menu Level 2
-                    $second = SysMenu::where('menu_aktif', 1)->where('menu_level', 2)->where('menu_parent', $level_one['menu_id'])->whereHas('roles', function ($query) use ($role) {
+                    $start_c1 = SysMenu::where('menu_aktif', 1)->where('menu_level', 2)->where('menu_parent', $judul['menu_id'])->whereHas('roles', function ($query) use ($role) {
                         $query->where('role_id', $role);
                     })->orderBy('menu_order', 'asc')->get();
-                    foreach($second as $level_two){
-                        // Nested
-                        if($level_two['menu_sub']){
-                            $sidebar .= '<div data-kt-menu-trigger="click" class="menu-item menu-accordion">
+                    foreach ($start_c1 as $values) {
+                        if ($values['menu_sub'] == 1) {
+                            $sidebar .= '
+                            <div data-kt-menu-trigger="click" class="menu-item menu-accordion">
                                 <span class="menu-link">
                                     <span class="menu-bullet">
                                         <span class="bullet bullet-dot"></span>
                                     </span>
-                                    <span class="menu-title">'.$level_two['menu_judul'].'</span>
+                                    <span class="menu-title">' . $values['menu_judul'] . '</span>
                                     <span class="menu-arrow"></span>
                                 </span>
-                                <div class="menu-sub menu-sub-accordion menu-active-bg">';
-                                // Level 3 - Sub Menu Level 3
-                                $third = SysMenu::where('menu_aktif', 1)->where('menu_level', 3)->where('menu_parent', $level_two['menu_id'])->whereHas('roles', function ($query) use ($role) {
+                                <div class="menu-sub menu-sub-accordion">';
+
+                            $extend = SysMenu::where('menu_aktif', 1)
+                                ->where('menu_parent', $values['menu_id'])
+                                ->where('menu_level', 3)
+                                ->whereHas('roles', function ($query) use ($role) {
                                     $query->where('role_id', $role);
-                                })->orderBy('menu_order', 'asc')->get();
-                                foreach($third as $level_three){
-                                    if($level_three['menu_sub']){
-                                        $sidebar .= '<div data-kt-menu-trigger="click" class="menu-item menu-accordion">
-                                            <span class="menu-link">
-                                                <span class="menu-bullet">
-                                                    <span class="bullet bullet-dot"></span>
-                                                </span>
-                                                <span class="menu-title">'.$level_three['menu_judul'].'</span>
-                                                <span class="menu-arrow"></span>
-                                            </span>
-                                            <div class="menu-sub menu-sub-accordion menu-active-bg">';
-                                                // Level 4 - Sub Menu Level 4
-                                                $fourth = SysMenu::where('menu_aktif', 1)->where('menu_level', 4)->where('menu_parent', $level_three['menu_id'])->whereHas('roles', function ($query) use ($role) {
-                                                    $query->where('role_id', $role);
-                                                })->orderBy('menu_order', 'asc')->get();
-                                                foreach($fourth as $level_four){
-                                                    $sidebar .= '<div class="menu-item">
-                                                        <a data-page="' . $level_four['menu_judul'] . '" id="lnk-'.$level_four['menu_kode'].'" class="menu-link" href="/'.$level_four['menu_kode'].'" data-navigo>
-                                                            <span class="menu-bullet">
-                                                                <span class="bullet bullet-dot"></span>
-                                                            </span>
-                                                            <span class="menu-title">'.$level_four['menu_judul'].'</span>
-                                                        </a>
-                                                    </div>';
-                                                }
-                                        $sidebar .= '</div></div>';
-                                    }else{
-                                        $sidebar .= '<div class="menu-item">
-                                            <a data-page="' . $level_three['menu_judul'] . '" id="lnk-'.$level_three['menu_kode'].'" class="menu-link" href="/'.$level_three['menu_kode'].'" data-navigo>
-                                                <span class="menu-bullet">
-                                                    <span class="bullet bullet-dot"></span>
-                                                </span>
-                                                <span class="menu-title">'.$level_three['menu_judul'].'</span>
-                                            </a>
-                                        </div>';
-                                    }
-                                }
-                            $sidebar .= '</div></div>';
-                        }
-                        // Non - nested
-                        else{
-                            $sidebar .= '<div class="menu-item">
-                                <a data-page="' . $level_two['menu_judul'] . '" id="lnk-'.$level_two['menu_kode'].'" class="menu-link" href="/'.$level_two['menu_kode'].'" data-navigo>
-                                    <span class="menu-bullet">
-                                        <span class="bullet bullet-dot"></span>
-                                    </span>
-                                    <span class="menu-title">'.$level_two['menu_judul'].'</span>
-                                </a>
-                            </div>';
+                                })
+                                ->orderBy('menu_order', 'asc')
+                                ->get();
+
+                            foreach ($extend as $valext) {
+                                $sidebar .= '
+                                <div class="menu-item">
+                                    <a data-page-parent="' . $values['menu_judul'] . '" data-page="' . $valext['menu_judul'] . '"
+                                    id="lnk-' . $valext['menu_kode'] . '"
+                                    class="menu-link" href="/' . $valext['menu_kode'] . '" data-navigo>
+                                        <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                        <span class="menu-title">' . $valext['menu_judul'] . '</span>
+                                    </a>
+                                </div>';
+                            }
+
+                            $sidebar .= '</div></div>'; // close submenu + parent
+                        } else {
+                            if ($values['menu_kode'] == 'dashboard') {
+                                $sidebar .= '
+                                <div class="menu-item">
+                                    <a data-page-parent="' . $judul['menu_judul'] . '" data-page="' . $values['menu_judul'] . '" id="lnk-' . $values['menu_kode'] . '" class="menu-link active" href="/" data-navigo>
+                                        <span class="menu-bullet">
+                                            <span class="bullet bullet-dot"></span>
+                                        </span>
+                                        <span class="menu-title">' . $values['menu_judul'] . '</span>
+                                    </a>
+                                </div>';
+                            } else {
+                                $sidebar .= '
+                                <div class="menu-item">
+                                    <a data-page-parent="' . $judul['menu_judul'] . '" data-page="' . $values['menu_judul'] . '" id="lnk-' . $values['menu_kode'] . '" class="menu-link" href="/' . $values['menu_kode'] . '" data-navigo>
+                                        <span class="menu-bullet">
+                                            <span class="bullet bullet-dot"></span>
+                                        </span>
+                                        <span class="menu-title">' . $values['menu_judul'] . '</span>
+                                    </a>
+                                </div>';
+                            }
                         }
                     }
                 }
             }
+
+            $sidebar .= '</div>';
+
             return view('dashboard.index', compact('destination', 'ucf', 'roles', 'sidebar'));
         }else{
             $destination = $any;
@@ -465,91 +516,103 @@ class DashboardController extends Controller
             $roles = json_encode($isi_roles);
 
             // Sidebar
-            $sidebar = '';
+            $sidebar = '<div class="menu menu-column menu-title-gray-800 menu-state-title-primary menu-state-icon-primary menu-state-bullet-primary menu-arrow-gray-500" id="kt_aside_menu" data-kt-menu="true">';
             // Level 1 - Judul Menu
             $start = SysMenu::where('menu_aktif', 1)->where('menu_level', 1)->whereHas('roles', function ($query) use ($role) {
                 $query->where('role_id', $role);
             })->orderBy('menu_order', 'asc')->get();
-            foreach($start as $level_one){
-                $sidebar .= '<div class="menu-item">
-                    <div class="menu-content pb-2">
-                        <span class="menu-section text-muted text-uppercase fs-8 ls-1">'.$level_one['menu_judul'].'</span>
-                    </div>
+
+            foreach ($start as $judul) {
+                // $sidebar .= '
+                // <div class="menu-item">
+                //     <div class="menu-content pb-2">
+                //         <span style="text-weight: bold !important; color: white !important;" class="menu-section text-muted text-uppercase fs-8 ls-1">'.$judul['menu_judul'].'</span>
+                //         <span class="menu-arrow" style="color: white !important;">X</span>
+                //     </div>
+                // </div>';
+
+                if ($judul['menu_kode'] == 'home') {
+                    $span = '';
+                } else {
+                    // $span = '<span class="menu-arrow"></span>';
+                    $span = '<span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="12" height="12" fill="rgba(152,153,172,1)"><path d="M10 6V8H5V19H16V14H18V20C18 20.5523 17.5523 21 17 21H4C3.44772 21 3 20.5523 3 20V7C3 6.44772 3.44772 6 4 6H10ZM21 3V11H19L18.9999 6.413L11.2071 14.2071L9.79289 12.7929L17.5849 5H13V3H21Z"></path></svg></span>';
+                }
+
+                $sidebar .= '
+                <div class="menu-item menu-accordion">
+                    <a href="javascript:void(0)" class="menu-link">
+                        <span class="menu-title text-white fw-bold">' . $judul['menu_judul'] . '</span>
+                    </a>
                 </div>';
-                if($level_one['menu_sub']){
+                if ($judul['menu_sub']) {
                     // Level 2 - Sub Menu Level 2
-                    $second = SysMenu::where('menu_aktif', 1)->where('menu_level', 2)->where('menu_parent', $level_one['menu_id'])->whereHas('roles', function ($query) use ($role) {
+                    $start_c1 = SysMenu::where('menu_aktif', 1)->where('menu_level', 2)->where('menu_parent', $judul['menu_id'])->whereHas('roles', function ($query) use ($role) {
                         $query->where('role_id', $role);
                     })->orderBy('menu_order', 'asc')->get();
-                    foreach($second as $level_two){
-                        // Nested
-                        if($level_two['menu_sub']){
-                            $sidebar .= '<div data-kt-menu-trigger="click" class="menu-item menu-accordion">
+                    foreach ($start_c1 as $values) {
+                        if ($values['menu_sub'] == 1) {
+                            $sidebar .= '
+                            <div data-kt-menu-trigger="click" class="menu-item menu-accordion">
                                 <span class="menu-link">
                                     <span class="menu-bullet">
                                         <span class="bullet bullet-dot"></span>
                                     </span>
-                                    <span class="menu-title">'.$level_two['menu_judul'].'</span>
+                                    <span class="menu-title">' . $values['menu_judul'] . '</span>
                                     <span class="menu-arrow"></span>
                                 </span>
-                                <div class="menu-sub menu-sub-accordion menu-active-bg">';
-                                // Level 3 - Sub Menu Level 3
-                                $third = SysMenu::where('menu_aktif', 1)->where('menu_level', 3)->where('menu_parent', $level_two['menu_id'])->whereHas('roles', function ($query) use ($role) {
+                                <div class="menu-sub menu-sub-accordion">';
+
+                            $extend = SysMenu::where('menu_aktif', 1)
+                                ->where('menu_parent', $values['menu_id'])
+                                ->where('menu_level', 3)
+                                ->whereHas('roles', function ($query) use ($role) {
                                     $query->where('role_id', $role);
-                                })->orderBy('menu_order', 'asc')->get();
-                                foreach($third as $level_three){
-                                    if($level_three['menu_sub']){
-                                        $sidebar .= '<div data-kt-menu-trigger="click" class="menu-item menu-accordion">
-                                            <span class="menu-link">
-                                                <span class="menu-bullet">
-                                                    <span class="bullet bullet-dot"></span>
-                                                </span>
-                                                <span class="menu-title">'.$level_three['menu_judul'].'</span>
-                                                <span class="menu-arrow"></span>
-                                            </span>
-                                            <div class="menu-sub menu-sub-accordion menu-active-bg">';
-                                                // Level 4 - Sub Menu Level 4
-                                                $fourth = SysMenu::where('menu_aktif', 1)->where('menu_level', 4)->where('menu_parent', $level_three['menu_id'])->whereHas('roles', function ($query) use ($role) {
-                                                    $query->where('role_id', $role);
-                                                })->orderBy('menu_order', 'asc')->get();
-                                                foreach($fourth as $level_four){
-                                                    $sidebar .= '<div class="menu-item">
-                                                        <a data-page="' . $level_four['menu_judul'] . '" id="lnk-'.$level_four['menu_kode'].'" class="menu-link" href="/'.$level_four['menu_kode'].'" data-navigo>
-                                                            <span class="menu-bullet">
-                                                                <span class="bullet bullet-dot"></span>
-                                                            </span>
-                                                            <span class="menu-title">'.$level_four['menu_judul'].'</span>
-                                                        </a>
-                                                    </div>';
-                                                }
-                                        $sidebar .= '</div></div>';
-                                    }else{
-                                        $sidebar .= '<div class="menu-item">
-                                            <a data-page="' . $level_three['menu_judul'] . '" id="lnk-'.$level_three['menu_kode'].'" class="menu-link" href="/'.$level_three['menu_kode'].'" data-navigo>
-                                                <span class="menu-bullet">
-                                                    <span class="bullet bullet-dot"></span>
-                                                </span>
-                                                <span class="menu-title">'.$level_three['menu_judul'].'</span>
-                                            </a>
-                                        </div>';
-                                    }
-                                }
-                            $sidebar .= '</div></div>';
-                        }
-                        // Non - nested
-                        else{
-                            $sidebar .= '<div class="menu-item">
-                                <a data-page="' . $level_two['menu_judul'] . '" id="lnk-'.$level_two['menu_kode'].'" class="menu-link" href="/'.$level_two['menu_kode'].'" data-navigo>
-                                    <span class="menu-bullet">
-                                        <span class="bullet bullet-dot"></span>
-                                    </span>
-                                    <span class="menu-title">'.$level_two['menu_judul'].'</span>
-                                </a>
-                            </div>';
+                                })
+                                ->orderBy('menu_order', 'asc')
+                                ->get();
+
+                            foreach ($extend as $valext) {
+                                $sidebar .= '
+                                <div class="menu-item">
+                                    <a data-page-parent="' . $values['menu_judul'] . '" data-page="' . $valext['menu_judul'] . '"
+                                    id="lnk-' . $valext['menu_kode'] . '"
+                                    class="menu-link" href="/' . $valext['menu_kode'] . '" data-navigo>
+                                        <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                        <span class="menu-title">' . $valext['menu_judul'] . '</span>
+                                    </a>
+                                </div>';
+                            }
+
+                            $sidebar .= '</div></div>'; // close submenu + parent
+                        } else {
+                            if ($values['menu_kode'] == 'dashboard') {
+                                $sidebar .= '
+                                <div class="menu-item">
+                                    <a data-page-parent="' . $judul['menu_judul'] . '" data-page="' . $values['menu_judul'] . '" id="lnk-' . $values['menu_kode'] . '" class="menu-link active" href="/" data-navigo>
+                                        <span class="menu-bullet">
+                                            <span class="bullet bullet-dot"></span>
+                                        </span>
+                                        <span class="menu-title">' . $values['menu_judul'] . '</span>
+                                    </a>
+                                </div>';
+                            } else {
+                                $sidebar .= '
+                                <div class="menu-item">
+                                    <a data-page-parent="' . $judul['menu_judul'] . '" data-page="' . $values['menu_judul'] . '" id="lnk-' . $values['menu_kode'] . '" class="menu-link" href="/' . $values['menu_kode'] . '" data-navigo>
+                                        <span class="menu-bullet">
+                                            <span class="bullet bullet-dot"></span>
+                                        </span>
+                                        <span class="menu-title">' . $values['menu_judul'] . '</span>
+                                    </a>
+                                </div>';
+                            }
                         }
                     }
                 }
             }
+
+            $sidebar .= '</div>';
+
             return view('dashboard.index', compact('destination', 'ucf', 'roles', 'sidebar'));
         }
     }

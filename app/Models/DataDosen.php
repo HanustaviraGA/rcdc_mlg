@@ -1,0 +1,60 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class DataDosen extends Model
+{
+    protected $table = 'database_dosen_new';
+    protected $primaryKey = 'kode_dosen';
+    protected $keyType = 'string';
+    protected $fillable = [
+        'kode_dosen',
+        'fakultas_internal',
+        'nama_gugus_binaan',
+        'nama_program',
+        'lokasi',
+        'campus',
+        'nama_gugus_binaan_eksternal',
+        'acad_career',
+        'nama_dosen',
+        'tipe',
+        'nama_tipe_dosen_detail',
+        'status',
+        'effdate_dosen_cuti',
+        'remun',
+        'homebase_reemun',
+        'jenis_registrasi',
+        'nomor_nidn_nupn',
+        'university_registered_nidn',
+        'pendidikan',
+        'alumni',
+        'jurusan',
+        'jja',
+        'tmt_jja',
+        'university_registered_jja',
+        'nomor_sk_jja',
+        'jka',
+        'tmt_jka',
+        'toefl',
+        'status_serdos',
+        'jenis_kelamin',
+        'tanggal_lahir',
+        'usia',
+        'agama',
+        'alamat',
+        'no_telp',
+        'no_hp',
+        'no_hp2',
+        'email_1',
+        'email_2',
+        'tgl_mulai_mengajar',
+        'kewarganegaraan',
+        'bn_id',
+        'nama_kelompok_rumpun_ilmu',
+        'tipe_faculty',
+        'created_at',
+        'updated_at'
+    ];
+}

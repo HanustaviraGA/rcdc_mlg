@@ -1,5 +1,15 @@
 <script type="text/javascript">
     $(document).ready(function() {
+        let searchDelay;
+        let $searchInput = $('#customSearchInput');
+        // Bind keyup event to custom search input with a delay
+        $searchInput.keyup(function() {
+            clearTimeout(searchDelay);
+            let searchText = $searchInput.val();
+            searchDelay = setTimeout(function() {
+                table.search(searchText).draw();
+            }, 300); // Adjust the delay time (in milliseconds) as needed
+        });
         init_table();
     });
 
@@ -28,50 +38,50 @@
                 name: 'nama_dosen',
                 orderable: true,
                 render: function (data, type, full, meta) {
-                    var link = '{{ asset('assets/media/avatars/blank.png') }}';
+                    var link = '{{ asset('assets/backoffice/media/avatars/blank.png') }}';
+                    // var span = '<span class="text-muted fw-bold text-muted d-block fs-7">`+full.tipe_faculty+` - `+full.jja+` `+full.pendidikan+`</span>';
                     var data = `<div class="d-flex align-items-center">
                         <div class="symbol symbol-45px me-5">
                             <img src="`+link+`" alt="" />
                         </div>
                         <div class="d-flex justify-content-start flex-column">
                             <a style="color: black;" href="javascript:void(0)" class="fw-bolder text-hover-primary fs-6">`+full.nama_dosen+`</a>
-                            <span class="text-muted fw-bold text-muted d-block fs-7">`+full.ft_dosen+` - `+full.jja_dosen+` `+full.pendidikan_dosen+`</span>
                         </div>
                     </div>`;
                     return data;
                 }
             },
             {
-                data: 'jurusan_dosen',
-                name: 'jurusan_dosen',
+                data: 'nama_gugus_binaan',
+                name: 'nama_gugus_binaan',
                 orderable: true,
                 render: function (data, type, full, meta) {
-                    if(full.jurusan_dosen){
-                        return full.jurusan_dosen;
+                    if(full.nama_gugus_binaan){
+                        return full.nama_gugus_binaan;
                     }else{
                         return '-';
                     }
                 }
             },
             {
-                data: 'telp_dosen',
-                name: 'telp_dosen',
+                data: 'tipe_faculty',
+                name: 'tipe_faculty',
                 orderable: true,
                 render: function (data, type, full, meta) {
-                    if(full.telp_dosen){
-                        return full.telp_dosen;
+                    if(full.tipe_faculty){
+                        return full.tipe_faculty;
                     }else{
                         return '-';
                     }
                 }
             },
             {
-                data: 'email_dosen',
-                name: 'email_dosen',
+                data: 'jja',
+                name: 'jja',
                 orderable: true,
                 render: function (data, type, full, meta) {
-                    if(full.email_dosen){
-                        return full.email_dosen;
+                    if(full.jja){
+                        return full.jja;
                     }else{
                         return '-';
                     }
@@ -86,14 +96,6 @@
                     // btn_aksi += `<button data-id="`+full.id_kol+`" onclick="onEdit(this)" class="btn btn-light btn-sm btn-active-light-warning">Edit</button>`;
                     // btn_aksi += `<button data-id="`+full.id_kol+`" onclick="onDetail(this)" class="btn btn-light btn-sm btn-active-light-primary" style="margin-left: 5px !important">Detail</button>`;
                     btn_aksi += `<div class="d-flex justify-content-left flex-shrink-0">
-                        <a href="https://agency.youtzmedia.id/order-influencer/`+full.kode_dosen+`" target="_blank" class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm me-1">
-                            <span class="svg-icon svg-icon-3">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-                                    <path d="M17.5 11H6.5C4 11 2 9 2 6.5C2 4 4 2 6.5 2H17.5C20 2 22 4 22 6.5C22 9 20 11 17.5 11ZM15 6.5C15 7.9 16.1 9 17.5 9C18.9 9 20 7.9 20 6.5C20 5.1 18.9 4 17.5 4C16.1 4 15 5.1 15 6.5Z" fill="black" />
-                                    <path opacity="0.3" d="M17.5 22H6.5C4 22 2 20 2 17.5C2 15 4 13 6.5 13H17.5C20 13 22 15 22 17.5C22 20 20 22 17.5 22ZM4 17.5C4 18.9 5.1 20 6.5 20C7.9 20 9 18.9 9 17.5C9 16.1 7.9 15 6.5 15C5.1 15 4 16.1 4 17.5Z" fill="black" />
-                                </svg>
-                            </span>
-                        </a>
                         <a href="javascript:void(0)" onclick="onEdit(this)" data-id="`+full.kode_dosen+`" class="btn btn-icon btn-bg-light btn-active-color-warning btn-sm me-1">
                             <span class="svg-icon svg-icon-3">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -129,6 +131,7 @@
                     'X-CSRF-TOKEN': '{{ csrf_token() }}'
                 },
                 data: function (d) {
+                    d.search.value = $('#customSearchInput').val();
                     d.prodi = prodi;
                 },
                 error: function(xhr, status, error) {
