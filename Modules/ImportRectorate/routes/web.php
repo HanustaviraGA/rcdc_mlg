@@ -18,6 +18,7 @@ Route::prefix('backoffice/importrectorate')->group(function() {
     Route::get('/', [ImportRectorateController::class, 'index'])->name('importrectorate.index');
     Route::post('create', [ImportRectorateController::class, 'create'])->name('importrectorate.create');
     Route::post('read', [ImportRectorateController::class, 'read'])->name('importrectorate.read');
+    Route::post('read-xlsx', [ImportRectorateController::class, 'read_xlsx'])->name('importrectorate.read_xlsx');
     Route::put('update', [ImportRectorateController::class, 'update'])->name('importrectorate.update');
     Route::delete('delete', [ImportRectorateController::class, 'delete'])->name('importrectorate.delete');
 });

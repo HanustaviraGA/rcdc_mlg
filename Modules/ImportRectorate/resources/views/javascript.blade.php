@@ -8,7 +8,7 @@
         formData.append('period', $('#period').val());
         formData.append('fmmhs', $('#fmmhs').val());
         $.ajax({
-            url: "{{ route('importrectorate.create') }}",
+            url: "{{ route('importrectorate.read_xlsx') }}",
             type: "POST",
             data: formData,
             contentType: false,     // Important

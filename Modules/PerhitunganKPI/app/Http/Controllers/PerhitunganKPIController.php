@@ -133,11 +133,13 @@ class PerhitunganKPIController extends Controller
         foreach ($select as $key => $value) {
             $kodeDosen = $value->kode_dosen;
             $ftDosen = $value->ft_dosen;
-            $jjaDosen = $value->jja_dosen;
+            // $jjaDosen = $value->jja_dosen;
             $pendidikanDosen = $value->pendidikan_dosen;
             $nscopus = floatval(str_replace(',', '.', $value->jml_nscopus));
             $scopus = floatval(str_replace(',', '.', $value->jml_scopus));
             // $kpis = tableKPI($kodeDosen, $nscopus, $scopus);
+            preg_match('/^[A-Za-z]+/', $value->jja_dosen, $match);
+            $jjaDosen = $match[0];
             if($ftDosen == 'Functional'){
                 if($jjaDosen == 'TP'){
                     if($pendidikanDosen == 'S1' || $pendidikanDosen == 'S2'){
