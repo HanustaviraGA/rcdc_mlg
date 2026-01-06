@@ -12,5 +12,6 @@
     "MatrixKPIDosen": true,
     "ImportPKM": true,
     "PerhitunganKPIPKM": true,
-    "PerhitunganKPIDosenRTTO": true
+    "PerhitunganKPIDosenRTTO": true,
+    "HakAkses": true
 }

@@ -1,0 +1,11 @@
+{
+    "name": "HakAkses",
+    "alias": "hakakses",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\HakAkses\\Providers\\HakAksesServiceProvider"
+    ],
+    "files": []
+}
