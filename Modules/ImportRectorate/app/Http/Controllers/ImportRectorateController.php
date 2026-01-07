@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use App\Models\RectorateMahasiswa;
 use App\Models\RectorateDosen;
+use Aspera\Spreadsheet\XLSX\Reader;
 
 class ImportRectorateController extends Controller
 {
@@ -36,7 +37,7 @@ class ImportRectorateController extends Controller
      * @param Request $request
      * @return Renderable
      */
-    public function create(Request $request)
+    public function create_old(Request $request)
     {
         $data = $request->all();
         $period = $data['period'];
@@ -163,6 +164,112 @@ class ImportRectorateController extends Controller
     public function read(Request $request)
     {
         $data = $request->all();
+    }
+
+    public function create(Request $request)
+    {
+        $data = $request->all();
+        $period = $data['period'];
+        $month = $data['month'];
+        $year = $data['year'];
+        $fmmhs = $data['fmmhs'];
+
+        if ($fmmhs == 'FM') {
+            RectorateDosen::where('year', $year)->where('period', $period)->where('month', $month)->delete();
+        } else {
+            RectorateMahasiswa::where('year', $year)->where('period', $period)->where('month', $month)->delete();
+        }
+
+        $xlsx = $request->file('rectorate');
+        $extension = $xlsx->getClientOriginalExtension();
+        $filename = 'Y' . $year . 'M' . $month . 'P' . $period . 'T' . $fmmhs . '.' . $extension;
+        $xlsx->move(public_path('uploads/rectorate'), $filename);
+
+        $reader = new Reader();
+        $reader->open(public_path('uploads/rectorate/' . $filename));
+        foreach ($reader->getSheets() as $index => $sheet_data) {
+            $reader->changeSheet($index);
+            $row_count = 0;
+            foreach ($reader as $row) {
+                $row_count++;
+                if ($row_count == 1) {
+                    continue;
+                }
+                if ($fmmhs == 'FM') {
+                    if (($row[9] ?? null) !== 'MALANG') {
+                        continue;
+                    }
+                    $bobot = floatval(str_replace(',', '.', $row[12] ?? 0));
+                    if (($row[16] ?? '') == 'Scopus') {
+                        if (($row[15] ?? '') == 'Jurnal') {
+                            if (($row[21] ?? '') == 'Q1') {
+                                $bobot = 3;
+                            } else if (($row[21] ?? '') == 'Q2') {
+                                $bobot = 2;
+                            } else if (($row[21] ?? '') == 'Q3' || ($row[21] ?? '') == 'Q4') {
+                                $bobot = 1;
+                            } else if (($row[21] ?? '') == 'Q2/Q3') {
+                                $bobot = 1;
+                            }
+                        } else if (($row[15] ?? '') == 'Seminar') {
+                            $bobot = 1;
+                        }
+                    }
+                    RectorateDosen::create([
+                        'id_rectorate' => md5(rand(0, 100) . generateCode() . date('Y-m-d H:i:s')),
+                        'request_code' => $row[0] ?? null,
+                        'author' => $row[1] ?? null,
+                        'kode_dosen' => $row[3] ?? null,
+                        'first_author' => $row[10] ?? null,
+                        'sumber_paper' => $row[11] ?? null,
+                        'bobot' => $bobot,
+                        'bobot_asli' => floatval(str_replace(',', '.', $row[12] ?? 0)),
+                        'submitted' => $row[13] ?? null,
+                        'status' => $row[14] ?? null,
+                        'jenis' => $row[15] ?? null,
+                        'tipe_publikasi' => $row[16] ?? null,
+                        'title' => $row[17] ?? null,
+                        'scopus_year' => $row[18] ?? null,
+                        'source_title' => $row[19] ?? null,
+                        'publisher' => $row[21] ?? null,
+                        'quartile_jurnal' => $row[20] ?? null,
+                        'year' => $year,
+                        'period' => $period,
+                        'month' => $month,
+                    ]);
+                } else {
+                    if (($row[6] ?? null) !== 'MALANG') {
+                        continue;
+                    }
+                    $bobot = floatval(str_replace(',', '.', $row[9] ?? 0));
+                    RectorateMahasiswa::create([
+                        'id_rectorate' => md5(rand(0, 100) . generateCode() . date('Y-m-d H:i:s')),
+                        'request_code' => $row[0] ?? null,
+                        'author' => $row[1] ?? null,
+                        'fm_author' => $row[2] ?? null,
+                        'sf' => $row[4] ?? null,
+                        'dept' => $row[5] ?? null,
+                        'first_author' => $row[7] ?? null,
+                        'sumber_paper' => $row[8] ?? null,
+                        'bobot' => $bobot,
+                        'submitted' => $row[10] ?? null,
+                        'status' => $row[11] ?? null,
+                        'jenis' => $row[12] ?? null,
+                        'tipe_publikasi' => $row[13] ?? null,
+                        'title' => $row[14] ?? null,
+                        'scopus_year' => $row[15] ?? null,
+                        'source_title' => $row[16] ?? null,
+                        'quartile_jurnal' => $row[17] ?? null,
+                        'year' => $year,
+                        'period' => $period,
+                        'month' => $month,
+                    ]);
+                }
+            }
+        }
+        $reader->close();
+
+        return response()->json(['success' => true], 200);
     }
 
     /**

@@ -1,4 +1,4 @@
-<div class="row table_data mt-5 mb-5" data-roleable="false" data-role="Company-Read">
+<div class="row table_data mb-5" data-roleable="false" data-role="Company-Read">
     <div class=" col-12" id="tableCourseContainer">
         <form>
             <div class="card card-bordered">
