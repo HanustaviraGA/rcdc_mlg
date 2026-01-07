@@ -35,12 +35,18 @@ class PerhitunganKPIDosenController extends Controller
             return response()->json(['success' => false, 'message' => 'Data dosen tidak ditemukan !'], 404);
         }
 
-        // Adjustment bulan
-        $month = date('m') - 1;
-        // if($month - 1 == 0){
-        //     $month = 12;
-        //     $year = $year - 1;
-        // }
+        // Adjustment bulan: awal 2026 masih gunakan data bulan terakhir 2025
+        $currentMonth = intval(date('m'));
+        if (intval(date('Y')) == 2026 && $currentMonth <= 2) {
+            $month = 12;
+            $year = $year - 1;
+        } else {
+            $month = $currentMonth - 1;
+            if($month == 0){
+                $month = 12;
+                $year = $year - 1;
+            }
+        }
 
         // Adjustment period
         if($month == 1 || $month == 2 || $month == 3){
@@ -58,6 +64,9 @@ class PerhitunganKPIDosenController extends Controller
             'month' => $month,
             'period' => $period,
         ];
+
+        // dd($bindings);
+        // exit;
 
         $query = 'SELECT
             dd.kode_dosen,
@@ -94,11 +103,15 @@ class PerhitunganKPIDosenController extends Controller
 
         $kodeDosen = $kode_dosen;
         $ftDosen = $select[0]->ft_dosen;
-        $jjaDosen = $select[0]->jja_dosen;
+        // $jjaDosen = $select[0]->jja_dosen;
         $pendidikanDosen = $select[0]->pendidikan_dosen;
         $nscopus = floatval(str_replace(',', '.', $select[0]->jml_nscopus));
         $scopus = floatval(str_replace(',', '.', $select[0]->jml_scopus));
         // $kpis = tableKPI($kodeDosen, $nscopus, $scopus);
+        preg_match('/^[A-Za-z]+/', $select[0]->jja_dosen, $match);
+        $jjaDosen = $match[0];
+        // dd($ftDosen);
+        // exit;
         if($ftDosen == 'Functional'){
             if($jjaDosen == 'TP'){
                 if($pendidikanDosen == 'S1' || $pendidikanDosen == 'S2'){
