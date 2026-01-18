@@ -28,21 +28,6 @@
             <h2 class="text-center mt-2 mb-6">Statistik</h2>
             <div id="canvas_chart"></div>
         </div>
-        {{-- <div data-roleable="true" data-role="dashboarduser">
-            <h2 class="text-center mt-2 mb-6">History Pembayaran</h2>
-            <div class="d-flex flex-column gap-2 align-items-center">
-                @foreach ($historyPembayaran as $trx)
-                    <div class="d-flex gap-4 justify-content-center align-items-center">
-                        <i class="las la-money-bill text-success" style="font-size: 5em"></i>
-                        <div>
-                            <span class="h2">Rp {{ number_format($trx->nominal, 0, ',', '.') }}</span>
-                            <p class="text-muted mb-0" style="font-size: .9em">{{ date_format($trx->created_at, 'd F Y') }}</p>
-                        </div>
-                    </div>
-                    <hr class="my-2 w-75">
-                @endforeach
-            </div>
-        </div> --}}
     </div>
 </div>
 @include('home::javascript')

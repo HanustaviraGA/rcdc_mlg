@@ -1,0 +1,64 @@
+<footer id="footer" class="footer dark-background">
+
+    <div class="container footer-top">
+      <div class="row gy-4">
+        <div class="col-lg-5 col-md-12 footer-about">
+          <a href="{{ url('/') }}" class="logo d-flex align-items-center">
+            <img src="{{ asset('Logo-Formal-ALRC-FIX-White.png') }}" style="max-height: 150px !important;" class="logo-formal-alrc">
+            {{-- <span class="sitename">Portal Catur Dharma</span> --}}
+          </a>
+          {{-- <p>Cras fermentum odio eu feugiat lide par naso tierra. Justo eget nada terra videa magna derita valies darta donna mare fermentum iaculis eu non diam phasellus.</p> --}}
+          <div class="social-links d-flex mt-4">
+            {{-- <a href=""><i class="bi bi-twitter-x"></i></a> --}}
+            {{-- <a href=""><i class="bi bi-facebook"></i></a> --}}
+            {{-- <a href=""><i class="bi bi-instagram"></i></a> --}}
+            {{-- <a href=""><i class="bi bi-linkedin"></i></a> --}}
+          </div>
+        </div>
+
+        <div class="col-lg-2 col-6 footer-links">
+          {{-- <h4>Useful Links</h4>
+          <ul>
+            <li><a href="#">Home</a></li>
+            <li><a href="#">About us</a></li>
+            <li><a href="#">Services</a></li>
+            <li><a href="#">Terms of service</a></li>
+            <li><a href="#">Privacy policy</a></li>
+          </ul> --}}
+        </div>
+
+        <div class="col-lg-2 col-6 footer-links">
+          {{-- <h4>Our Services</h4>
+          <ul>
+            <li><a href="#">Web Design</a></li>
+            <li><a href="#">Web Development</a></li>
+            <li><a href="#">Product Management</a></li>
+            <li><a href="#">Marketing</a></li>
+            <li><a href="#">Graphic Design</a></li>
+          </ul> --}}
+        </div>
+
+        <div class="col-lg-3 col-md-12 footer-contact text-center text-md-start">
+          <h4>Academic, Lecturer, Research & Community Development</h4>
+          <p>BINUS University, Malang Campus</p>
+          <p>Araya Mansion, Kav 8-22, Araya 65154</p>
+          <p>Malang, Jawa Timur</p>
+          <p class="mt-4"><strong>Telepon:</strong> <span>+62 (341) 3036969</span></p>
+          <p><strong>Email:</strong> <span>rcdc.mlg@binus.edu</span></p>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="container copyright text-center mt-4">
+      <p>{{ date('Y') }} © <strong class="px-1 sitename">BINUS University</span></p>
+      <div class="credits">
+        <!-- All the links in the footer should remain intact. -->
+        <!-- You can delete the links only if you've purchased the pro version. -->
+        <!-- Licensing information: https://bootstrapmade.com/license/ -->
+        <!-- Purchase the pro version with working PHP/AJAX contact form: [buy-url] -->
+        Developed by ALRC BINUS@Malang</a>
+      </div>
+    </div>
+
+  </footer>

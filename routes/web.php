@@ -4,15 +4,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SpreadsheetController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\LandingController;
 use Illuminate\Support\Facades\Auth;
 // use Session;
 
-Route::get('/', function () {
-    // Session::flush();
-    Auth::logout();
-    // return view('welcome');
-    return redirect()->to('/dashboard/');
-})->name('landing');
+Route::get('/', [LandingController::class, 'home'])->name('home');
+Route::get('/lecturers', [LandingController::class, 'lecturers'])->name('lecturers');
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('index');
 Route::get('/dashboard/{any}', [DashboardController::class, 'index_spec'])->name('index_spec');
 Route::post('loadpage', function(Request $request){
