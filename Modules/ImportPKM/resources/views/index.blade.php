@@ -1,6 +1,6 @@
-<div class="row table_data mt-5 mb-5" data-roleable="false" data-role="Company-Read">
+<div class="row table_data mb-5" data-roleable="false" data-role="Company-Read">
     <div class=" col-12" id="tableCourseContainer">
-        <div class="card card-bordered mt-5">
+        <div class="card card-bordered">
             <div class="card-body">
                 <div class="fv-row mb-5 col-md-12 ">
                     <label for="" class="required form-label mb-3 fw-bold">Tahun</label>

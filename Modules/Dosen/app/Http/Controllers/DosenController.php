@@ -188,6 +188,8 @@ class DosenController extends Controller
                                 $jurusan = 'LC';
                             }else if($row[2] == 'Character Building'){
                                 $jurusan = 'CBDC';
+                            }else{
+                                $jurusan = $row[2];
                             }
                             
                             if (!Dosen::where('kode_dosen', $kodeDosen)->exists()) {

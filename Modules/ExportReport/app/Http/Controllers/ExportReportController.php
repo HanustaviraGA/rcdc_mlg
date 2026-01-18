@@ -41,7 +41,18 @@ class ExportReportController extends Controller
         $noMHS = 1;
 
         $year = date('Y');
-        $month = date('m') - 1;
+        // $month = date('m') - 1;
+        $currentMonth = intval(date('m'));
+        if (intval(date('Y')) == 2026 && $currentMonth <= 2) {
+            $month = 12;
+            $year = $year - 1;
+        } else {
+            $month = $currentMonth - 1;
+            if($month == 0){
+                $month = 12;
+                $year = $year - 1;
+            }
+        }
 
         // dd($month);
         // exit;
@@ -180,6 +191,12 @@ class ExportReportController extends Controller
                     </tr>';
                 $previousJurusan = $row->jurusan_dosen;
             }
+
+            if(isset($kpi['kpi']) && $kpi['kpi'] != null){
+                $kpi = $kpi['kpi'];
+            }else{
+                $kpi = 0;
+            }
         
             $reportHtml .= '<tr>';
             $reportHtml .= '<td class="t-center" style="background-color:' . $bgColor . ';" rowspan="' . $rowspan . '">' . $row->kode_dosen . '</td>';
@@ -189,7 +206,7 @@ class ExportReportController extends Controller
             $reportHtml .= '<td class="t-left" style="background-color:' . $bgColor . ';" rowspan="' . $rowspan . '">' . $row->ft_dosen . '</td>';
             $reportHtml .= '<td class="t-left" style="background-color:' . $bgColor . ';" rowspan="' . $rowspan . '">' . $row->jml_nscopus . '</td>';
             $reportHtml .= '<td class="t-left" style="background-color:' . $bgColor . ';" rowspan="' . $rowspan . '">' . $row->jml_scopus . '</td>';
-            $reportHtml .= '<td class="t-left" style="background-color:' . $bgColor . ';" rowspan="' . $rowspan . '">' . number_format($kpi['kpi'], 0, '', '.') . '</td>';
+            $reportHtml .= '<td class="t-left" style="background-color:' . $bgColor . ';" rowspan="' . $rowspan . '">' . number_format($kpi, 0, '', '.') . '</td>';
             $reportHtml .= '</tr>';
         
             $no++;
@@ -240,7 +257,7 @@ class ExportReportController extends Controller
 
             <div style="text-align:center;">
                 <h4 style="margin: 0;">LAPORAN PENCAPAIAN PUBLIKASI SCOPUS FM DAN MAHASISWA</h4>
-                <h4 style="margin: 0;">2025 (April)</h4>
+                <h4 style="margin: 0;">'.$year.' ('.date('F', mktime(0, 0, 0, $month, 10)).')</h4>
             </div>
 
             <br><br>

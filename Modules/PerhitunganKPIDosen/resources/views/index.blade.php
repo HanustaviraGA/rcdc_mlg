@@ -1,4 +1,4 @@
-<div class="row table_data mt-5 mb-5" data-roleable="false" data-role="Company-Read">
+<div class="row table_data mb-5" data-roleable="false" data-role="Company-Read">
     <div class=" col-12" id="tableCourseContainer">
         <div class="card card-bordered">
             <div class="card-body">
@@ -11,7 +11,8 @@
                                 <option value="2022">2022</option>
                                 <option value="2023">2023</option>
                                 <option value="2024">2024</option>
-                                <option selected value="2025">2025</option>
+                                <option value="2025">2025</option>
+                                <option selected value="2026">2026</option>
                             </select>
                         </div>
                         <div class="col-12 col-xl-3 col-md-6 col-lg-6 mt-5 my-md-0 mx-auto">

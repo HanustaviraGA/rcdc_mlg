@@ -1,4 +1,4 @@
-<div class="row table_data mt-5 mb-5" data-roleable="false" data-role="Company-Read">
+<div class="row table_data mb-5" data-roleable="false" data-role="Company-Read">
     <div class=" col-12" id="tableCourseContainer">
         <form>
             <div class="card card-bordered">
@@ -63,6 +63,7 @@
                             <option value="2023">2023</option>
                             <option value="2024">2024</option>
                             <option value="2025">2025</option>
+                            <option selected value="2026">2026</option>
                         </select>
                         <div class="fv-plugins-message-container invalid-feedback"></div>
                     </div>
