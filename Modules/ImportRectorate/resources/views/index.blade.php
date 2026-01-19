@@ -5,10 +5,9 @@
                 <div class="fv-row mb-5 col-md-12 ">
                     <label for="" class="required form-label mb-3 fw-bold">Year</label>
                     <select required name="year" id="year" class="form-control bg-white border border-2 py-4 px-6 rounded-3 fw-light fs-6" placeholder="Input Data">
-                        <option value="2022">2022</option>
-                        <option value="2023">2023</option>
-                        <option value="2024">2024</option>
-                        <option value="2025">2025</option>
+                        @for ($year = 2022; $year <= (int) date('Y'); $year++)
+                            <option value="{{ $year }}">{{ $year }}</option>
+                        @endfor
                     </select>
                 </div>
                 <div class="fv-row mb-5 col-md-12 ">

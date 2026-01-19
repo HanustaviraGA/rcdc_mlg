@@ -24,7 +24,7 @@ class DataDosen extends Model
         'status',
         'effdate_dosen_cuti',
         'remun',
-        'homebase_reemun',
+        'homebase_remun',
         'jenis_registrasi',
         'nomor_nidn_nupn',
         'university_registered_nidn',
@@ -53,7 +53,11 @@ class DataDosen extends Model
         'kewarganegaraan',
         'bn_id',
         'nama_kelompok_rumpun_ilmu',
+        'nama_rumpun_ilmu',
         'tipe_faculty',
+        'tax_status',
+        'status_pernikahan',
+        'note',
         'created_at',
         'updated_at'
     ];

@@ -1,3 +1,6 @@
+@php
+    use App\Models\AttributeDosen;
+@endphp
 <!DOCTYPE html>
 <html lang="en">
 
@@ -55,8 +58,8 @@
               {{-- <p>Showcase of lecturer achievements in research, publications, professional development, and community development.</p> --}}
 
               <div class="hero-buttons">
-                <a href="#" class="btn-primary">Our Lecturers</a>
-                <a href="#" class="btn-secondary">Our Research</a>
+                <a href="#lecturers" class="btn-primary">Our Lecturers</a>
+                <a href="#research" class="btn-secondary">Our Research</a>
               </div>
 
               <div class="trust-badges">
@@ -101,18 +104,18 @@
     </section><!-- /Hero Section -->
 
     <!-- Team Section -->
-    <section id="team" class="team section">
+    <section id="lecturers" class="team section">
 
       <!-- Section Title -->
       <div class="container section-title">
-        <h2>Digital Lecturer Attribute</h2>
+        <h2>Lecturers</h2>
         {{-- <p>Necessitatibus eius consequatur ex aliquid fuga eum quidem sint consectetur velit</p> --}}
       </div><!-- End Section Title -->
 
       <div class="container" data-aos="fade-up" data-aos-delay="100">
 
         <div class="col-lg-12 content" data-aos="fade-right" data-aos-delay="200">
-            <h2>Talenta Digital</h2>
+            <h2>Digital Lecturer Attribute</h2>
             <p>BINUS@Malang memiliki pengajar dengan keterampilan serta keahlian di bidang digital yang mendukung kegiatan serta peran dalam kegiatan pembelajaran.</p>
         </div>
 
@@ -203,7 +206,7 @@
                         <img src="{{ asset('landing/assets/img/construction/team-3.webp') }}" class="img-fluid" alt="">
                         <div class="hover-overlay">
                         <div class="overlay-content">
-                            <h5>{{ $listdosen->nama_dosen }}</h5>
+                            <a href="{{ url('lecturers/detail', $listdosen->kode_dosen) }}"><h5>{{ $listdosen->nama_dosen }}</h5></a>
                             <span>{{ $listdosen->nama_gugus_binaan }}</span>
                             <div class="quick-contact">
                                 <a href="mailto:{{ $listdosen->email_1 }}"><i class="bi bi-envelope"></i></a>
@@ -214,12 +217,18 @@
                         </div>
                     </div>
                     <div class="member-summary">
-                        <h5>{{ $listdosen->nama_dosen }}</h5>
+                        <a href="{{ url('lecturers/detail', $listdosen->kode_dosen) }}"><h5>{{ $listdosen->nama_dosen }}</h5></a>
                         <span>{{ $listdosen->nama_gugus_binaan }}</span>
-                        {{-- <div class="skills">
-                            <span class="skill-tag">PE License</span>
-                            <span class="skill-tag">LEED AP</span>
-                        </div> --}}
+                        @php
+                            $attribute = AttributeDosen::where('kode_dosen', $listdosen->kode_dosen)->get();
+                        @endphp
+                        @if($attribute->isNotEmpty())
+                            <div class="skills">
+                                @foreach($attribute as $attr)
+                                    <span class="skill-tag">{{ $attr->attribute_dosen }}</span>
+                                @endforeach
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -429,7 +438,7 @@
     </section><!-- /Services Section --> --}}
 
     <!-- Projects Section -->
-    <section id="projects" class="projects section">
+    <section id="research" class="projects section">
 
       <!-- Section Title -->
       <div class="container section-title">
@@ -717,67 +726,67 @@
 
           <div class="cert-card" data-aos="flip-left" data-aos-delay="100">
             <div class="cert-icon">
-              <img src="{{ asset('landing/assets/img/construction/badge-1.webp') }}" alt="ISO 9001" class="img-fluid">
+              <img src="{{ asset('uploads/comdev/adzra.webp') }}" alt="Adzra Collection" class="img-fluid">
             </div>
             <div class="cert-details">
-              <h5>ISO 9001:2015</h5>
-              <span class="cert-category">Quality Management</span>
-              <p>Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Sed porttitor lectus nibh.</p>
+              <h5>Adzra Collection</h5>
+              <span class="cert-category">Kriya</span>
+              <p>Pakaian terbaik untuk dipakai sehari - hari.</p>
             </div>
           </div>
 
           <div class="cert-card" data-aos="flip-left" data-aos-delay="200">
             <div class="cert-icon">
-              <img src="{{ asset('landing/assets/img/construction/badge-2.webp') }}" alt="OSHA" class="img-fluid">
+              <img src="{{ asset('uploads/comdev/hataraya.webp') }}" alt="Hataraya Food" class="img-fluid">
             </div>
             <div class="cert-details">
-              <h5>OSHA 30-Hour</h5>
-              <span class="cert-category">Safety Standards</span>
-              <p>Curabitur non nulla sit amet nisl tempus convallis quis ac lectus vestibulum.</p>
+              <h5>Hataraya Food</h5>
+              <span class="cert-category">F&B</span>
+              <p>Camilan berkualitas yang tentunya bikin nagih.</p>
             </div>
           </div>
 
           <div class="cert-card" data-aos="flip-left" data-aos-delay="300">
             <div class="cert-icon">
-              <img src="{{ asset('landing/assets/img/construction/badge-3.webp') }}" alt="Licensed" class="img-fluid">
+              <img src="{{ asset('uploads/comdev/gloeshoes.webp') }}" alt="Gloeshoes" class="img-fluid">
             </div>
             <div class="cert-details">
-              <h5>State Licensed</h5>
-              <span class="cert-category">Legal Compliance</span>
-              <p>Donec rutrum congue leo eget malesuada. Vestibulum ac diam sit amet quam.</p>
+              <h5>Gloeshoes</h5>
+              <span class="cert-category">Kriya</span>
+              <p>Custom handwoven sepatu sesuai gaya dan kenyamananmu.</p>
             </div>
           </div>
 
           <div class="cert-card" data-aos="flip-left" data-aos-delay="400">
             <div class="cert-icon">
-              <img src="{{ asset('landing/assets/img/construction/badge-4.webp') }}" alt="Green Building" class="img-fluid">
+              <img src="{{ asset('uploads/comdev/pandanarum.jpg') }}" alt="Batik Pandan Arum" class="img-fluid">
             </div>
             <div class="cert-details">
-              <h5>LEED Certified</h5>
-              <span class="cert-category">Sustainable Building</span>
-              <p>Pellentesque habitant morbi tristique senectus et netus et malesuada fames.</p>
+              <h5>Batik Pandan Arum</h5>
+              <span class="cert-category">Batik & Ecoprint</span>
+              <p>Menyediakan aneka batik tulis khas malangan dan jasa menjahit.</p>
             </div>
           </div>
 
           <div class="cert-card" data-aos="flip-left" data-aos-delay="500">
             <div class="cert-icon">
-              <img src="{{ asset('landing/assets/img/construction/badge-6.webp') }}" alt="Insurance" class="img-fluid">
+              <img src="{{ asset('uploads/comdev/aira.png') }}" alt="AIRA Food" class="img-fluid">
             </div>
             <div class="cert-details">
-              <h5>Fully Insured</h5>
-              <span class="cert-category">Risk Management</span>
-              <p>Praesent sapien massa, convallis a pellentesque nec, egestas non nisi.</p>
+              <h5>AIRA Food</h5>
+              <span class="cert-category">F&B</span>
+              <p>Aira Food adalah perusahaan industri pengolahan aneka keripik berbahan baku lokal asli Kabupaten Malang.</p>
             </div>
           </div>
 
           <div class="cert-card" data-aos="flip-left" data-aos-delay="600">
             <div class="cert-icon">
-              <img src="{{ asset('landing/assets/img/construction/badge-7.webp') }}" alt="Training" class="img-fluid">
+              <img src="{{ asset('uploads/comdev/riangjava.jpg') }}" alt="CV. Riang Java Food" class="img-fluid">
             </div>
             <div class="cert-details">
-              <h5>Skills Certified</h5>
-              <span class="cert-category">Professional Training</span>
-              <p>Quisque velit nisi, pretium ut lacinia in, elementum id enim mauris blandit.</p>
+              <h5>CV. Riang Java Food</h5>
+              <span class="cert-category">Holti</span>
+              <p>Produsen merk "Uwenak!". Peraih Penghargaan Adhikarya Pangan Nusantara 2012.</p>
             </div>
           </div>
 
@@ -863,15 +872,15 @@
                   </div>
                 </div>
                 <div class="testimonial-body">
-                  <p>"Outstanding service quality and innovative solutions have completely transformed our business processes, resulting in enhanced productivity and exceptional customer satisfaction throughout our organization."</p>
+                  <p>"Binus Malang membantu saya memberikan pengarahan serta pendampingan dalam pengembangan bisnis saya. Kini bisnis saya berjalan dengan lancar."</p>
                 </div>
                 <div class="testimonial-footer">
                   <div class="author-info">
-                    <img src="{{ asset('landing/assets/img/person/person-f-12.webp') }}" alt="Author" class="author-avatar">
+                    <img src="{{ asset('uploads/comdev/testimonial/mandato.jpg') }}" alt="Rika Hernawati" class="author-avatar">
                     <div class="author-details">
-                      <h4>Sophia Martinez</h4>
-                      <span class="role">Operations Director</span>
-                      <span class="company">TechVision Corp</span>
+                      <h4>Rika Hernawati</h4>
+                      <span class="role">Owner</span>
+                      <span class="company">Mandato</span>
                     </div>
                   </div>
                 </div>
@@ -893,15 +902,15 @@
                   </div>
                 </div>
                 <div class="testimonial-body">
-                  <p>"Professional expertise and dedicated support have significantly improved our project delivery timelines while maintaining exceptional quality standards across all our initiatives."</p>
+                  <p>"Pelatihan serta bimbingan yang diberikan oleh Binus Malang melalui Pak Pandu sangat bermanfaat bagi pemasaran usaha saya."</p>
                 </div>
                 <div class="testimonial-footer">
                   <div class="author-info">
-                    <img src="{{ asset('landing/assets/img/person/person-m-14.webp') }}" alt="Author" class="author-avatar">
+                    <img src="{{ asset('uploads/comdev/testimonial/raissa.webp') }}" alt="Mira Ayu Candra Palupi" class="author-avatar">
                     <div class="author-details">
-                      <h4>Michael Anderson</h4>
-                      <span class="role">Project Manager</span>
-                      <span class="company">InnovateTech Ltd</span>
+                      <h4>Mira Ayu Candra Palupi</h4>
+                      <span class="role">Owner</span>
+                      <span class="company">Raissa Catering and Cookies</span>
                     </div>
                   </div>
                 </div>
@@ -923,15 +932,15 @@
                   </div>
                 </div>
                 <div class="testimonial-body">
-                  <p>"Strategic collaboration and innovative thinking have enabled remarkable digital transformation, leading to increased efficiency and measurable business growth results."</p>
+                  <p>"Tidak hanya pelatihan, Binus Malang juga memberikan ruang untuk memasarkan dagangan kepada masyarakat melalui event - event rutin. Terima kasih Binus Malang"</p>
                 </div>
                 <div class="testimonial-footer">
                   <div class="author-info">
-                    <img src="{{ asset('landing/assets/img/person/person-f-11.webp') }}" alt="Author" class="author-avatar">
+                    <img src="{{ asset('uploads/comdev/testimonial/superheru.jpg') }}" alt="Heru Nurwahyudin" class="author-avatar">
                     <div class="author-details">
-                      <h4>Jennifer Wilson</h4>
-                      <span class="role">Digital Strategy Lead</span>
-                      <span class="company">FutureScope Inc</span>
+                      <h4>Heru Nurwahyudin</h4>
+                      <span class="role">Owner</span>
+                      <span class="company">Superheru</span>
                     </div>
                   </div>
                 </div>

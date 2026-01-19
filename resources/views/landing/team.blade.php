@@ -1,10 +1,13 @@
+@php
+    use App\Models\AttributeDosen;
+@endphp
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>Team - Constructo Bootstrap Template</title>
+  <title>BINUS@Malang - Portal Catur Dharma - Lecturers</title>
   <meta name="description" content="">
   <meta name="keywords" content="">
 
@@ -17,7 +20,7 @@
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
 
-<!-- Vendor CSS Files -->
+  <!-- Vendor CSS Files -->
   <link href="{{ asset('landing/assets/vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
   <link href="{{ asset('landing/assets/vendor/bootstrap-icons/bootstrap-icons.css') }}" rel="stylesheet">
   <link href="{{ asset('landing/assets/vendor/aos/aos.css') }}" rel="stylesheet">
@@ -88,7 +91,7 @@
                         <img src="{{ asset('landing/assets/img/construction/team-3.webp') }}" class="img-fluid" alt="">
                         <div class="hover-overlay">
                         <div class="overlay-content">
-                            <h5>{{ $listdosen->nama_dosen }}</h5>
+                            <a href="{{ url('lecturers/detail', $listdosen->kode_dosen) }}"><h5>{{ $listdosen->nama_dosen }}</h5></a>
                             <span>{{ $listdosen->nama_gugus_binaan }}</span>
                             <div class="quick-contact">
                                 <a href="mailto:{{ $listdosen->email_1 }}"><i class="bi bi-envelope"></i></a>
@@ -99,12 +102,18 @@
                         </div>
                     </div>
                     <div class="member-summary">
-                        <h5>{{ $listdosen->nama_dosen }}</h5>
+                        <a href="{{ url('lecturers/detail', $listdosen->kode_dosen) }}"><h5>{{ $listdosen->nama_dosen }}</h5></a>
                         <span>{{ $listdosen->nama_gugus_binaan }}</span>
-                        {{-- <div class="skills">
-                            <span class="skill-tag">PE License</span>
-                            <span class="skill-tag">LEED AP</span>
-                        </div> --}}
+                        @php
+                            $attribute = AttributeDosen::where('kode_dosen', $listdosen->kode_dosen)->get();
+                        @endphp
+                        @if($attribute->isNotEmpty())
+                            <div class="skills">
+                                @foreach($attribute as $attr)
+                                    <span class="skill-tag">{{ $attr->attribute_dosen }}</span>
+                                @endforeach
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>

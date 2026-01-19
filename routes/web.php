@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 
 Route::get('/', [LandingController::class, 'home'])->name('home');
 Route::get('/lecturers', [LandingController::class, 'lecturers'])->name('lecturers');
+Route::get('/lecturers/detail/{kode_dosen}', [LandingController::class, 'lecture_detail'])->name('lecture_detail');
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('index');
 Route::get('/dashboard/{any}', [DashboardController::class, 'index_spec'])->name('index_spec');
 Route::post('loadpage', function(Request $request){

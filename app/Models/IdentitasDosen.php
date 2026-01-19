@@ -13,10 +13,8 @@ class IdentitasDosen extends Model
         'id_identitas',
         'kode_dosen',
         'foto_dosen',
-        'email_dosen',
-        'telp_dosen',
-        'website_dosen',
-        'expertise_dosen',
+        'video_dosen',
+        'deskripsi_dosen',
         'created_at',
         'updated_at'
     ];

@@ -102,122 +102,128 @@ class DosenController extends Controller
         $month = date('m');
         $filename = 'DSN-Y'.$year.'M'.$month.'.'.$extension;
         $xlsx->move(public_path('uploads/dosen'), $filename);
-        if (($handle = fopen(public_path('uploads/dosen/'.$filename), "r")) !== FALSE) {
-            $reader = new Reader();
-            $reader->open(public_path('uploads/dosen/'.$filename));
-            $sheets = $reader->getSheets();
-            foreach($sheets as $index => $sheet_data){
-                $reader->changeSheet($index);
-                // Note: Any call to changeSheet() resets the current read position to the beginning of the selected sheet.
-                if($sheet_data->getName() == 'Malang'){
-                    $count = 0;
-                        // foreach ($reader as $row_number => $row){
-                        //     $count++;
-                        //     if ($count == 1 || $row[0] == 'Kode Dosen'){
-                        //         continue;
-                        //     }
-                        //     $kodeDosen = $row[0];
-                        //     $ft = explode(' ', $row[44]);
-                        //     $faculty = $ft[0];
-                        //     $jja = preg_replace('/[^A-Z]/i', '', $row[22]);
-                        //     $jurusan = '';
-                            
-                        //     // Adjustment jurusan
-                        //     if($row[2] == 'Public Relations'){
-                        //         $jurusan = 'PR';
-                        //     }else if($row[2] == 'Entrepreneurship'){
-                        //         $jurusan = 'BC';
-                        //     }else if($row[2] == 'Computer Science'){
-                        //         $jurusan = 'CS';
-                        //     }else if($row[2] == 'Communications'){
-                        //         $jurusan = 'Ilkom';
-                        //     }else if($row[2] == 'Interior Design'){
-                        //         $jurusan = 'DI';
-                        //     }else if($row[2] == 'Visual Communication Design'){
-                        //         $jurusan = 'DKV';
-                        //     }else if($row[2] == 'English Literature'){
-                        //         $jurusan = 'LC';
-                        //     }else if($row[2] == 'Character Building'){
-                        //         $jurusan = 'CBDC';
-                        //     }
-                            
-                        //     if (!Dosen::where('kode_dosen', $kodeDosen)->exists()) {
-                        //         Dosen::create([
-                        //             'kode_dosen' => $kodeDosen,
-                        //             'nama_dosen' => $row[8],
-                        //             'pendidikan_dosen' => $row[19],
-                        //             'jurusan_dosen' => $jurusan,
-                        //             'jja_dosen'  => $jja,
-                        //             'ft_dosen'   => $faculty,
-                        //         ]);
-                        //     }else{
-                        //         $update = Dosen::where('kode_dosen', $kodeDosen)->update([
-                        //             'nama_dosen' => $row[8],
-                        //             'pendidikan_dosen' => $row[19],
-                        //             'jurusan_dosen' => $jurusan,
-                        //             'jja_dosen'  => $jja,
-                        //             'ft_dosen'   => $faculty,
-                        //         ]);
-                        //     }
-                        // }
-                        foreach ($reader as $row_number => $row){
-                            $count++;
-                            if ($count == 1 || $row[0] == 'Kode Dosen'){
-                                continue;
-                            }
-                            $kodeDosen = $row[0];
-                            $ft = explode(' ', $row[44]);
-                            $faculty = $ft[0];
-                            $jja = preg_replace('/[^A-Z]/i', '', $row[22]);
-                            $jurusan = '';
-                            
-                            // Adjustment jurusan
-                            if($row[2] == 'Public Relations'){
-                                $jurusan = 'PR';
-                            }else if($row[2] == 'Entrepreneurship'){
-                                $jurusan = 'BC';
-                            }else if($row[2] == 'Computer Science'){
-                                $jurusan = 'CS';
-                            }else if($row[2] == 'Communications'){
-                                $jurusan = 'Ilkom';
-                            }else if($row[2] == 'Interior Design'){
-                                $jurusan = 'DI';
-                            }else if($row[2] == 'Visual Communication Design'){
-                                $jurusan = 'DKV';
-                            }else if($row[2] == 'English Literature'){
-                                $jurusan = 'LC';
-                            }else if($row[2] == 'Character Building'){
-                                $jurusan = 'CBDC';
-                            }else{
-                                $jurusan = $row[2];
-                            }
-                            
-                            if (!Dosen::where('kode_dosen', $kodeDosen)->exists()) {
-                                Dosen::create([
-                                    'kode_dosen' => $kodeDosen,
-                                    'nama_dosen' => $row[8],
-                                    'pendidikan_dosen' => $row[19],
-                                    'jurusan_dosen' => $jurusan,
-                                    'jja_dosen'  => $jja,
-                                    'ft_dosen'   => $faculty,
-                                ]);
-                            }else{
-                                $update = Dosen::where('kode_dosen', $kodeDosen)->update([
-                                    'nama_dosen' => $row[8],
-                                    'pendidikan_dosen' => $row[19],
-                                    'jurusan_dosen' => $jurusan,
-                                    'jja_dosen'  => $jja,
-                                    'ft_dosen'   => $faculty,
-                                ]);
+        $reader = new Reader();
+        $reader->open(public_path('uploads/dosen/'.$filename));
+        $sheets = $reader->getSheets();
+        foreach($sheets as $index => $sheet_data){
+            $reader->changeSheet($index);
+            // Note: Any call to changeSheet() resets the current read position to the beginning of the selected sheet.
+            if($sheet_data->getName() == 'Malang' || $sheet_data->getName() == 'FM Malang'){
+                $headerMap = null;
+                foreach ($reader as $row_number => $row){
+                    if ($headerMap === null && in_array('Kode Dosen', $row, true)) {
+                        $headerMap = [];
+                        foreach ($row as $idx => $name) {
+                            $name = trim((string)$name);
+                            if ($name !== '') {
+                                $headerMap[$name] = $idx;
                             }
                         }
-                }else{
-                    continue;
+                        continue;
+                    }
+
+                    if ($headerMap === null) {
+                        continue;
+                    }
+
+                    $getCell = function (string $name) use ($row, $headerMap) {
+                        if (!array_key_exists($name, $headerMap)) {
+                            return null;
+                        }
+                        return $row[$headerMap[$name]] ?? null;
+                    };
+
+                    $kodeDosen = trim((string)$getCell('Kode Dosen'));
+                    if ($kodeDosen === '') {
+                        continue;
+                    }
+
+                    DataDosen::updateOrCreate(
+                        ['kode_dosen' => $kodeDosen],
+                        [
+                            'fakultas_internal' => $getCell('Fakultas Internal'),
+                            'nama_gugus_binaan' => $getCell('Nama Gugus Binaan'),
+                            'nama_program' => $getCell('Nama Program'),
+                            'lokasi' => $getCell('Lokasi'),
+                            'campus' => $getCell('Campus'),
+                            'nama_gugus_binaan_eksternal' => $getCell('Nama Gugus Binaan Eksternal'),
+                            'acad_career' => $getCell('Acad Career'),
+                            'nama_dosen' => $getCell('Nama Dosen'),
+                            'tipe' => $getCell('Tipe'),
+                            'nama_tipe_dosen_detail' => $getCell('Nama Tipe Dosen Detail'),
+                            'status' => $getCell('Status'),
+                            'effdate_dosen_cuti' => $getCell('Effdate Dosen Cuti'),
+                            'remun' => $getCell('Remun'),
+                            'homebase_remun' => $getCell('Homebase Remun'),
+                            'jenis_registrasi' => $getCell('Jenis Registrasi'),
+                            'nomor_nidn_nupn' => $getCell('Nomor Nidn/Nupn'),
+                            'university_registered_nidn' => $getCell('University Registered NIDN'),
+                            'pendidikan' => $getCell('Pendidikan'),
+                            'alumni' => $getCell('Alumni'),
+                            'jurusan' => $getCell('Jurusan'),
+                            'jja' => $getCell('JJA'),
+                            'tmt_jja' => $getCell('Tmt JJA'),
+                            'university_registered_jja' => $getCell('University Registered JJA'),
+                            'nomor_sk_jja' => $getCell('Nomor SK JJA'),
+                            'jka' => $getCell('JKA'),
+                            'tmt_jka' => $getCell('Tmt JKA'),
+                            'toefl' => $getCell('TOEFL'),
+                            'status_serdos' => $getCell('Status Serdos'),
+                            'jenis_kelamin' => $getCell('Jenis Kelamin'),
+                            'tanggal_lahir' => $getCell('Tanggal Lahir'),
+                            'usia' => $getCell('Usia'),
+                            'agama' => $getCell('Agama'),
+                            'alamat' => $getCell('Alamat'),
+                            'no_telp' => $getCell('No Telp'),
+                            'no_hp' => $getCell('No HP'),
+                            'no_hp_2' => $getCell('No HP2'),
+                            'email_1' => $getCell('Email 1'),
+                            'email_2' => $getCell('Email 2'),
+                            'tgl_mulai_mengajar' => $getCell('Tgl Mulai Mengajar'),
+                            'kewarganegaraan' => $getCell('Kewarganegaraan'),
+                            'bn_id' => $getCell('Binusian ID'),
+                            'nama_kelompok_rumpun_ilmu' => $getCell('Nama Kelompok Rumpun Ilmu'),
+                            'nama_rumpun_ilmu' => $getCell('Nama Rumpun Ilmu'),
+                            'tipe_faculty' => $getCell('Tipe Faculty'),
+                            'tax_status' => $getCell('Tax Status'),
+                            'status_pernikahan' => $getCell('Status Pernikahan'),
+                            'note' => $getCell('NOTE'),
+                        ]
+                    );
+                }
+            }else{
+                continue;
+            }
+        }
+        $reader->close();
+        return response()->json(['success' => true], 200);
+    }
+
+    public function headers(Request $request)
+    {
+        $xlsx = $request->file('dosen');
+        $extension = $xlsx->getClientOriginalExtension();
+        $filename = 'DSN-HEADERS.'. $extension;
+        $xlsx->move(public_path('uploads/dosen'), $filename);
+
+        $reader = new Reader();
+        $reader->open(public_path('uploads/dosen/'.$filename));
+        $headers = [];
+        foreach ($reader->getSheets() as $index => $sheet_data) {
+            $reader->changeSheet($index);
+            foreach ($reader as $row) {
+                if (in_array('Kode Dosen', $row, true)) {
+                    $headers = array_values(array_filter(array_map('trim', array_map('strval', $row))));
+                    break;
                 }
             }
-            $reader->close();
+            if (!empty($headers)) {
+                break;
+            }
         }
-        return response()->json(['success' => true], 200);
+        $reader->close();
+
+        return response()->json(['headers' => $headers], 200);
     }
 
     /**

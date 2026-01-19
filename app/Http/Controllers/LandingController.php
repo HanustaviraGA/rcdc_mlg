@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\DataDosen;
+use App\Models\AttributeDosen;
 
 class LandingController extends Controller
 {
@@ -35,5 +36,11 @@ class LandingController extends Controller
             ->pluck('nama_gugus_binaan');
 
         return view('landing.team', compact('dosen', 'gugusBinaan'));
+    }
+
+    public function lecture_detail($kode_dosen){
+        $dosen = DataDosen::where('kode_dosen', $kode_dosen)->first();
+        $attribute = AttributeDosen::where('kode_dosen', $kode_dosen)->get();
+        return view('landing.service-details', compact('dosen', 'attribute'));
     }
 }
