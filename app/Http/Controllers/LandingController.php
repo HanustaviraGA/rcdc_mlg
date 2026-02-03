@@ -20,6 +20,26 @@ class LandingController extends Controller
             $prodiCounts[] = $item->jml_fm;
         }
 
+        $umkmYearRows = \DB::table('umkm_partnership')
+            ->select('tahun_bergabung', \DB::raw('COUNT(*) as total'))
+            ->whereNotNull('tahun_bergabung')
+            ->where('tahun_bergabung', '!=', '')
+            ->groupBy('tahun_bergabung')
+            ->orderBy('tahun_bergabung', 'ASC')
+            ->get();
+        $umkmYearLabels = $umkmYearRows->pluck('tahun_bergabung')->values();
+        $umkmYearData = $umkmYearRows->pluck('total')->values();
+
+        $umkmClusterRows = \DB::table('umkm_partnership')
+            ->select('cluster', \DB::raw('COUNT(*) as total'))
+            ->whereNotNull('cluster')
+            ->where('cluster', '!=', '')
+            ->groupBy('cluster')
+            ->orderBy('cluster', 'ASC')
+            ->get();
+        $umkmClusterLabels = $umkmClusterRows->pluck('cluster')->values();
+        $umkmClusterData = $umkmClusterRows->pluck('total')->values();
+
         $jjaCounts = [];
         $jjaRows = DataDosen::query()
             ->select('jja')
@@ -51,14 +71,33 @@ class LandingController extends Controller
         $pendidikanLabels = array_keys($pendidikanCounts);
         $pendidikanData = array_values($pendidikanCounts);
 
+        // Research
+        $kode_dosen = 'D6394';
+        $client = new \GuzzleHttp\Client();
+        $response = $client->post('https://binus.ac.id/malang/computer-science/wp-json/binus-scholar/v1/lecturers/researchs', [
+            'headers' => [
+                'Authorization' => 'Bearer ' . env('BINUS_API_TOKEN'),
+                'Content-Type' => 'application/json',
+            ],
+            'json' => [
+                'lecturer_id' => $kode_dosen,
+            ],
+        ]);
+        $research = json_decode($response->getBody(), true);
+        $researchs = $research['data'];
         return view('landing.index', compact(
+            'researchs',
             'dosen',
             'prodiLabels',
             'prodiCounts',
             'jjaLabels',
             'jjaData',
             'pendidikanLabels',
-            'pendidikanData'
+            'pendidikanData',
+            'umkmYearLabels',
+            'umkmYearData',
+            'umkmClusterLabels',
+            'umkmClusterData'
         ));
     }
 
@@ -116,7 +155,7 @@ class LandingController extends Controller
         ]);
         $comdev = json_decode($response_comdev->getBody(), true);
         $comdevs = $comdev['data']['v2'];
-        dd($comdevs);
-        return view('landing.service-details', compact('dosen', 'attribute', 'researchs', 'comdevs'));
+        // dd($comdevs);
+        return view('landing.service-details', compact('dosen', 'attribute', 'researchs', 'comdevs', 'kode_dosen'));
     }
 }

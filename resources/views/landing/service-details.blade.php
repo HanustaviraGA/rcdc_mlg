@@ -121,7 +121,7 @@
                 <div class="info-grid">
                   <div class="info-row">
                     <span class="label">Kode Dosen :</span>
-                    <span class="value">{{ $dosen->kode_dosen }}</span>
+                    <span class="value">{{ $kode_dosen }}</span>
                   </div>
                   <div class="info-row">
                     <span class="label">Program Studi :</span>
@@ -208,7 +208,7 @@
                     </div>
                 </div>
               @endif
-              
+
               @if(isset($researchs) && !empty($researchs))
                 <div class="methodology-section" data-aos="fade-up" data-aos-delay="300">
                   <h2>Research Projects</h2>
@@ -247,32 +247,33 @@
           </div>
         </div>
 
-        <div class="portfolio-showcase certifications mt-5" data-aos="fade-up" data-aos-delay="350">
-          <div class="showcase-header text-center">
-            <h2>Community Development</h2>
-            {{-- <p>Explore the portfolio of successfully completed community development involvements</p> --}}
-          </div>
-          <div class="certification-grid mt-4" data-aos="fade-up" data-aos-delay="400">
-            @foreach($comdevs as $comdev_list)
-              @php
-                $rand = rand(1, 4) * 100
-              @endphp
-              <div class="cert-card" data-aos="flip-left" data-aos-delay="{{ $rand }}">
-                <div class="cert-icon">
-                  <img src="{{ asset('assets/backoffice/media/avatars/blank.png') }}" alt="{{ $comdev_list->community_name }}" class="img-fluid">
+        @if(isset($comdevs) && !empty($comdevs))
+            <div class="portfolio-showcase certifications mt-5" data-aos="fade-up" data-aos-delay="350">
+            <div class="showcase-header text-center">
+                <h2>Community Development</h2>
+                {{-- <p>Explore the portfolio of successfully completed community development involvements</p> --}}
+            </div>
+            <div class="certification-grid mt-4" data-aos="fade-up" data-aos-delay="400">
+                @foreach($comdevs as $comdev_list)
+                @php
+                    $rand = rand(1, 4) * 100
+                @endphp
+                <div class="cert-card" data-aos="flip-left" data-aos-delay="{{ $rand }}">
+                    <div class="cert-icon">
+                    <img src="{{ asset('assets/backoffice/media/avatars/blank.png') }}" alt="{{ $comdev_list['community_name'] }}" class="img-fluid">
+                    </div>
+                    <div class="cert-details">
+                    <h5 style="text-align: justify !important;">{{ $comdev_list['community_name'] }}</h5>
+                    <span class="cert-category" style="text-align: justify !important;">{{ $comdev_list['location'] }}</span>
+                    <p style="text-align: justify !important;">{{ $comdev_list['topic_name'] }}</p>
+                    </div>
                 </div>
-                <div class="cert-details">
-                  <h5>{{ $comdev_list->community_name }}</h5>
-                  <span class="cert-category">{{ $comdev_list->location }}</span>
-                  <p>{{ $comdev_list->topic_name }}</p>
-                </div>
-              </div>
-            @endforeach
+                @endforeach
 
-          </div>
-          
-        </div><!-- End Portfolio Showcase -->
+            </div>
 
+            </div><!-- End Portfolio Showcase -->
+        @endif
       </div>
 
     </section><!-- /Service Details Section -->
