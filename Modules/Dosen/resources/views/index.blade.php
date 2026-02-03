@@ -87,4 +87,5 @@
         </div>
     </div>
 </div>
+@include('dosen::modal')
 @include('dosen::javascript')

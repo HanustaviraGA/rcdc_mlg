@@ -90,7 +90,7 @@
             {
                 data: null,
                 orderable: false,
-                visible: roles,
+                visible: true,
                 render: function (data, type, full, meta) {
                     var btn_aksi = '';
                     // btn_aksi += `<button data-id="`+full.id_kol+`" onclick="onEdit(this)" class="btn btn-light btn-sm btn-active-light-warning">Edit</button>`;
@@ -153,6 +153,171 @@
         });
         unblockPage();
     }
+
+    function getRowDataFromElement(element) {
+        let $row = $(element).closest('tr');
+        if ($row.hasClass('child')) {
+            $row = $row.prev();
+        }
+        return $('#tableCourse').DataTable().row($row).data();
+    }
+
+    function fillDosenDetail(data) {
+        const setValue = (field, value) => {
+            const text = value === null || value === undefined || value === '' ? '-' : value;
+            $('#modalDosenDetail [data-field="' + field + '"]').text(text);
+        };
+
+        setValue('kode_dosen', data.kode_dosen);
+        setValue('nama_dosen', data.nama_dosen);
+        setValue('nama_gugus_binaan', data.nama_gugus_binaan);
+        setValue('nama_program', data.nama_program);
+        setValue('tipe_faculty', data.tipe_faculty);
+        setValue('jja', data.jja);
+        setValue('pendidikan', data.pendidikan);
+        setValue('jurusan', data.jurusan);
+        setValue('jenis_kelamin', data.jenis_kelamin);
+        setValue('email_1', data.email_1);
+        setValue('no_hp', data.no_hp);
+        setValue('alamat', data.alamat);
+        setValue('status', data.status);
+        setValue('campus', data.campus);
+        setValue('lokasi', data.lokasi);
+        setValue('tgl_mulai_mengajar', data.tgl_mulai_mengajar);
+        $('#dosenKodeInput').val(data.kode_dosen || '');
+    }
+
+    function resetDosenExtra() {
+        $('#dosenPhoto').attr('src', '{{ asset('assets/backoffice/media/avatars/blank.png') }}');
+        $('#dosenPhotoInput').val('');
+        $('#dosenVideoInput').val('');
+        $('#dosenDescriptionInput').val('');
+        $('#dosenAttributesInput').val('');
+        $('#dosenAttributeIconInput').val('');
+        renderDosenAttributesTable([]);
+    }
+
+    function renderDosenAttributesTable(items) {
+        const $table = $('#dosenAttributesTable');
+        $table.empty();
+        if (!items || items.length === 0) {
+            $table.append('<tr><td colspan="3" class="text-center text-muted">Belum ada attribute</td></tr>');
+            return;
+        }
+
+        items.forEach(function (item, index) {
+            const attr = item.attribute_dosen || '-';
+            const rawIcon = item.attribute_icon || '';
+            const icon = rawIcon.replace(/^bi\s+/, '').replace(/^bi-/, 'bi-');
+            const iconView = icon ? '<i class="bi ' + icon + ' me-2"></i>' + icon : '-';
+            $table.append(
+                '<tr data-index="' + index + '" data-attr="' + attr + '" data-icon="' + icon + '">' +
+                    '<td>' + attr + '</td>' +
+                    '<td>' + iconView + '</td>' +
+                    '<td>' +
+                        '<button type="button" class="btn btn-sm btn-light-danger dosen-attr-remove">Hapus</button>' +
+                    '</td>' +
+                '</tr>'
+            );
+        });
+    }
+
+    function fillDosenExtra(identitas, attributes) {
+        if (identitas && identitas.foto_dosen) {
+            var photoUrl = identitas.foto_dosen;
+            if (!/^https?:\/\//i.test(photoUrl) && photoUrl.charAt(0) !== '/') {
+                photoUrl = '{{ url('/') }}/' + photoUrl;
+            }
+            $('#dosenPhoto').attr('src', photoUrl);
+        }
+        if (identitas && identitas.video_dosen) {
+            $('#dosenVideoInput').val(identitas.video_dosen);
+        }
+        if (identitas && identitas.deskripsi_dosen) {
+            $('#dosenDescriptionInput').val(identitas.deskripsi_dosen);
+        }
+
+        if (Array.isArray(attributes)) {
+            renderDosenAttributesTable(attributes);
+        } else {
+            renderDosenAttributesTable([]);
+        }
+    }
+
+    function onEdit(element) {
+        const data = getRowDataFromElement(element);
+        if (!data) {
+            return;
+        }
+        fillDosenDetail(data);
+        resetDosenExtra();
+        if (window.bootstrap && document.getElementById('dosen-data-tab')) {
+            new bootstrap.Tab(document.getElementById('dosen-data-tab')).show();
+        }
+        $('#modalDosenDetail').modal('show');
+
+        $.ajax({
+            url: '{{ route('dosen.detail') }}',
+            type: 'POST',
+            data: {
+                kode_dosen: data.kode_dosen
+            },
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            success: function (response) {
+                fillDosenExtra(response.identitas, response.attributes);
+            }
+        });
+    }
+
+    $(document).on('change', '#dosenPhotoInput', function () {
+        const file = this.files && this.files[0];
+        if (!file) {
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function (event) {
+            $('#dosenPhoto').attr('src', event.target.result);
+        };
+        reader.readAsDataURL(file);
+    });
+
+    $(document).on('click', '#dosenAttributeAdd', function () {
+        const attribute = $('#dosenAttributesInput').val().trim();
+        const icon = $('#dosenAttributeIconInput').val();
+        if (!attribute) {
+            return;
+        }
+
+        const items = [];
+        $('#dosenAttributesTable tr').each(function () {
+            const $row = $(this);
+            if ($row.find('.dosen-attr-remove').length === 0) {
+                return;
+            }
+            items.push({
+                attribute_dosen: $row.data('attr'),
+                attribute_icon: $row.data('icon') || ''
+            });
+        });
+
+        items.push({
+            attribute_dosen: attribute,
+            attribute_icon: icon
+        });
+        renderDosenAttributesTable(items);
+        $('#dosenAttributesInput').val('');
+        $('#dosenAttributeIconInput').val('');
+    });
+
+    $(document).on('click', '.dosen-attr-remove', function () {
+        const $row = $(this).closest('tr');
+        $row.remove();
+        if ($('#dosenAttributesTable tr').length === 0) {
+            renderDosenAttributesTable([]);
+        }
+    });
 
     function onAdd(){
         $('#modalHakakses').modal('hide');

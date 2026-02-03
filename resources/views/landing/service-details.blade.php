@@ -66,58 +66,92 @@
 
               <div class="service-overview-card">
                 <div class="service-icon">
-                  <i class="bi bi-building"></i>
+                  @if(isset($dosen->foto_dosen))
+                  <img
+                    src="{{ asset('uploads/dosen/foto/'.$dosen->foto_dosen.'') }}"
+                    alt="Foto dosen"
+                    class="service-icon-img"
+                  >
+                  @else
+                  <img
+                    src="{{ asset('assets/backoffice/media/avatars/blank.png') }}"
+                    alt="Foto dosen"
+                    class="service-icon-img"
+                  >
+                  @endif
                 </div>
-                <h3>Commercial Construction</h3>
-                <p>Nulla facilisi morbi tempus iaculis urna id volutpat lacus laoreet non curabitur gravida.</p>
-                <div class="service-stats">
+                <h3>{{ $dosen->nama_dosen }}</h3>
+                {{-- <p>Nulla facilisi morbi tempus iaculis urna id volutpat lacus laoreet non curabitur gravida.</p> --}}
+                {{-- <div class="service-stats">
                   <div class="stat-item">
-                    <span class="stat-number">150+</span>
-                    <span class="stat-label">Projects Completed</span>
+                  <span class="stat-number">150+</span>
+                  <span class="stat-label">Projects Completed</span>
                   </div>
                   <div class="stat-item">
-                    <span class="stat-number">25</span>
-                    <span class="stat-label">Years Experience</span>
+                  <span class="stat-number">25</span>
+                  <span class="stat-label">Years Experience</span>
                   </div>
-                </div>
+                </div> --}}
+                @if((isset($dosen->link_google_scholar) && !empty($dosen->link_google_scholar)) || (isset($dosen->link_scopus) && !empty($dosen->link_scopus)) || (isset($dosen->link_sinta) && !empty($dosen->link_sinta)))
+                  <div class="research-links mt-4">
+                    <h5 class="mb-3">Research Profiles</h5>
+                    <div class="d-grid gap-2">
+                    @if(isset($dosen->link_google_scholar) && !empty($dosen->link_google_scholar))
+                      <a href="{{ $dosen->link_google_scholar }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                      <i class="bi bi-mortarboard"></i> Google Scholar
+                      </a>
+                    @endif
+                    @if(isset($dosen->link_scopus) && !empty($dosen->link_scopus))
+                      <a href="{{ $dosen->link_scopus }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                      <i class="bi bi-graph-up"></i> Scopus
+                      </a>
+                    @endif
+                    @if(isset($dosen->link_sinta) && !empty($dosen->link_sinta))
+                      <a href="{{ $dosen->link_sinta }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                      <i class="bi bi-award"></i> SINTA
+                      </a>
+                    @endif
+                    </div>
+                  </div>
+                @endif
               </div>
 
               <div class="quick-info-card">
-                <h4>Project Information</h4>
+                <h4>Informasi Dosen</h4>
                 <div class="info-grid">
                   <div class="info-row">
-                    <span class="label">Duration:</span>
-                    <span class="value">6-18 months</span>
+                    <span class="label">Kode Dosen :</span>
+                    <span class="value">{{ $dosen->kode_dosen }}</span>
                   </div>
                   <div class="info-row">
-                    <span class="label">Investment:</span>
-                    <span class="value">$50k - $2M+</span>
+                    <span class="label">Program Studi :</span>
+                    <span class="value">{{ $dosen->nama_gugus_binaan }}</span>
                   </div>
                   <div class="info-row">
-                    <span class="label">Permit Support:</span>
-                    <span class="value">Included</span>
+                    <span class="label">JJA :</span>
+                    <span class="value">{{ $dosen->jja }}</span>
                   </div>
                   <div class="info-row">
-                    <span class="label">Warranty:</span>
-                    <span class="value">10 years</span>
+                    <span class="label">Faculty Type :</span>
+                    <span class="value">{{ $dosen->tipe_faculty }}</span>
                   </div>
                 </div>
               </div>
 
               <div class="contact-action-card">
-                <h4>Ready to Start?</h4>
-                <p class="contact-text">Mauris blandit aliquet elit eget tincidunt nibh pulvinar a proin gravida hendrerit.</p>
-                <div class="contact-methods">
-                  <a href="tel:+15551234567" class="contact-btn">
+                <h4>Kontak</h4>
+                {{-- <p class="contact-text">Mauris blandit aliquet elit eget tincidunt nibh pulvinar a proin gravida hendrerit.</p> --}}
+                <div class="contact-methods single">
+                  {{-- <a href="tel:+15551234567" class="contact-btn">
                     <i class="bi bi-telephone-fill"></i>
                     <span>Call Now</span>
-                  </a>
-                  <a href="mailto:projects@example.com" class="contact-btn">
+                  </a> --}}
+                  <a href="mailto:{{ $dosen->email_1 }}" class="contact-btn">
                     <i class="bi bi-envelope-fill"></i>
-                    <span>Email Us</span>
+                    <span>Email</span>
                   </a>
                 </div>
-                <a href="quote.html" class="btn btn-primary w-100 mt-3">Get Free Estimate</a>
+                {{-- <a href="quote.html" class="btn btn-primary w-100 mt-3">Get Free Estimate</a> --}}
               </div>
 
             </div><!-- End Service Sidebar -->
@@ -126,30 +160,34 @@
           <div class="col-lg-8 order-lg-1">
             <div class="service-main-content">
 
-                <div class="hero-section" data-aos="zoom-in" data-aos-delay="150">
+                {{-- <div class="hero-section" data-aos="zoom-in" data-aos-delay="150">
                     <img src="{{ asset('landing/assets/img/construction/team-3.webp') }}" alt="Commercial Construction Services" class="img-fluid">
-                    {{-- <div class="hero-overlay">
+                    <!-- <div class="hero-overlay">
                     <div class="hero-badge">
                         <i class="bi bi-award"></i>
                         <span>Licensed &amp; Insured</span>
                     </div>
-                    </div> --}}
-                </div>
+                    </div> -->
+                </div> --}}
 
                 <div class="content-section" data-aos="fade-up" data-aos-delay="200">
-                    <h1>{{ $dosen->nama_dosen }}</h1>
-                    <div class="service-video">
-                        <iframe
-                            src="https://www.youtube.com/embed/T8WMhX4GT7o"
-                            title="Service Overview Video"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowfullscreen>
-                        </iframe>
-                    </div>
-                    <div class="content-intro">
-                        <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit.</p>
-                        <p>Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores.</p>
-                    </div>
+                    <h1>Portfolio</h1>
+                    @if(isset($dosen->video_dosen) && !empty($dosen->video_dosen))
+                      <div class="service-video">
+                          <iframe
+                              src="{{ $dosen->video_dosen }}"
+                              title="Service Overview Video"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowfullscreen>
+                          </iframe>
+                      </div>
+                    @endif
+                    @if(isset($dosen->deskripsi_dosen) && !empty($dosen->deskripsi_dosen))
+                      <div class="content-intro">
+                          {{-- <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit.</p> --}}
+                          {!! $dosen->deskripsi_dosen !!}
+                      </div>
+                    @endif
                 </div>
 
               @if($attribute->isNotEmpty())
@@ -170,135 +208,69 @@
                     </div>
                 </div>
               @endif
+              
+              @if(isset($researchs) && !empty($researchs))
+                <div class="methodology-section" data-aos="fade-up" data-aos-delay="300">
+                  <h2>Research Projects</h2>
+                  <div class="methodology-timeline">
+                    @php
+                      $i = 1;
+                    @endphp
+                    @foreach($researchs as $list)
+                      <div class="timeline-item">
+                        <div class="timeline-marker">
+                          <span class="phase-number">{{ $i }}</span>
+                        </div>
+                        <div class="timeline-content">
+                          <h4 style="text-align: justify !important;">{{ $list['title'] }}</h4>
+                          <p style="text-align: justify !important;">{{ truncateDescription($list['abstract'], 200) }}</p>
+                          @php
+                            $keywords = explode(',', $list['keywords']);
+                          @endphp
+                          <ul class="phase-features">
+                            @foreach($keywords as $katakunci)
+                              <li>{{ $katakunci }}</li>
+                            @endforeach
+                          </ul>
+                        </div>
+                      </div>
+                      @php
+                        $i++;
+                      @endphp
+                    @endforeach
 
-              <div class="methodology-section" data-aos="fade-up" data-aos-delay="300">
-                <h2>Research Projects</h2>
-                <div class="methodology-timeline">
-                  <div class="timeline-item">
-                    <div class="timeline-marker">
-                      <span class="phase-number">1</span>
-                    </div>
-                    <div class="timeline-content">
-                      <h4>Planning &amp; Design</h4>
-                      <p>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.</p>
-                      <ul class="phase-features">
-                        <li>Site analysis and assessment</li>
-                        <li>Architectural drawings</li>
-                        <li>Permit acquisition</li>
-                      </ul>
-                    </div>
-                  </div>
-
-                  <div class="timeline-item">
-                    <div class="timeline-marker">
-                      <span class="phase-number">2</span>
-                    </div>
-                    <div class="timeline-content">
-                      <h4>Foundation &amp; Structure</h4>
-                      <p>At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias.</p>
-                      <ul class="phase-features">
-                        <li>Site preparation and excavation</li>
-                        <li>Foundation construction</li>
-                        <li>Structural framework</li>
-                      </ul>
-                    </div>
-                  </div>
-
-                  <div class="timeline-item">
-                    <div class="timeline-marker">
-                      <span class="phase-number">3</span>
-                    </div>
-                    <div class="timeline-content">
-                      <h4>Construction &amp; Installation</h4>
-                      <p>Et harum quidem rerum facilis est et expedita distinctio nam libero tempore cum soluta nobis est eligendi optio cumque nihil impedit quo minus.</p>
-                      <ul class="phase-features">
-                        <li>Mechanical and electrical systems</li>
-                        <li>Interior and exterior finishing</li>
-                        <li>Quality control inspections</li>
-                      </ul>
-                    </div>
-                  </div>
-
-                  <div class="timeline-item">
-                    <div class="timeline-marker">
-                      <span class="phase-number">4</span>
-                    </div>
-                    <div class="timeline-content">
-                      <h4>Completion &amp; Handover</h4>
-                      <p>Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet ut et voluptates repudiandae sint et molestiae non recusandae.</p>
-                      <ul class="phase-features">
-                        <li>Final inspections and testing</li>
-                        <li>Documentation and warranties</li>
-                        <li>Project handover and training</li>
-                      </ul>
-                    </div>
                   </div>
                 </div>
-              </div>
+              @endif
 
             </div><!-- End Service Main Content -->
           </div>
         </div>
 
-        <div class="portfolio-showcase mt-5" data-aos="fade-up" data-aos-delay="350">
+        <div class="portfolio-showcase certifications mt-5" data-aos="fade-up" data-aos-delay="350">
           <div class="showcase-header text-center">
             <h2>Community Development</h2>
-            <p>Explore the portfolio of successfully completed community development involvements</p>
+            {{-- <p>Explore the portfolio of successfully completed community development involvements</p> --}}
           </div>
-          <div class="row g-4 mt-3">
-            <div class="col-lg-6">
-              <div class="project-showcase-item">
-                <div class="project-image">
-                  <img src="{{ asset('landing/assets/img/construction/project-6.webp') }}" alt="Office Building Construction" class="img-fluid">
-                  <div class="project-overlay">
-                    <div class="project-info">
-                      <h4 style="color: white;">Downtown Office Complex</h4>
-                      <p>12-story commercial building with modern amenities</p>
-                      <a href="{{ asset('landing/assets/img/construction/project-6.webp') }}" class="view-btn glightbox">
-                        <i class="bi bi-eye"></i>
-                      </a>
-                    </div>
-                  </div>
+          <div class="certification-grid mt-4" data-aos="fade-up" data-aos-delay="400">
+            @foreach($comdevs as $comdev_list)
+              @php
+                $rand = rand(1, 4) * 100
+              @endphp
+              <div class="cert-card" data-aos="flip-left" data-aos-delay="{{ $rand }}">
+                <div class="cert-icon">
+                  <img src="{{ asset('assets/backoffice/media/avatars/blank.png') }}" alt="{{ $comdev_list->community_name }}" class="img-fluid">
+                </div>
+                <div class="cert-details">
+                  <h5>{{ $comdev_list->community_name }}</h5>
+                  <span class="cert-category">{{ $comdev_list->location }}</span>
+                  <p>{{ $comdev_list->topic_name }}</p>
                 </div>
               </div>
-            </div>
-            <div class="col-lg-6">
-              <div class="row g-4">
-                <div class="col-12">
-                  <div class="project-showcase-item">
-                    <div class="project-image">
-                      <img src="{{ asset('landing/assets/img/construction/project-7.webp') }}" alt="Retail Space Construction" class="img-fluid">
-                      <div class="project-overlay">
-                        <div class="project-info">
-                          <h4 style="color: white;">Shopping Center Renovation</h4>
-                          <p>Complete modernization of existing retail space</p>
-                          <a href="{{ asset('landing/assets/img/construction/project-7.webp') }}" class="view-btn glightbox">
-                            <i class="bi bi-eye"></i>
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-12">
-                  <div class="project-showcase-item">
-                    <div class="project-image">
-                      <img src="{{ asset('landing/assets/img/construction/project-8.webp') }}" alt="Warehouse Construction" class="img-fluid">
-                      <div class="project-overlay">
-                        <div class="project-info">
-                          <h4 style="color: white;">Industrial Warehouse</h4>
-                          <p>50,000 sq ft distribution facility</p>
-                          <a href="{{ asset('landing/assets/img/construction/project-8.webp') }}" class="view-btn glightbox">
-                            <i class="bi bi-eye"></i>
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            @endforeach
+
           </div>
+          
         </div><!-- End Portfolio Showcase -->
 
       </div>

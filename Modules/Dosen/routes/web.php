@@ -18,6 +18,7 @@ Route::prefix('backoffice/dosen')->group(function() {
     Route::get('/', [DosenController::class, 'index'])->name('dosen.index');
     Route::post('create', [DosenController::class, 'create'])->name('dosen.create');
     Route::post('read', [DosenController::class, 'read'])->name('dosen.read');
+    Route::post('detail', [DosenController::class, 'detail'])->name('dosen.detail');
     Route::put('update', [DosenController::class, 'update'])->name('dosen.update');
     Route::delete('delete', [DosenController::class, 'delete'])->name('dosen.delete');
     // Custom

@@ -1963,6 +1963,11 @@ section,
   background: linear-gradient(135deg, var(--background-color) 0%, color-mix(in srgb, var(--accent-color), transparent 95%) 100%);
 }
 
+.service-details .portfolio-showcase.certifications {
+  padding: 0;
+  background: none;
+}
+
 .certifications .content h2,
 .team .content h2,
 .projects .content h2 {
@@ -2949,19 +2954,27 @@ section,
 }
 
 .service-details .service-sidebar .service-overview-card .service-icon {
-  width: 80px;
-  height: 80px;
+  width: 96px;
+  height: 96px;
   background: linear-gradient(135deg, var(--accent-color), color-mix(in srgb, var(--accent-color), black 20%));
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 1.5rem;
+  overflow: hidden;
 }
 
 .service-details .service-sidebar .service-overview-card .service-icon i {
   font-size: 2rem;
   color: var(--contrast-color);
+}
+
+.service-details .service-sidebar .service-overview-card .service-icon .service-icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .service-details .service-sidebar .service-overview-card h3 {
@@ -3052,6 +3065,10 @@ section,
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
   margin-bottom: 1.5rem;
+}
+
+.service-details .service-sidebar .contact-action-card .contact-methods.single {
+  grid-template-columns: 1fr;
 }
 
 .service-details .service-sidebar .contact-action-card .contact-methods .contact-btn {

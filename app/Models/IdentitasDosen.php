@@ -15,6 +15,9 @@ class IdentitasDosen extends Model
         'foto_dosen',
         'video_dosen',
         'deskripsi_dosen',
+        'link_google_scholar',
+        'link_scopus',
+        'link_sinta',
         'created_at',
         'updated_at'
     ];
