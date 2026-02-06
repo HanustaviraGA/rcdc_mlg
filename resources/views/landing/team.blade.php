@@ -88,7 +88,11 @@
             <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="{{ $rand }}">
                 <div class="team-card compact">
                     <div class="member-photo">
-                        <img src="{{ asset('landing/assets/img/construction/team-3.webp') }}" class="img-fluid" alt="">
+                        @if(isset($listdosen->foto_dosen) && !empty($listdosen->foto_dosen))
+                          <img src="{{ asset('uploads/dosen/foto/'.$listdosen->foto_dosen.'') }}" class="img-fluid align-self-start" alt="">
+                        @else
+                          <img src="{{ asset('assets/backoffice/media/avatars/blank.png') }}" class="img-fluid align-self-start" alt="">
+                        @endif
                         <div class="hover-overlay">
                         <div class="overlay-content">
                             <a href="{{ url('lecturers/detail', $listdosen->kode_dosen) }}"><h5>{{ $listdosen->nama_dosen }}</h5></a>
@@ -105,12 +109,12 @@
                         <a href="{{ url('lecturers/detail', $listdosen->kode_dosen) }}"><h5>{{ $listdosen->nama_dosen }}</h5></a>
                         <span>{{ $listdosen->nama_gugus_binaan }}</span>
                         @php
-                            $attribute = AttributeDosen::where('kode_dosen', $listdosen->kode_dosen)->get();
+                            $attribute = AttributeDosen::where('kode_dosen', $listdosen->kode_dosen)->limit(2)->get();
                         @endphp
                         @if($attribute->isNotEmpty())
                             <div class="skills">
                                 @foreach($attribute as $attr)
-                                    <span class="skill-tag">{{ $attr->attribute_dosen }}</span>
+                                    <span class="skill-tag">{{ truncateDescription($attr->attribute_dosen, 16) }}</span>
                                 @endforeach
                             </div>
                         @endif

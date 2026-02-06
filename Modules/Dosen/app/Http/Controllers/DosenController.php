@@ -9,6 +9,7 @@ use Illuminate\Http\Response;
 use App\Models\Dosen;
 use App\Models\DataDosen;
 use App\Models\IdentitasDosen;
+use App\Models\AttributeDosen;
 use Aspera\Spreadsheet\XLSX\Reader;
 
 class DosenController extends Controller
@@ -197,6 +198,25 @@ class DosenController extends Controller
         }
         $reader->close();
         return response()->json(['success' => true], 200);
+    }
+
+    public function detail(Request $request)
+    {
+        $kodeDosen = $request->input('kode_dosen');
+        if (!$kodeDosen) {
+            return response()->json(['message' => 'Kode dosen tidak ditemukan'], 422);
+        }
+
+        $dosen = DataDosen::where('kode_dosen', $kodeDosen)->first();
+        $identitas = IdentitasDosen::where('kode_dosen', $kodeDosen)->first();
+        $attributes = AttributeDosen::where('kode_dosen', $kodeDosen)
+            ->get(['attribute_dosen', 'attribute_icon']);
+
+        return response()->json([
+            'dosen' => $dosen,
+            'identitas' => $identitas,
+            'attributes' => $attributes,
+        ], 200);
     }
 
     public function headers(Request $request)

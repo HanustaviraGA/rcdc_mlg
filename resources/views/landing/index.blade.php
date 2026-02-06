@@ -114,10 +114,10 @@
 
       <div class="container" data-aos="fade-up" data-aos-delay="100">
 
-        <div class="col-lg-12 content" data-aos="fade-right" data-aos-delay="200">
+        {{-- <div class="col-lg-12 content" data-aos="fade-right" data-aos-delay="200">
             <h2>Digital Lecturer Attribute</h2>
             <p>BINUS@Malang memiliki pengajar dengan keterampilan serta keahlian di bidang digital yang mendukung kegiatan serta peran dalam kegiatan pembelajaran.</p>
-        </div>
+        </div> --}}
 
         <div class="row gy-4 mt-5">
 
@@ -195,44 +195,79 @@
             </div>
           </div><!-- End Featured Team Member --> --}}
 
-          @foreach($dosen as $listdosen)
-            {{-- Random AOS Delay --}}
-            @php
-                $rand = rand(1, 4) * 100
-            @endphp
-            <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="{{ $rand }}">
-                <div class="team-card compact">
-                    <div class="member-photo">
-                        <img src="{{ asset('landing/assets/img/construction/team-3.webp') }}" class="img-fluid" alt="">
-                        <div class="hover-overlay">
-                        <div class="overlay-content">
-                            <a href="{{ url('lecturers/detail', $listdosen->kode_dosen) }}"><h5>{{ $listdosen->nama_dosen }}</h5></a>
-                            <span>{{ $listdosen->nama_gugus_binaan }}</span>
-                            <div class="quick-contact">
-                                <a href="mailto:{{ $listdosen->email_1 }}"><i class="bi bi-envelope"></i></a>
-                                {{-- <a href="#"><i class="bi bi-telephone"></i></a> --}}
-                                {{-- <a href="#"><i class="bi bi-linkedin"></i></a> --}}
-                            </div>
-                        </div>
-                        </div>
-                    </div>
-                    <div class="member-summary">
-                        <a href="{{ url('lecturers/detail', $listdosen->kode_dosen) }}"><h5>{{ $listdosen->nama_dosen }}</h5></a>
-                        <span>{{ $listdosen->nama_gugus_binaan }}</span>
-                        @php
-                            $attribute = AttributeDosen::where('kode_dosen', $listdosen->kode_dosen)->get();
-                        @endphp
-                        @if($attribute->isNotEmpty())
-                            <div class="skills">
-                                @foreach($attribute as $attr)
-                                    <span class="skill-tag">{{ $attr->attribute_dosen }}</span>
-                                @endforeach
-                            </div>
-                        @endif
-                    </div>
+          <div class="col-lg-4 col-md-12" data-aos="fade-up" data-aos-delay="100">
+            <div class="team-card compact">
+              <div class="member-summary">
+                <h5>Program Studi</h5>
+                <div class="mt-3">
+                  <canvas id="chart-prodi" height="260"></canvas>
                 </div>
+              </div>
             </div>
-          @endforeach
+          </div>
+
+          <div class="col-lg-4 col-md-12" data-aos="fade-up" data-aos-delay="200">
+            <div class="team-card compact">
+              <div class="member-summary">
+                <h5>JJA</h5>
+                <div class="mt-3">
+                  <canvas id="chart-jja" height="260"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-12" data-aos="fade-up" data-aos-delay="300">
+            <div class="team-card compact">
+              <div class="member-summary">
+                <h5>Pendidikan</h5>
+                <div class="mt-3">
+                  <canvas id="chart-pendidikan" height="260"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          @if(false)
+            @foreach($dosen as $listdosen)
+              {{-- Random AOS Delay --}}
+              @php
+                  $rand = rand(1, 4) * 100
+              @endphp
+              <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="{{ $rand }}">
+                  <div class="team-card compact">
+                      <div class="member-photo">
+                          <img src="{{ asset('landing/assets/img/construction/team-3.webp') }}" class="img-fluid" alt="">
+                          <div class="hover-overlay">
+                          <div class="overlay-content">
+                              <a href="{{ url('lecturers/detail', $listdosen->kode_dosen) }}"><h5>{{ $listdosen->nama_dosen }}</h5></a>
+                              <span>{{ $listdosen->nama_gugus_binaan }}</span>
+                              <div class="quick-contact">
+                                  <a href="mailto:{{ $listdosen->email_1 }}"><i class="bi bi-envelope"></i></a>
+                                  {{-- <a href="#"><i class="bi bi-telephone"></i></a> --}}
+                                  {{-- <a href="#"><i class="bi bi-linkedin"></i></a> --}}
+                              </div>
+                          </div>
+                          </div>
+                      </div>
+                      <div class="member-summary">
+                          <a href="{{ url('lecturers/detail', $listdosen->kode_dosen) }}"><h5>{{ $listdosen->nama_dosen }}</h5></a>
+                          <span>{{ $listdosen->nama_gugus_binaan }}</span>
+                          @php
+                              $attribute = AttributeDosen::where('kode_dosen', $listdosen->kode_dosen)->get();
+                          @endphp
+                          @if($attribute->isNotEmpty())
+                              <div class="skills">
+                                  @foreach($attribute as $attr)
+                                      <span class="skill-tag">{{ $attr->attribute_dosen }}</span>
+                                  @endforeach
+                              </div>
+                          @endif
+                      </div>
+                  </div>
+              </div>
+            @endforeach
+          @endif
 
         </div>
 
@@ -1124,9 +1159,88 @@
   <script src="{{ asset('landing/assets/vendor/aos/aos.js') }}"></script>
   <script src="{{ asset('landing/assets/vendor/swiper/swiper-bundle.min.js') }}"></script>
   <script src="{{ asset('landing/assets/vendor/glightbox/js/glightbox.min.js') }}"></script>
+  <script src="{{ asset('assets/backoffice/js/custom/campur/chart.js') }}"></script>
 
   <!-- Main JS File -->
   <script src="{{ asset('landing/assets/js/main.js') }}"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const buildChart = (canvasId, labels, data, type, options = {}) => {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) {
+          return;
+        }
+
+        new Chart(canvas, {
+          type,
+          data: {
+            labels,
+            datasets: [{
+              data
+            }]
+          },
+          options: Object.assign({
+            responsive: true,
+            maintainAspectRatio: false
+          }, options)
+        });
+      };
+
+      buildChart(
+        'chart-prodi',
+        @json($prodiLabels),
+        @json($prodiCounts),
+        'doughnut',
+        {
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+          }
+        }
+      );
+
+      buildChart(
+        'chart-jja',
+        @json($jjaLabels),
+        @json($jjaData),
+        'bar',
+        {
+          indexAxis: 'y',
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true
+            }
+          }
+        }
+      );
+
+      buildChart(
+        'chart-pendidikan',
+        @json($pendidikanLabels),
+        @json($pendidikanData),
+        'bar',
+        {
+          indexAxis: 'y',
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true
+            }
+          }
+        }
+      );
+    });
+  </script>
 
 </body>
 
