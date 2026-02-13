@@ -490,7 +490,13 @@
             </div>
 
             <div class="projects-grid mt-5">
+                @php
+                  $no = 1;
+                @endphp
                 @foreach($researchs as $list_research)
+                    @if($no > 4)
+                        @break
+                    @endif
                     @php
                         $randr = rand(1, 4) * 100
                     @endphp
@@ -532,6 +538,9 @@
                         </div> --}}
                         </div>
                     </div><!-- End Project Item -->
+                    @php
+                      $no++;
+                    @endphp
                 @endforeach
             {{-- <div class="project-item" data-aos="zoom-in" data-aos-delay="200">
                 <div class="project-content">

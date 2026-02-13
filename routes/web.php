@@ -22,3 +22,7 @@ Route::get('/read_xlsx', [SpreadsheetController::class, 'read_xlsx'])->name('rea
 
 // Change Permission
 Route::get('/change_perms', [DashboardController::class, 'change_perms'])->name('change_perms');
+
+// Sync
+Route::get('/sync_research_ac_id', [LandingController::class, 'sync_research_ac_id'])->name('sync_research_ac_id');
+Route::get('/sync_comdev_ac_id', [LandingController::class, 'sync_comdev_ac_id'])->name('sync_comdev_ac_id');
