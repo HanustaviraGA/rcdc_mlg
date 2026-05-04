@@ -10,6 +10,7 @@
                 table.search(searchText).draw();
             }, 300); // Adjust the delay time (in milliseconds) as needed
         });
+        initDosenDescriptionEditor();
         init_table();
     });
 
@@ -191,10 +192,94 @@
         $('#dosenPhoto').attr('src', '{{ asset('assets/backoffice/media/avatars/blank.png') }}');
         $('#dosenPhotoInput').val('');
         $('#dosenVideoInput').val('');
-        $('#dosenDescriptionInput').val('');
+        setDosenDescription('');
+        $('#dosenGoogleScholarInput').val('');
+        $('#dosenScopusInput').val('');
+        $('#dosenSintaInput').val('');
+        $('#dosenGarudaInput').val('');
+        $('#dosenOrcidInput').val('');
         $('#dosenAttributesInput').val('');
         $('#dosenAttributeIconInput').val('');
         renderDosenAttributesTable([]);
+    }
+
+    function initDosenDescriptionEditor() {
+        if (typeof tinymce === 'undefined' || tinymce.get('dosenDescriptionInput')) {
+            return;
+        }
+
+        tinymce.init({
+            selector: '#dosenDescriptionInput',
+            base_url: '{{ asset('assets/backoffice/plugins/custom/tinymce') }}',
+            skin_url: '{{ asset('assets/backoffice/plugins/custom/tinymce/skins/ui/oxide') }}',
+            content_css: '{{ asset('assets/backoffice/plugins/custom/tinymce/skins/content/default/content.min.css') }}',
+            height: 300,
+            menubar: false,
+            branding: false,
+            convert_urls: false,
+            entity_encoding: 'raw',
+            plugins: 'advlist autolink link lists charmap preview code',
+            toolbar: [
+                'undo redo | styleselect formatselect fontselect fontsizeselect lineheight',
+                'bold italic underline | alignleft aligncenter alignright alignjustify',
+                'bullist numlist | outdent indent | link | removeformat | code'
+            ],
+            fontsize_formats: '12px 14px 16px 18px 20px 24px 28px 32px',
+            lineheight_formats: '1 1.15 1.5 1.75 2 2.5 3',
+            style_formats: [
+                { title: 'Paragraf normal', block: 'p' },
+                { title: 'Jarak rapat', block: 'p', styles: { 'margin-bottom': '0.25rem' } },
+                { title: 'Jarak sedang', block: 'p', styles: { 'margin-bottom': '1rem' } },
+                { title: 'Jarak lebar', block: 'p', styles: { 'margin-bottom': '1.75rem' } }
+            ],
+            forced_root_block: 'p',
+            content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6; } p { margin: 0 0 1rem; }'
+        });
+    }
+
+    function getDosenDescription() {
+        const editor = typeof tinymce !== 'undefined' ? tinymce.get('dosenDescriptionInput') : null;
+
+        if (editor) {
+            return editor.getContent();
+        }
+
+        return $('#dosenDescriptionInput').val();
+    }
+
+    function setDosenDescription(value) {
+        const editor = typeof tinymce !== 'undefined' ? tinymce.get('dosenDescriptionInput') : null;
+
+        if (editor) {
+            editor.setContent(value || '');
+        }
+
+        $('#dosenDescriptionInput').val(value || '');
+    }
+
+    function resolveDosenPhotoUrl(photo) {
+        if (!photo) {
+            return '{{ asset('assets/backoffice/media/avatars/blank.png') }}';
+        }
+
+        if (/^https?:\/\//i.test(photo) || photo.charAt(0) === '/') {
+            return photo;
+        }
+
+        if (photo.indexOf('uploads/') === 0 || photo.indexOf('assets/') === 0) {
+            return '{{ url('/') }}/' + photo;
+        }
+
+        return '{{ asset('uploads/dosen/foto') }}/' + encodeURIComponent(photo);
+    }
+
+    function normalizeDosenIcon(icon) {
+        icon = (icon || '').toString().trim().replace(/^bi\s+/, '').replace(/^bi-/, 'bi-');
+        if (!/^bi-[a-z0-9-]+$/i.test(icon)) {
+            return '';
+        }
+
+        return icon;
     }
 
     function renderDosenAttributesTable(items) {
@@ -206,35 +291,56 @@
         }
 
         items.forEach(function (item, index) {
-            const attr = item.attribute_dosen || '-';
-            const rawIcon = item.attribute_icon || '';
-            const icon = rawIcon.replace(/^bi\s+/, '').replace(/^bi-/, 'bi-');
-            const iconView = icon ? '<i class="bi ' + icon + ' me-2"></i>' + icon : '-';
-            $table.append(
-                '<tr data-index="' + index + '" data-attr="' + attr + '" data-icon="' + icon + '">' +
-                    '<td>' + attr + '</td>' +
-                    '<td>' + iconView + '</td>' +
-                    '<td>' +
-                        '<button type="button" class="btn btn-sm btn-light-danger dosen-attr-remove">Hapus</button>' +
-                    '</td>' +
-                '</tr>'
+            const attr = item.attribute_dosen || '';
+            const icon = normalizeDosenIcon(item.attribute_icon || '');
+            const $row = $('<tr>').attr('data-index', index).attr('data-attr', attr).attr('data-icon', icon);
+            const $iconCell = $('<td>');
+
+            if (icon) {
+                $iconCell.append($('<i>').addClass('bi ' + icon + ' me-2'));
+                $iconCell.append(document.createTextNode(icon));
+            } else {
+                $iconCell.text('-');
+            }
+
+            $row.append($('<td>').text(attr || '-'));
+            $row.append($iconCell);
+            $row.append(
+                $('<td>').append(
+                    $('<button>')
+                        .attr('type', 'button')
+                        .addClass('btn btn-sm btn-light-danger dosen-attr-remove')
+                        .text('Hapus')
+                )
             );
+            $table.append($row);
         });
     }
 
     function fillDosenExtra(identitas, attributes) {
         if (identitas && identitas.foto_dosen) {
-            var photoUrl = identitas.foto_dosen;
-            if (!/^https?:\/\//i.test(photoUrl) && photoUrl.charAt(0) !== '/') {
-                photoUrl = '{{ url('/') }}/' + photoUrl;
-            }
-            $('#dosenPhoto').attr('src', photoUrl);
+            $('#dosenPhoto').attr('src', resolveDosenPhotoUrl(identitas.foto_dosen));
         }
         if (identitas && identitas.video_dosen) {
             $('#dosenVideoInput').val(identitas.video_dosen);
         }
         if (identitas && identitas.deskripsi_dosen) {
-            $('#dosenDescriptionInput').val(identitas.deskripsi_dosen);
+            setDosenDescription(identitas.deskripsi_dosen);
+        }
+        if (identitas && identitas.link_google_scholar) {
+            $('#dosenGoogleScholarInput').val(identitas.link_google_scholar);
+        }
+        if (identitas && identitas.link_scopus) {
+            $('#dosenScopusInput').val(identitas.link_scopus);
+        }
+        if (identitas && identitas.link_sinta) {
+            $('#dosenSintaInput').val(identitas.link_sinta);
+        }
+        if (identitas && identitas.link_garuda) {
+            $('#dosenGarudaInput').val(identitas.link_garuda);
+        }
+        if (identitas && identitas.link_orcid) {
+            $('#dosenOrcidInput').val(identitas.link_orcid);
         }
 
         if (Array.isArray(attributes)) {
@@ -317,6 +423,108 @@
         if ($('#dosenAttributesTable tr').length === 0) {
             renderDosenAttributesTable([]);
         }
+    });
+
+    function getDosenAttributesPayload() {
+        const items = [];
+        $('#dosenAttributesTable tr').each(function () {
+            const $row = $(this);
+            if ($row.find('.dosen-attr-remove').length === 0) {
+                return;
+            }
+
+            items.push({
+                attribute_dosen: $row.attr('data-attr') || '',
+                attribute_icon: $row.attr('data-icon') || ''
+            });
+        });
+
+        return items;
+    }
+
+    $(document).on('submit', '#formDosenDetail', function (event) {
+        event.preventDefault();
+
+        const kodeDosen = $('#dosenKodeInput').val();
+        if (!kodeDosen) {
+            SUPER.showMessage({
+                success: false,
+                message: 'Kode dosen tidak ditemukan',
+                title: 'Gagal'
+            });
+            return;
+        }
+
+        SUPER.confirm({
+            message: 'Simpan perubahan data dosen?',
+            callback: function (result) {
+                if (!result) {
+                    return;
+                }
+
+                blockPage();
+                const formData = new FormData();
+                const photo = $('#dosenPhotoInput')[0].files[0];
+                formData.append('_method', 'PUT');
+                formData.append('kode_dosen', kodeDosen);
+                formData.append('video_dosen', $('#dosenVideoInput').val());
+                formData.append('deskripsi_dosen', getDosenDescription());
+                formData.append('link_google_scholar', $('#dosenGoogleScholarInput').val());
+                formData.append('link_scopus', $('#dosenScopusInput').val());
+                formData.append('link_sinta', $('#dosenSintaInput').val());
+                formData.append('link_garuda', $('#dosenGarudaInput').val());
+                formData.append('link_orcid', $('#dosenOrcidInput').val());
+                formData.append('attributes', JSON.stringify(getDosenAttributesPayload()));
+
+                if (photo) {
+                    formData.append('foto_dosen', photo);
+                }
+
+                $.ajax({
+                    url: '{{ route('dosen.update') }}',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            SUPER.showMessage({
+                                success: true,
+                                message: response.message || 'Data dosen berhasil disimpan',
+                                title: 'Sukses'
+                            });
+                            $('#modalDosenDetail').modal('hide');
+                            init_table();
+                        } else {
+                            SUPER.showMessage({
+                                success: false,
+                                message: response.message || 'Data dosen gagal disimpan',
+                                title: 'Gagal'
+                            });
+                        }
+                    },
+                    error: function (xhr) {
+                        let message = 'System error, silakan hubungi Administrator';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            message = xhr.responseJSON.message;
+                        }
+
+                        SUPER.showMessage({
+                            success: false,
+                            message: message,
+                            title: 'Gagal'
+                        });
+                    },
+                    complete: function () {
+                        unblockPage(200);
+                    }
+                });
+            }
+        });
     });
 
     function onAdd(){

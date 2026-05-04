@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\DataDosen;
 use App\Models\AttributeDosen;
+use App\Models\Researchs;
+use App\Models\Comdevs;
 
 class LandingController extends Controller
 {
@@ -142,7 +144,17 @@ class LandingController extends Controller
             ],
         ]);
         $research = json_decode($response->getBody(), true);
-        $researchs = $research['data'];
+        // $researchs = $research['data'];
+        if(!isset($research['data']) || empty($research['data'])){
+            $list_riset = Researchs::where('kode_dosen', $kode_dosen)->get();
+            if($list_riset->count() > 0){
+                $researchs = $list_riset->toArray();
+            }else{
+                $researchs = [];    
+            }
+        }else{
+            $researchs = $research['data'];
+        }
         // $researchs = NULL;
         // Community Development
         $client_comdev = new \GuzzleHttp\Client();
@@ -156,7 +168,17 @@ class LandingController extends Controller
             ],
         ]);
         $comdev = json_decode($response_comdev->getBody(), true);
-        $comdevs = $comdev['data']['v2'];
+        // $comdevs = $comdev['data']['v2'];
+        if(!isset($comdev['data']['v2']) || empty($comdev['data']['v2'])){
+            $list_comdev = Comdevs::where('kode_dosen', $kode_dosen)->get();
+            if($list_comdev->count() > 0){
+                $comdevs = $list_comdev->toArray();
+            }else{
+                $comdevs = [];    
+            }
+        }else{
+            $comdevs = $comdev['data']['v2'];
+        }
         // $comdevs = NULL;
         // dd($comdevs);
         return view('landing.service-details', compact('dosen', 'attribute', 'researchs', 'comdevs', 'kode_dosen'));

@@ -254,7 +254,7 @@ function truncateDescription($description, $maxLength = 65) {
     if (strlen($description) > $maxLength) {
         return substr($description, 0, $maxLength) . '...';
     }
-    return $description;
+    return strip_tags(htmlspecialchars($description));
 }
 
 /**

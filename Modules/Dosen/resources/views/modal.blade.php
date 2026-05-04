@@ -1,7 +1,7 @@
 <div class="modal fade" id="modalDosenDetail" tabindex="-1" aria-labelledby="modalDosenDetailLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form>
+            <form id="formDosenDetail" enctype="multipart/form-data">
                 <div class="modal-header">
                     <h1 class="modal-title fs-5" id="modalDosenDetailLabel">Detail Dosen</h1>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -14,6 +14,9 @@
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="dosen-desc-tab" data-bs-toggle="tab" data-bs-target="#dosen-desc" type="button" role="tab" aria-controls="dosen-desc" aria-selected="false">Deskripsi Dosen</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="dosen-research-tab" data-bs-toggle="tab" data-bs-target="#dosen-research" type="button" role="tab" aria-controls="dosen-research" aria-selected="false">Akun Riset</button>
                         </li>
                     </ul>
                     <div class="tab-content pt-4">
@@ -148,13 +151,46 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="tab-pane fade" id="dosen-research" role="tabpanel" aria-labelledby="dosen-research-tab">
+                            <div class="row g-4">
+                                <div class="col-md-12">
+                                    <div class="mb-4">
+                                        <label for="dosenGoogleScholarInput" class="form-label">Google Scholar</label>
+                                        <input type="url" id="dosenGoogleScholarInput" class="form-control" placeholder="https://scholar.google.com/citations?...">
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="dosenScopusInput" class="form-label">Scopus</label>
+                                        <input type="url" id="dosenScopusInput" class="form-control" placeholder="https://www.scopus.com/authid/detail.uri?...">
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="dosenSintaInput" class="form-label">SINTA</label>
+                                        <input type="url" id="dosenSintaInput" class="form-control" placeholder="https://sinta.kemdikbud.go.id/authors/profile/...">
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="dosenGarudaInput" class="form-label">GARUDA</label>
+                                        <input type="url" id="dosenGarudaInput" class="form-control" placeholder="https://garuda.kemdikbud.go.id/author/view/...">
+                                    </div>
+                                    <div class="mb-0">
+                                        <label for="dosenOrcidInput" class="form-label">ORCID</label>
+                                        <input type="url" id="dosenOrcidInput" class="form-control" placeholder="https://orcid.org/...">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                    {{-- <button type="submit" class="btn btn-primary">Simpan</button> --}}
+                    <button type="submit" class="btn btn-primary">Simpan</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<style>
+    .tox-tinymce-aux,
+    .tox-dialog-wrap {
+        z-index: 1065 !important;
+    }
+</style>

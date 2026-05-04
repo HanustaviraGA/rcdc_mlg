@@ -92,7 +92,7 @@
                   <span class="stat-label">Years Experience</span>
                   </div>
                 </div> --}}
-                @if((isset($dosen->link_google_scholar) && !empty($dosen->link_google_scholar)) || (isset($dosen->link_scopus) && !empty($dosen->link_scopus)) || (isset($dosen->link_sinta) && !empty($dosen->link_sinta)))
+                @if((isset($dosen->link_google_scholar) && !empty($dosen->link_google_scholar)) || (isset($dosen->link_scopus) && !empty($dosen->link_scopus)) || (isset($dosen->link_sinta) && !empty($dosen->link_sinta)) || (isset($dosen->link_garuda) && !empty($dosen->link_garuda)) || (isset($dosen->link_orcid) && !empty($dosen->link_orcid)))
                   <div class="research-links mt-4">
                     <h5 class="mb-3">Research Profiles</h5>
                     <div class="d-grid gap-2">
@@ -109,6 +109,16 @@
                     @if(isset($dosen->link_sinta) && !empty($dosen->link_sinta))
                       <a href="{{ $dosen->link_sinta }}" target="_blank" class="btn btn-outline-primary btn-sm">
                       <i class="bi bi-award"></i> SINTA
+                      </a>
+                    @endif
+                    @if(isset($dosen->link_garuda) && !empty($dosen->link_garuda))
+                      <a href="{{ $dosen->link_garuda }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                      <i class="bi bi-journal-text"></i> GARUDA
+                      </a>
+                    @endif
+                    @if(isset($dosen->link_orcid) && !empty($dosen->link_orcid))
+                      <a href="{{ $dosen->link_orcid }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                      <i class="bi bi-person-badge"></i> ORCID
                       </a>
                     @endif
                     </div>
@@ -184,7 +194,7 @@
                       </div>
                     @endif
                     @if(isset($dosen->deskripsi_dosen) && !empty($dosen->deskripsi_dosen))
-                      <div class="content-intro">
+                      <div class="content-intro" style="text-align: justify !important;">
                           {{-- <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit.</p> --}}
                           {!! $dosen->deskripsi_dosen !!}
                       </div>

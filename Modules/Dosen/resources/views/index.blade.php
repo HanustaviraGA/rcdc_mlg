@@ -88,4 +88,5 @@
     </div>
 </div>
 @include('dosen::modal')
+<script src="{{ asset('assets/backoffice/plugins/custom/tinymce/tinymce.bundle.js') }}"></script>
 @include('dosen::javascript')

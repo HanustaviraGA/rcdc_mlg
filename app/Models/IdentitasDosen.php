@@ -7,8 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 class IdentitasDosen extends Model
 {
     protected $table = 'identitas_dosen';
+
     protected $primaryKey = 'id_identitas';
+
     protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'id_identitas',
         'kode_dosen',
@@ -18,7 +23,9 @@ class IdentitasDosen extends Model
         'link_google_scholar',
         'link_scopus',
         'link_sinta',
+        'link_garuda',
+        'link_orcid',
         'created_at',
-        'updated_at'
+        'updated_at',
     ];
 }
