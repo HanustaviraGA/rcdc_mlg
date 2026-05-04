@@ -74,7 +74,8 @@ class LandingController extends Controller
         $pendidikanData = array_values($pendidikanCounts);
 
         // Research
-        $kode_dosen = 'D6394';
+        $dosens = DataDosen::inRandomOrder()->first();
+        $kode_dosen = $dosens->kode_dosen;
         $client = new \GuzzleHttp\Client();
         $response = $client->post('https://binus.ac.id/malang/computer-science/wp-json/binus-scholar/v1/lecturers/researchs', [
             'headers' => [
@@ -86,7 +87,17 @@ class LandingController extends Controller
             ],
         ]);
         $research = json_decode($response->getBody(), true);
-        $researchs = $research['data'];
+        if(!isset($research['data']) || empty($research['data'])){
+            $list_riset = Researchs::where('kode_dosen', $kode_dosen)->get();
+            if($list_riset->count() > 0){
+                $researchs = $list_riset->toArray();
+            }else{
+                $researchs = [];    
+            }
+        }else{
+            $researchs = $research['data'];
+        }
+        // $researchs = $research['data'];
         // $researchs = NULL;
         return view('landing.index', compact(
             'researchs',
