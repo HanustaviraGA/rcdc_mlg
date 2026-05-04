@@ -180,6 +180,7 @@
                               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                               allowfullscreen>
                           </iframe>
+                          {{-- <iframe src="https://binusianorg.sharepoint.com/sites/DigitalContentBINUSMalang/_layouts/15/embed.aspx?UniqueId=bce8a2b4-839c-43ce-a0cb-9ad57075cbe6&embed=%7B%22af%22%3Atrue%2C%22ust%22%3Atrue%7D&referrer=StreamWebApp&referrerScenario=EmbedDialog.Create" width="1280" height="720" frameborder="0" scrolling="no" allowfullscreen title="MANALAGI_CARE.mp4"></iframe> --}}
                       </div>
                     @endif
                     @if(isset($dosen->deskripsi_dosen) && !empty($dosen->deskripsi_dosen))
