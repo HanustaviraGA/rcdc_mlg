@@ -1,9 +1,21 @@
 <script type="text/javascript">
     $(document).ready(function() {
+        configureConfirmScrollDefaults();
         SUPER.set_role_access(<?php echo $roles?>);
         // pusher();
         router();
     });
+
+    function configureConfirmScrollDefaults() {
+        if (!window.jconfirm) {
+            return;
+        }
+
+        window.jconfirm.defaults = $.extend(true, {}, window.jconfirm.defaults || {}, {
+            scrollToPreviousElement: false,
+            scrollToPreviousElementAnimate: false
+        });
+    }
 
     function router(){
         const router = new Navigo("/dashboard");
@@ -203,6 +215,8 @@
                     cancelClassName: 'btn btn-focus btn-danger m-btn m-btn--pill m-btn--air',
                     showLoaderOnConfirm: false,
                     allowOutsideClick: true,
+                    scrollToPreviousElement: false,
+                    scrollToPreviousElementAnimate: false,
                     callback: function () { }
                 }, config);
 
@@ -211,6 +225,8 @@
                     content: config.message,
                     theme: 'material',
                     type: config.type,
+                    scrollToPreviousElement: config.scrollToPreviousElement,
+                    scrollToPreviousElementAnimate: config.scrollToPreviousElementAnimate,
                     buttons: {
                         ok: {
                             text: "ok!",
@@ -237,6 +253,8 @@
                     toast: false,
                     type: 'blue',
                     btnClass: 'btn-primary',
+                    scrollToPreviousElement: false,
+                    scrollToPreviousElementAnimate: false,
                     callback: function () { },
                 }, config);
                 if (config.success == true) {
@@ -245,6 +263,8 @@
                         content: config.message,
                         theme: 'material',
                         type: config.type,
+                        scrollToPreviousElement: config.scrollToPreviousElement,
+                        scrollToPreviousElementAnimate: config.scrollToPreviousElementAnimate,
                         buttons: {
                             ok: {
                                 text: "ok!",
@@ -262,6 +282,8 @@
                         content: config.message,
                         theme: 'material',
                         type: 'red',
+                        scrollToPreviousElement: config.scrollToPreviousElement,
+                        scrollToPreviousElementAnimate: config.scrollToPreviousElementAnimate,
                         buttons: {
                             ok: {
                                 text: "ok!",
@@ -284,6 +306,175 @@
                     : originalString;
 
                 return truncatedString;
+            },
+
+            getDataTableStateKey: function(selector, config = {}) {
+                if (config.stateKey) {
+                    return 'rcdc:datatable:' + config.stateKey;
+                }
+
+                var tableId = $(selector).attr('id') || selector;
+                var activePage = $('[id^="lnk-"].active').first().attr('id') || window.location.pathname;
+
+                return 'rcdc:datatable:' + activePage + ':' + tableId;
+            },
+
+            normalizeDataTableSignature: function(signature = null) {
+                if (signature === null || signature === undefined) {
+                    return '';
+                }
+
+                if (typeof signature === 'object') {
+                    return JSON.stringify(signature, Object.keys(signature).sort());
+                }
+
+                return String(signature);
+            },
+
+            readDataTableState: function(selector, config = {}) {
+                try {
+                    var rawState = sessionStorage.getItem(SUPER.getDataTableStateKey(selector, config));
+                    return rawState ? JSON.parse(rawState) : {};
+                } catch (e) {
+                    return {};
+                }
+            },
+
+            writeDataTableState: function(selector, state, config = {}) {
+                try {
+                    sessionStorage.setItem(SUPER.getDataTableStateKey(selector, config), JSON.stringify(state));
+                } catch (e) {
+                    // sessionStorage may be unavailable in private browsing modes.
+                }
+            },
+
+            captureDataTableState: function(selector, config = {}) {
+                var state = SUPER.readDataTableState(selector, config);
+                state.scrollTop = window.pageYOffset || document.documentElement.scrollTop || 0;
+
+                if ($.fn.DataTable && $.fn.DataTable.isDataTable(selector)) {
+                    var dataTable = $(selector).DataTable();
+                    var pageLength = dataTable.page.len();
+                    var pageInfo = dataTable.page.info();
+
+                    state.pageLength = pageLength;
+                    state.page = pageInfo ? pageInfo.page : 0;
+                }
+
+                return state;
+            },
+
+            saveDataTableState: function(selector, dataTable, config = {}) {
+                if (!dataTable || !dataTable.page) {
+                    return;
+                }
+
+                var state = SUPER.readDataTableState(selector, config);
+                var pageLength = dataTable.page.len();
+                var pageInfo = dataTable.page.info();
+
+                state.pageLength = pageLength;
+                state.page = pageInfo ? pageInfo.page : 0;
+                state.signature = SUPER.normalizeDataTableSignature(config.stateSignature);
+
+                SUPER.writeDataTableState(selector, state, config);
+            },
+
+            restoreWindowScroll: function(scrollTop) {
+                if (scrollTop === null || scrollTop === undefined) {
+                    return;
+                }
+
+                window.setTimeout(function() {
+                    window.scrollTo(window.pageXOffset || document.documentElement.scrollLeft || 0, scrollTop);
+                }, 0);
+            },
+
+            setNextSwitchFormScroll: function(enabled) {
+                window.__rcdcNextSwitchFormScroll = enabled;
+            },
+
+            clearNextSwitchFormScroll: function() {
+                delete window.__rcdcNextSwitchFormScroll;
+            },
+
+            shouldSwitchFormScroll: function(defaultValue) {
+                if (typeof window.__rcdcNextSwitchFormScroll !== 'undefined') {
+                    var enabled = window.__rcdcNextSwitchFormScroll;
+                    delete window.__rcdcNextSwitchFormScroll;
+
+                    return enabled !== false;
+                }
+
+                return defaultValue !== false;
+            },
+
+            runOnBack: function(handler = null, options = {}) {
+                SUPER.setNextSwitchFormScroll(options.scrollTop);
+
+                try {
+                    if (typeof handler === 'function') {
+                        handler(options);
+                    } else if (typeof onBack === 'function') {
+                        onBack(options);
+                    }
+                } finally {
+                    SUPER.clearNextSwitchFormScroll();
+                }
+            },
+
+            initDataTable: function(selector, dataTableOptions, config = {}) {
+                var state = SUPER.captureDataTableState(selector, config);
+                var currentSignature = SUPER.normalizeDataTableSignature(config.stateSignature);
+                var options = $.extend(true, {}, dataTableOptions);
+                var hasPaging = options.paging !== false;
+
+                if (hasPaging && state.pageLength !== null && state.pageLength !== undefined) {
+                    options.pageLength = state.pageLength;
+                }
+
+                if (
+                    hasPaging &&
+                    config.preservePage !== false &&
+                    state.signature === currentSignature &&
+                    state.page !== null &&
+                    state.page !== undefined &&
+                    options.pageLength > 0
+                ) {
+                    options.displayStart = state.page * options.pageLength;
+                }
+
+                var originalDrawCallback = options.drawCallback;
+                var scrollRestored = false;
+
+                options.drawCallback = function(settings) {
+                    if (typeof originalDrawCallback === 'function') {
+                        originalDrawCallback.apply(this, arguments);
+                    }
+
+                    var api = new $.fn.dataTable.Api(settings);
+                    SUPER.saveDataTableState(selector, api, config);
+
+                    if (config.preserveScroll !== false && !scrollRestored) {
+                        scrollRestored = true;
+                        SUPER.restoreWindowScroll(state.scrollTop);
+                    }
+                };
+
+                if ($.fn.DataTable.isDataTable(selector)) {
+                    $(selector).DataTable().destroy();
+                    if (config.preserveScroll !== false) {
+                        SUPER.restoreWindowScroll(state.scrollTop);
+                    }
+                }
+
+                var dataTable = $(selector).DataTable(options);
+
+                dataTable.on('length.dt page.dt', function() {
+                    SUPER.saveDataTableState(selector, dataTable, config);
+                });
+
+                return dataTable;
             },
 
             // Combobox
@@ -383,6 +574,7 @@
                     reInitTable: null,
                     file_upload: null,
                     file_fields: null,
+                    scrollTop: false,
 					callback: function(args){}
 				}, config);
 				var id = $('#'+config.checker).val();
@@ -429,7 +621,9 @@
                                             });
                                             $('#'+config.element)[0].reset();
                                             if(config.onBack != null){
-                                                onBack();
+                                                SUPER.runOnBack(config.onBack, {
+                                                    scrollTop: config.scrollTop
+                                                });
                                             }
                                             if(config.callback){
                                                 config.callback();
@@ -480,7 +674,9 @@
                                             });
                                             $('#'+config.element)[0].reset();
                                             if(config.onBack != null){
-                                                onBack();
+                                                SUPER.runOnBack(config.onBack, {
+                                                    scrollTop: config.scrollTop
+                                                });
                                             }
                                             if(config.callback){
                                                 config.callback();
@@ -541,6 +737,8 @@
 					tohide: 'table_data',
 					toshow: 'form_data',
 					animate: null,
+                    scrollTop: true,
+                    scrollSpeed: 'slow',
 				}, config);
 
 				if (config.animate!==null)
@@ -576,9 +774,11 @@
 					});
 				}
 
-				$('html,body').animate({
-					scrollTop: 0 /*pos + (offeset ? offeset : 0)*/
-				}, 'slow');
+                if (SUPER.shouldSwitchFormScroll(config.scrollTop)) {
+                    $('html,body').animate({
+                        scrollTop: 0 /*pos + (offeset ? offeset : 0)*/
+                    }, config.scrollSpeed);
+                }
 			},
 
             formatDate: function (dateString) {

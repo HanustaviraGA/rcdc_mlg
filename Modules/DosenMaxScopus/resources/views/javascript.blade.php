@@ -100,9 +100,6 @@
         }
         var prodi = $('#prodi').val();
         init_chart(year, month, period, prodi);
-        if ($.fn.DataTable.isDataTable('#tableCourse')) {
-            $('#tableCourse').DataTable().destroy();
-        }
         var col =[
             {
                 data: 'kode_dosen',
@@ -197,7 +194,7 @@
                 }
             }
         ];
-        table = $('#tableCourse').DataTable({
+        table = SUPER.initDataTable('#tableCourse', {
             responsive: true,
             serverSide: true,
             processing: true,
@@ -232,6 +229,15 @@
                 }
             },
             columns: col,
+        }, {
+            stateKey: 'dosenmaxscopus.tableCourse',
+            stateSignature: {
+                year: year,
+                period: period,
+                month: month,
+                prodi: prodi,
+                kondisi: kondisi
+            }
         });
         unblockPage();
     }

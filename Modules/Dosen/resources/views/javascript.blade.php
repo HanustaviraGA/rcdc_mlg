@@ -17,9 +17,6 @@
     function init_table(){
         blockPage();
         var prodi = $('#prodi').val();
-        if ($.fn.DataTable.isDataTable('#tableCourse')) {
-            $('#tableCourse').DataTable().destroy();
-        }
         let roles = (SUPER.get_role_access('editdosen'));
         var col =[
             {
@@ -119,7 +116,7 @@
                 }
             }
         ];
-        table = $('#tableCourse').DataTable({
+        table = SUPER.initDataTable('#tableCourse', {
             responsive: true,
             serverSide: true,
             processing: true,
@@ -151,6 +148,11 @@
                 }
             },
             columns: col,
+        }, {
+            stateKey: 'dosen.tableCourse',
+            stateSignature: {
+                prodi: prodi
+            }
         });
         unblockPage();
     }

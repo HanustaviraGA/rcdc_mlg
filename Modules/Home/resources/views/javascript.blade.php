@@ -21,10 +21,7 @@
     }
 
     init_table = () => {
-        if ($.fn.DataTable.isDataTable('#tableDashboard')) {
-			$('#tableDashboard').DataTable().destroy();
-		}
-        table = $('#tableDashboard').DataTable({
+        table = SUPER.initDataTable('#tableDashboard', {
             responsive: true,
             serverSide: true,
             processing: true,
@@ -91,6 +88,10 @@
                     }
                 },
             ],
+        }, {
+            stateKey: 'home.tableDashboard',
+            stateSignature: 'home',
+            preservePage: false
         });
     }
 
