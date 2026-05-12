@@ -8,9 +8,13 @@ use App\Models\DataDosen;
 use App\Models\AttributeDosen;
 use App\Models\Researchs;
 use App\Models\Comdevs;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 
 class LandingController extends Controller
 {
+    private const BINUS_SCHOLAR_BASE_URL = 'https://binus.ac.id/malang/computer-science/wp-json/binus-scholar/v1/lecturers/';
+
     public function home(){
         Auth::logout();
         $dosen = DataDosen::limit(6)->inRandomOrder()->get();
@@ -76,29 +80,8 @@ class LandingController extends Controller
         // Research
         $dosens = DataDosen::inRandomOrder()->first();
         $kode_dosen = $dosens->kode_dosen;
-        $client = new \GuzzleHttp\Client();
-        $response = $client->post('https://binus.ac.id/malang/computer-science/wp-json/binus-scholar/v1/lecturers/researchs', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . env('BINUS_API_TOKEN'),
-                'Content-Type' => 'application/json',
-            ],
-            'json' => [
-                'lecturer_id' => $kode_dosen,
-            ],
-        ]);
-        $research = json_decode($response->getBody(), true);
-        if(!isset($research['data']) || empty($research['data'])){
-            $list_riset = Researchs::where('kode_dosen', $kode_dosen)->get();
-            if($list_riset->count() > 0){
-                $researchs = $list_riset->toArray();
-            }else{
-                $researchs = [];    
-            }
-        }else{
-            $researchs = $research['data'];
-        }
-        // $researchs = $research['data'];
-        // $researchs = NULL;
+        $researchs = $this->getResearchs($kode_dosen);
+
         return view('landing.index', compact(
             'researchs',
             'dosen',
@@ -144,54 +127,67 @@ class LandingController extends Controller
         $dosen = DataDosen::leftJoin('identitas_dosen', 'database_dosen_new.kode_dosen', '=', 'identitas_dosen.kode_dosen')->where('database_dosen_new.kode_dosen', $kode_dosen)->first();
         $attribute = AttributeDosen::where('kode_dosen', $kode_dosen)->get();
         // Research
-        $client = new \GuzzleHttp\Client();
-        $response = $client->post('https://binus.ac.id/malang/computer-science/wp-json/binus-scholar/v1/lecturers/researchs', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . env('BINUS_API_TOKEN'),
-                'Content-Type' => 'application/json',
-            ],
-            'json' => [
-                'lecturer_id' => $kode_dosen,
-            ],
-        ]);
-        $research = json_decode($response->getBody(), true);
-        // $researchs = $research['data'];
-        if(!isset($research['data']) || empty($research['data'])){
-            $list_riset = Researchs::where('kode_dosen', $kode_dosen)->get();
-            if($list_riset->count() > 0){
-                $researchs = $list_riset->toArray();
-            }else{
-                $researchs = [];    
-            }
-        }else{
-            $researchs = $research['data'];
-        }
-        // $researchs = NULL;
+        $researchs = $this->getResearchs($kode_dosen);
+
         // Community Development
-        $client_comdev = new \GuzzleHttp\Client();
-        $response_comdev = $client_comdev->post('https://binus.ac.id/malang/computer-science/wp-json/binus-scholar/v1/lecturers/community-services', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . env('BINUS_API_TOKEN'),
-                'Content-Type' => 'application/json',
-            ],
-            'json' => [
-                'lecturer_id' => $kode_dosen,
-            ],
-        ]);
-        $comdev = json_decode($response_comdev->getBody(), true);
-        // $comdevs = $comdev['data']['v2'];
-        if(!isset($comdev['data']['v2']) || empty($comdev['data']['v2'])){
-            $list_comdev = Comdevs::where('kode_dosen', $kode_dosen)->get();
-            if($list_comdev->count() > 0){
-                $comdevs = $list_comdev->toArray();
-            }else{
-                $comdevs = [];    
-            }
-        }else{
-            $comdevs = $comdev['data']['v2'];
-        }
-        // $comdevs = NULL;
-        // dd($comdevs);
+        $comdevs = $this->getComdevs($kode_dosen);
+
         return view('landing.service-details', compact('dosen', 'attribute', 'researchs', 'comdevs', 'kode_dosen'));
+    }
+
+    private function getResearchs(string $kode_dosen): array
+    {
+        $research = $this->requestBinusScholar('POST', 'researchs', $kode_dosen);
+        $researchs = data_get($research, 'data');
+
+        if (is_array($researchs) && !empty($researchs)) {
+            return $researchs;
+        }
+
+        return Researchs::where('kode_dosen', $kode_dosen)->get()->toArray();
+    }
+
+    private function getComdevs(string $kode_dosen): array
+    {
+        $comdev = $this->requestBinusScholar('POST', 'community-services', $kode_dosen);
+        $comdevs = data_get($comdev, 'data.v2');
+
+        if (is_array($comdevs) && !empty($comdevs)) {
+            return $comdevs;
+        }
+
+        return Comdevs::where('kode_dosen', $kode_dosen)->get()->toArray();
+    }
+
+    private function requestBinusScholar(string $method, string $endpoint, string $kode_dosen): array
+    {
+        try {
+            $client = new Client([
+                'base_uri' => self::BINUS_SCHOLAR_BASE_URL,
+                'connect_timeout' => 5,
+                'timeout' => 10,
+                'http_errors' => false,
+            ]);
+
+            $response = $client->request($method, $endpoint, [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . env('BINUS_API_TOKEN'),
+                    'Content-Type' => 'application/json',
+                ],
+                'json' => [
+                    'lecturer_id' => $kode_dosen,
+                ],
+            ]);
+
+            if ($response->getStatusCode() < 200 || $response->getStatusCode() >= 300) {
+                return [];
+            }
+
+            $payload = json_decode((string) $response->getBody(), true);
+
+            return is_array($payload) ? $payload : [];
+        } catch (GuzzleException $e) {
+            return [];
+        }
     }
 }
