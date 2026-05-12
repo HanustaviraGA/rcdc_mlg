@@ -116,7 +116,7 @@ class DosenController extends Controller
         foreach ($sheets as $index => $sheet_data) {
             $reader->changeSheet($index);
             // Note: Any call to changeSheet() resets the current read position to the beginning of the selected sheet.
-            if ($sheet_data->getName() == 'Malang' || $sheet_data->getName() == 'FM Malang') {
+            if ($sheet_data->getName() == 'Malang' || $sheet_data->getName() == 'FM Malang' || $sheet_data->getName() == 'FM BINUS Malang') {
                 $headerMap = null;
                 foreach ($reader as $row_number => $row) {
                     if ($headerMap === null && in_array('Kode Dosen', $row, true)) {
