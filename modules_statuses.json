@@ -13,5 +13,6 @@
     "ImportPKM": true,
     "PerhitunganKPIPKM": true,
     "PerhitunganKPIDosenRTTO": true,
-    "HakAkses": true
+    "HakAkses": true,
+    "OutletPublikasi": true
 }

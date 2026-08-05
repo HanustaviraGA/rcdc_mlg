@@ -31,6 +31,7 @@
             <li><a href="services.html">Services</a></li>
             <li><a href="projects.html">Projects</a></li> --}}
             <li><a href="{{ route('lecturers') }}" @if (Request::is('lecturers')) class="active" @endif>Lecturers</a></li>
+            <li><a href="{{ route('outletpublikasi.public') }}" @if (Request::routeIs('outletpublikasi.public')) class="active" @endif>Outlet Publikasi</a></li>
             {{-- <li class="dropdown"><a href="#"><span>More Pages</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
               <ul>
                 <li><a href="service-details.html">Service Details</a></li>

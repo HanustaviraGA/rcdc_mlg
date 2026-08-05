@@ -1,0 +1,11 @@
+{
+    "name": "OutletPublikasi",
+    "alias": "outletpublikasi",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\OutletPublikasi\\Providers\\OutletPublikasiServiceProvider"
+    ],
+    "files": []
+}
