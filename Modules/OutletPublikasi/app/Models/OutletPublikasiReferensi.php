@@ -4,16 +4,19 @@ namespace Modules\OutletPublikasi\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class OutletPublikasi extends Model
+class OutletPublikasiReferensi extends Model
 {
-    protected $table = 'outlet_publikasi';
+    protected $table = 'outlet_publikasi_referensi';
 
     protected $fillable = [
-        'nama_conference',
-        'tipe_kerjasama',
-        'deadline_submission',
+        'kategori',
+        'nama',
+        'issn',
+        'quartile_sjr',
+        'sinta',
+        'publication_frequency',
         'scope',
-        'contact_pic',
+        'deadline_submission',
         'url_website',
     ];
 
