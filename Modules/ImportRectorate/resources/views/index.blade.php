@@ -1,3 +1,4 @@
+<div class="mb-5"><a class="btn btn-light-primary" href="{{ route('research-import.index') }}">Import Riset / Hibah Rectorate (sheet Detail)</a></div>
 <div class="row table_data mb-5" data-roleable="false" data-role="Company-Read">
     <div class=" col-12" id="tableCourseContainer">
         <div class="card card-bordered">
@@ -45,7 +46,10 @@
                 </div>
                 <div class="fv-row mb-5 col-md-12 ">
                     <label for="" class="required form-label mb-3 fw-bold">File (.xlsx)</label>
-                    <input type="file" accept=".csv" required name="rectorate" id="rectorate" class="form-control bg-white border border-2 py-4 px-6 rounded-3 fw-light fs-6" placeholder="Input Data">
+                    <input type="file" accept=".xlsx" required name="rectorate" id="rectorate" class="form-control bg-white border border-2 py-4 px-6 rounded-3 fw-light fs-6" placeholder="Input Data">
+                    <p class="text-muted mt-3">Import FM menggunakan sheet <strong>Raw</strong>, Kampus <strong>MALANG</strong>, dan Submitted <strong>Non Scopus FM / Scopus FM</strong>. Tahun dan Until Month adalah periode snapshot laporan; pilih quarter yang sesuai. Import ulang mengganti snapshot periode yang sama setelah file lolos validasi.</p>
+                    <a href="{{ route('publication-dashboard') }}">Buka dashboard KPI publikasi</a>
+                    <pre id="importSummary" class="mt-3" style="white-space:pre-wrap" aria-live="polite"></pre>
                 </div>
                 <button class="btn btn-primary w-20" onclick="onAdd()" id="toggleFormButton"><i class="las la-plus fs-2"></i> Simpan</button>
             </div>

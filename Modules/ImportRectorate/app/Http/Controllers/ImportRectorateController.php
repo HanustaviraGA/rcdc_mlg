@@ -168,6 +168,27 @@ class ImportRectorateController extends Controller
 
     public function create(Request $request)
     {
+        $validated = $request->validate([
+            'rectorate' => ['required', 'file', 'mimes:xlsx', 'max:20480'],
+            'year' => ['required', 'integer', 'between:2000,2100'],
+            'month' => ['required', 'integer', 'between:1,12'],
+            'period' => ['required', 'integer', 'between:1,4'],
+            'fmmhs' => ['required', 'in:FM,MHS'],
+        ]);
+        if ($validated['fmmhs'] === 'FM') {
+            $file = $request->file('rectorate');
+            $summary = app(\App\Services\Publications\PublicationImporter::class)->import(
+                $file->getRealPath(), $file->getClientOriginalName(),
+                (int) $validated['year'], (int) $validated['month'], (int) $validated['period'],
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => "Import Raw selesai: {$summary['selected']} baris, {$summary['publications']} publikasi, {$summary['lecturers']} dosen.",
+                'summary' => $summary,
+            ]);
+        }
+
         $data = $request->all();
         $period = $data['period'];
         $month = $data['month'];

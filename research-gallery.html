@@ -1,0 +1,1960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Research Gallery &amp; Impact Showcase — Universitas Nusantara</title>
+<meta name="description" content="A digital exhibition of faculty research: visual stories, infographics, and measurable impact.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ---------- tokens ---------- */
+:root{
+  --paper:#ffffff;
+  --mist:#f4f6f9;
+  --mist-2:#eceff5;
+  --navy:#0c2340;
+  --navy-deep:#071a31;
+  --navy-soft:#3c5875;
+  --verdant:#1b8a6b;
+  --verdant-soft:#e8f4f0;
+  --brass:#b4862f;
+  --brass-soft:#faf3e4;
+  --line:#dfe4ec;
+  --line-strong:#c6cedb;
+  --ink:#0c2340;
+  --ink-2:#4a5c72;
+  --ink-3:#71829a;
+
+  --serif:"Instrument Serif",Georgia,"Times New Roman",serif;
+  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px;
+  --s6:32px; --s7:48px; --s8:64px; --s9:96px; --s10:128px;
+
+  --r-sm:4px; --r-md:8px; --r-lg:14px; --r-pill:999px;
+  --shadow-lift:0 18px 40px -24px rgba(12,35,64,.35);
+  --shadow-plate:0 24px 60px -30px rgba(12,35,64,.45);
+  --wrap:1200px;
+  --ease:cubic-bezier(.2,.7,.2,1);
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:16px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+img,svg{display:block;max-width:100%}
+button{font:inherit;color:inherit;cursor:pointer}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--verdant);outline-offset:3px;border-radius:2px}
+
+/* ---------- layout helpers ---------- */
+.wrap{width:100%;max-width:var(--wrap);margin-inline:auto;padding-inline:var(--s5)}
+.band{padding-block:var(--s9)}
+.band-mist{background:var(--mist);border-block:1px solid var(--line)}
+.band-tight{padding-block:var(--s7)}
+.stack-6>*+*{margin-top:var(--s6)}
+.rule{height:1px;background:var(--line);border:0;margin:0}
+
+/* ---------- type ---------- */
+.display{
+  font-family:var(--serif);font-weight:400;
+  font-size:clamp(2.9rem,7.2vw,5.4rem);
+  line-height:.98;letter-spacing:-.015em;margin:0;
+}
+.display-md{
+  font-family:var(--serif);font-weight:400;
+  font-size:clamp(2rem,3.8vw,3rem);line-height:1.06;letter-spacing:-.01em;margin:0;
+}
+.h3{font-family:var(--serif);font-weight:400;font-size:1.5rem;line-height:1.2;margin:0}
+.lede{font-size:1.075rem;line-height:1.7;color:var(--ink-2);max-width:60ch;margin:0}
+.prose{max-width:66ch;color:var(--ink-2);margin:0}
+.meta{font-size:.8125rem;color:var(--ink-3);letter-spacing:.005em}
+.micro{font-size:.75rem;color:var(--ink-3)}
+.serif-it{font-family:var(--serif);font-style:italic;font-size:1.0625rem;color:var(--navy-soft)}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- buttons ---------- */
+.btn{
+  display:inline-flex;align-items:center;gap:var(--s2);
+  padding:12px 22px;border-radius:var(--r-pill);border:1px solid var(--navy);
+  background:var(--navy);color:#fff;font-size:.9375rem;font-weight:500;
+  text-decoration:none;transition:transform .18s var(--ease),background .18s var(--ease),box-shadow .18s var(--ease);
+}
+.btn:hover{background:var(--navy-deep);transform:translateY(-1px);box-shadow:var(--shadow-lift)}
+.btn-ghost{background:transparent;color:var(--navy);border-color:var(--line-strong)}
+.btn-ghost:hover{background:var(--paper);border-color:var(--navy);box-shadow:none}
+.btn-sm{padding:8px 16px;font-size:.8125rem}
+.btn-verdant{background:var(--verdant);border-color:var(--verdant)}
+.btn-verdant:hover{background:#15735a}
+.btn-icon{
+  width:38px;height:38px;padding:0;justify-content:center;border-radius:50%;
+  background:var(--paper);color:var(--navy);border:1px solid var(--line-strong);
+}
+.btn-icon:hover{background:var(--navy);color:#fff;border-color:var(--navy);transform:none;box-shadow:none}
+.link-quiet{
+  background:none;border:0;padding:0;color:var(--navy);
+  font-size:.875rem;font-weight:500;text-decoration:underline;text-underline-offset:4px;
+  text-decoration-color:var(--line-strong);text-decoration-thickness:1px;
+}
+.link-quiet:hover{text-decoration-color:var(--verdant);color:var(--verdant)}
+
+/* ---------- masthead ---------- */
+.masthead{
+  position:sticky;top:0;z-index:60;background:rgba(255,255,255,.92);
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--line);
+}
+.masthead-in{display:flex;align-items:center;gap:var(--s5);min-height:74px}
+.brand{display:flex;align-items:center;gap:var(--s3);text-decoration:none;margin-right:auto}
+.brand-mark{width:34px;height:34px;flex:none}
+.brand-name{font-family:var(--serif);font-size:1.3rem;line-height:1;letter-spacing:-.01em}
+.brand-sub{font-size:.6875rem;color:var(--ink-3);line-height:1.3;margin-top:3px}
+.nav{display:flex;align-items:center;gap:var(--s1)}
+.nav-link{
+  background:none;border:0;padding:9px 13px;border-radius:var(--r-pill);
+  font-size:.90625rem;color:var(--ink-2);position:relative;transition:color .16s var(--ease),background .16s var(--ease);
+}
+.nav-link:hover{color:var(--navy);background:var(--mist)}
+.nav-link[aria-current="page"]{color:var(--navy);font-weight:600}
+.nav-link[aria-current="page"]::after{
+  content:"";position:absolute;left:13px;right:13px;bottom:2px;height:2px;background:var(--verdant);border-radius:2px;
+}
+.nav-admin{margin-left:var(--s3);padding-left:var(--s4);border-left:1px solid var(--line);font-size:.8125rem;color:var(--ink-3)}
+.burger{display:none;width:42px;height:42px;border:1px solid var(--line-strong);border-radius:var(--r-md);background:var(--paper);align-items:center;justify-content:center}
+.burger span{display:block;width:17px;height:1.5px;background:var(--navy);position:relative}
+.burger span::before,.burger span::after{content:"";position:absolute;left:0;width:17px;height:1.5px;background:var(--navy)}
+.burger span::before{top:-5px}.burger span::after{top:5px}
+
+/* ---------- hero ---------- */
+.hero{padding-block:var(--s9) var(--s7);overflow:hidden}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,.98fr);gap:var(--s8);align-items:center}
+.hero-kicker{
+  display:inline-flex;align-items:center;gap:var(--s2);margin-bottom:var(--s5);
+  font-family:var(--serif);font-style:italic;font-size:1.0625rem;color:var(--navy-soft);
+}
+.hero-kicker::before{content:"";width:26px;height:1px;background:var(--brass)}
+.hero h1{margin-bottom:var(--s5)}
+.hero-actions{display:flex;flex-wrap:wrap;gap:var(--s3);margin-top:var(--s6)}
+
+/* poster wall in hero */
+.wall{position:relative;height:520px}
+.wall-item{
+  position:absolute;width:62%;border-radius:var(--r-md);overflow:hidden;background:#fff;
+  border:1px solid var(--line);box-shadow:var(--shadow-plate);
+  transition:transform .5s var(--ease),box-shadow .5s var(--ease);
+}
+.wall-item svg{width:100%;height:auto}
+.wall-a{left:0;top:6%;transform:rotate(-4.5deg) translateZ(0);z-index:2}
+.wall-b{right:0;top:0;width:56%;transform:rotate(3.5deg);z-index:1}
+.wall-c{right:6%;bottom:0;width:58%;transform:rotate(-1.5deg);z-index:3}
+.wall:hover .wall-a{transform:rotate(-6deg) translate(-8px,-6px)}
+.wall:hover .wall-b{transform:rotate(5deg) translate(8px,-4px)}
+.wall:hover .wall-c{transform:rotate(0deg) translateY(6px)}
+.wall-caption{
+  position:absolute;left:0;bottom:-34px;font-size:.75rem;color:var(--ink-3);
+}
+
+/* ---------- stat ribbon ---------- */
+.ribbon{border-block:1px solid var(--line);background:var(--paper)}
+.ribbon-grid{display:grid;grid-template-columns:repeat(4,1fr)}
+.stat{padding:var(--s6) var(--s5);border-left:1px solid var(--line)}
+.stat:first-child{border-left:0;padding-left:0}
+.stat-fig{font-family:var(--serif);font-size:clamp(2.3rem,3.6vw,3.1rem);line-height:1;letter-spacing:-.02em}
+.stat-fig sup{font-size:.42em;top:-.9em;position:relative;color:var(--brass);font-family:var(--sans);font-weight:600}
+.stat-label{margin-top:var(--s2);font-size:.8125rem;color:var(--ink-2)}
+.stat-note{font-size:.6875rem;color:var(--ink-3);margin-top:2px}
+
+/* ---------- section heading ---------- */
+.sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--s5);margin-bottom:var(--s6)}
+.sec-head p{margin:var(--s3) 0 0}
+
+/* ---------- gallery cards ---------- */
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--s5)}
+.card{
+  position:relative;display:flex;flex-direction:column;text-align:left;
+  background:var(--paper);border:1px solid var(--line);border-radius:var(--r-md);
+  padding:0;overflow:hidden;transition:transform .28s var(--ease),box-shadow .28s var(--ease),border-color .28s var(--ease);
+}
+.card:hover{transform:translateY(-6px) scale(1.012);box-shadow:var(--shadow-lift);border-color:var(--line-strong);z-index:5}
+.card-poster{position:relative;background:var(--mist);border-bottom:1px solid var(--line)}
+.card-poster svg{width:100%;height:auto}
+.card-hover{
+  position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;
+  gap:var(--s3);padding:var(--s4);opacity:0;
+  background:linear-gradient(180deg,rgba(7,26,49,0) 22%,rgba(7,26,49,.86) 72%,rgba(7,26,49,.95));
+  transition:opacity .28s var(--ease);
+}
+.card:hover .card-hover,.card:focus-within .card-hover{opacity:1}
+.card-hover p{margin:0;color:#e8eef6;font-size:.8125rem;line-height:1.5}
+.card-hover .btn{align-self:flex-start;background:#fff;color:var(--navy);border-color:#fff}
+.card-body{padding:var(--s4) var(--s4) var(--s5)}
+.card-cat{display:inline-flex;align-items:center;gap:7px;font-size:.75rem;color:var(--ink-2);margin-bottom:var(--s3)}
+.dot{width:8px;height:8px;border-radius:50%;flex:none}
+.card-title{font-family:var(--serif);font-size:1.3125rem;line-height:1.16;margin:0 0 var(--s3);letter-spacing:-.005em}
+.card-meta{font-size:.8125rem;color:var(--ink-3);line-height:1.5}
+.card-meta b{color:var(--ink-2);font-weight:500}
+.card-foot{display:flex;align-items:center;gap:var(--s3);margin-top:var(--s4);padding-top:var(--s3);border-top:1px solid var(--line);font-size:.75rem;color:var(--ink-3)}
+.card-foot .num{color:var(--navy);font-weight:600}
+.enter{animation:rise .42s var(--ease) both}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* ---------- filter bar ---------- */
+.filters{
+  position:sticky;top:74px;z-index:40;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);padding-block:var(--s4);
+}
+.filters-in{display:flex;flex-wrap:wrap;gap:var(--s3);align-items:center}
+.search{position:relative;flex:1 1 260px;min-width:0}
+.search input{
+  width:100%;padding:11px 14px 11px 40px;border:1px solid var(--line-strong);border-radius:var(--r-pill);
+  background:var(--paper);font:inherit;font-size:.9375rem;color:var(--ink);
+}
+.search input::placeholder{color:var(--ink-3)}
+.search input:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(12,35,64,.08)}
+.search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--ink-3)}
+.select{position:relative}
+.select select{
+  appearance:none;padding:11px 34px 11px 14px;border:1px solid var(--line-strong);
+  border-radius:var(--r-pill);background:var(--paper);font:inherit;font-size:.875rem;color:var(--ink-2);
+}
+.select select:focus{outline:none;border-color:var(--navy)}
+.select::after{content:"";position:absolute;right:15px;top:50%;width:6px;height:6px;border-right:1.5px solid var(--ink-3);border-bottom:1.5px solid var(--ink-3);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.result-line{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s3);margin:var(--s6) 0 var(--s5)}
+.chip{
+  display:inline-flex;align-items:center;gap:var(--s2);padding:6px 8px 6px 12px;
+  border-radius:var(--r-pill);background:var(--verdant-soft);color:#12674f;font-size:.78125rem;border:1px solid #cfe7df;
+}
+.chip button{background:none;border:0;padding:0 2px;line-height:1;color:inherit;opacity:.7;font-size:1rem}
+.chip button:hover{opacity:1}
+.empty{border:1px dashed var(--line-strong);border-radius:var(--r-lg);padding:var(--s8) var(--s5);text-align:center;background:var(--mist)}
+.empty .h3{margin-bottom:var(--s3)}
+
+/* ---------- detail page ---------- */
+.crumbs{display:flex;align-items:center;gap:var(--s3);padding-block:var(--s5);font-size:.8125rem;color:var(--ink-3)}
+.crumbs button{background:none;border:0;padding:0;color:var(--ink-2);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line-strong)}
+.crumbs button:hover{color:var(--verdant)}
+.detail-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:var(--s8);align-items:start}
+.viewer{position:sticky;top:100px}
+.viewer-frame{
+  position:relative;border:1px solid var(--line);border-radius:var(--r-md);background:var(--mist);
+  overflow:hidden;cursor:zoom-in;
+}
+.viewer-frame.is-zoomed{cursor:grab}
+.viewer-frame.is-zoomed.is-dragging{cursor:grabbing}
+.viewer-stage{transform-origin:center center;transition:transform .3s var(--ease)}
+.viewer-stage.no-anim{transition:none}
+.viewer-frame svg{width:100%;height:auto}
+.viewer-tools{display:flex;align-items:center;gap:var(--s2);margin-top:var(--s3);flex-wrap:wrap}
+.viewer-tools .spacer{margin-left:auto}
+.zoom-level{font-size:.75rem;color:var(--ink-3);min-width:46px;text-align:center}
+.detail-title{margin:var(--s2) 0 var(--s5)}
+.factsheet{border-top:1px solid var(--line);margin-top:var(--s5)}
+.fact{display:grid;grid-template-columns:130px 1fr;gap:var(--s4);padding:var(--s4) 0;border-bottom:1px solid var(--line);font-size:.9375rem}
+.fact dt{color:var(--ink-3);font-size:.8125rem;padding-top:2px}
+.fact dd{margin:0;color:var(--ink)}
+.fact dd button{background:none;border:0;padding:0;color:var(--navy);font-weight:500;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line-strong)}
+.fact dd button:hover{color:var(--verdant)}
+.tags{display:flex;flex-wrap:wrap;gap:var(--s2)}
+.tag{padding:4px 10px;border:1px solid var(--line);border-radius:var(--r-pill);font-size:.75rem;color:var(--ink-2);background:var(--paper)}
+
+/* summary cards — deliberately unequal weights */
+.summary{display:grid;gap:var(--s4);margin-top:var(--s7)}
+.sum-card{border:1px solid var(--line);border-radius:var(--r-md);padding:var(--s5);background:var(--paper)}
+.sum-head{display:flex;align-items:center;gap:var(--s3);margin-bottom:var(--s3)}
+.sum-head svg{width:19px;height:19px;flex:none;color:var(--navy-soft)}
+.sum-head h4{margin:0;font-family:var(--serif);font-size:1.1875rem;font-weight:400}
+.sum-card p{margin:0;color:var(--ink-2);font-size:.9375rem;line-height:1.68;max-width:64ch}
+.sum-finding{background:var(--navy);border-color:var(--navy);color:#fff}
+.sum-finding .sum-head svg{color:var(--brass)}
+.sum-finding p{color:#dbe4ef}
+.sum-finding .finding-fig{font-family:var(--serif);font-size:2rem;line-height:1;color:#fff;margin-bottom:var(--s3)}
+.sum-finding .finding-fig span{font-size:.5em;color:var(--brass)}
+.sum-impact{background:var(--verdant-soft);border-color:#cfe7df}
+.sum-impact .sum-head svg{color:var(--verdant)}
+.impact-list{list-style:none;margin:var(--s4) 0 0;padding:0;display:grid;gap:var(--s4)}
+.impact-list li{display:flex;gap:var(--s4);align-items:flex-start}
+.impact-ico{width:34px;height:34px;border-radius:50%;background:#fff;border:1px solid #cfe7df;display:flex;align-items:center;justify-content:center;flex:none;color:var(--verdant)}
+.impact-ico svg{width:17px;height:17px}
+.impact-list h5{margin:0 0 2px;font-size:.875rem;font-weight:600}
+.impact-list p{font-size:.875rem;color:#3d5c53;margin:0}
+
+/* ---------- researchers ---------- */
+.people{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:var(--s5)}
+.person{
+  text-align:left;background:var(--paper);border:1px solid var(--line);border-radius:var(--r-md);
+  padding:var(--s5);display:flex;flex-direction:column;gap:var(--s4);
+  transition:transform .24s var(--ease),box-shadow .24s var(--ease),border-color .24s var(--ease);
+}
+.person:hover{transform:translateY(-4px);box-shadow:var(--shadow-lift);border-color:var(--line-strong)}
+.portrait{width:64px;height:64px;border-radius:50%;overflow:hidden;flex:none;border:1px solid var(--line)}
+.portrait svg{width:100%;height:100%}
+.person-name{font-family:var(--serif);font-size:1.25rem;line-height:1.2;margin:0}
+.person-role{font-size:.8125rem;color:var(--ink-3);margin:3px 0 0}
+.person-foot{margin-top:auto;padding-top:var(--s4);border-top:1px solid var(--line);font-size:.75rem;color:var(--ink-3);display:flex;gap:var(--s4)}
+.profile-head{display:grid;grid-template-columns:auto minmax(0,1fr);gap:var(--s6);align-items:center;padding-block:var(--s7)}
+.portrait-lg{width:132px;height:132px;border-radius:50%;overflow:hidden;border:1px solid var(--line)}
+.portrait-lg svg{width:100%;height:100%}
+.interest-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:var(--s4);margin-top:var(--s5)}
+.interest{border-left:2px solid var(--brass);padding-left:var(--s4)}
+.interest h5{margin:0 0 4px;font-size:.9375rem}
+.interest p{margin:0;font-size:.8125rem;color:var(--ink-3)}
+
+/* ---------- categories ---------- */
+.cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:var(--s4)}
+.cat{
+  position:relative;text-align:left;border:1px solid var(--line);border-radius:var(--r-md);
+  padding:var(--s5);background:var(--paper);overflow:hidden;min-height:190px;
+  display:flex;flex-direction:column;transition:transform .24s var(--ease),box-shadow .24s var(--ease)}
+.cat:hover{transform:translateY(-4px);box-shadow:var(--shadow-lift)}
+.cat-art{position:absolute;right:-18px;top:-18px;width:118px;height:118px;opacity:.14;transition:opacity .24s var(--ease),transform .5s var(--ease)}
+.cat:hover .cat-art{opacity:.24;transform:rotate(8deg) scale(1.06)}
+.cat h4{font-family:var(--serif);font-size:1.375rem;font-weight:400;margin:0 0 var(--s2);position:relative}
+.cat p{font-size:.8125rem;color:var(--ink-3);margin:0;max-width:32ch;position:relative}
+.cat-count{margin-top:auto;padding-top:var(--s5);display:flex;align-items:baseline;gap:8px}
+.cat-count b{font-family:var(--serif);font-size:2rem;line-height:1;font-weight:400}
+.cat-count span{font-size:.75rem;color:var(--ink-3)}
+.cat-bar{height:3px;border-radius:2px;margin-top:var(--s3);background:var(--mist-2);overflow:hidden}
+.cat-bar i{display:block;height:100%;border-radius:2px}
+
+/* ---------- dashboard ---------- */
+.panels{display:grid;grid-template-columns:1.35fr 1fr;gap:var(--s5)}
+.panel{border:1px solid var(--line);border-radius:var(--r-md);padding:var(--s5);background:var(--paper)}
+.panel-head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--s4);margin-bottom:var(--s5)}
+.panel-head h4{font-family:var(--serif);font-size:1.25rem;font-weight:400;margin:0}
+.panel-head span{font-size:.75rem;color:var(--ink-3)}
+.panel-wide{grid-column:1/-1}
+.chart-svg{width:100%;height:auto;overflow:visible}
+.legend{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.legend li{display:flex;align-items:center;gap:10px;font-size:.8125rem;color:var(--ink-2)}
+.legend .num{margin-left:auto;color:var(--navy);font-weight:600}
+.donut-wrap{display:grid;grid-template-columns:150px 1fr;gap:var(--s5);align-items:center}
+.bar-row{display:grid;grid-template-columns:170px 1fr 40px;gap:var(--s4);align-items:center;font-size:.8125rem;padding:9px 0}
+.bar-track{height:9px;background:var(--mist-2);border-radius:5px;overflow:hidden}
+.bar-fill{display:block;height:100%;background:var(--navy);border-radius:5px;transform-origin:left;animation:grow .7s var(--ease) both}
+@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.bar-row .num{text-align:right;color:var(--navy);font-weight:600}
+
+/* ---------- admin ---------- */
+.admin-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:var(--s7);align-items:start}
+.form-note{background:var(--brass-soft);border:1px solid #eedfba;border-radius:var(--r-md);padding:var(--s4);font-size:.8125rem;color:#6d5216;margin-bottom:var(--s5)}
+.field{margin-bottom:var(--s4)}
+.field label{display:block;font-size:.8125rem;color:var(--ink-2);margin-bottom:6px}
+.field input,.field select,.field textarea{
+  width:100%;padding:10px 12px;border:1px solid var(--line-strong);border-radius:var(--r-sm);
+  background:var(--paper);font:inherit;font-size:.9375rem;color:var(--ink);
+}
+.field textarea{min-height:76px;resize:vertical;line-height:1.55}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(12,35,64,.07)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--s4)}
+.form-actions{display:flex;gap:var(--s3);align-items:center;margin-top:var(--s5)}
+.admin-list{border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+.admin-row{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:var(--s4);align-items:center;padding:var(--s4);border-bottom:1px solid var(--line)}
+.admin-row:last-child{border-bottom:0}
+.admin-row:hover{background:var(--mist)}
+.admin-thumb{width:56px;height:38px;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--line);background:var(--mist)}
+.admin-thumb svg{width:100%;height:100%}
+.admin-row h5{margin:0 0 2px;font-size:.9375rem;font-weight:500;line-height:1.35}
+.admin-row .meta{font-size:.75rem}
+.row-actions{display:flex;gap:6px}
+.toast{
+  position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);z-index:200;
+  background:var(--navy);color:#fff;padding:12px 20px;border-radius:var(--r-pill);
+  font-size:.875rem;box-shadow:var(--shadow-plate);opacity:0;pointer-events:none;
+  transition:opacity .25s var(--ease),transform .25s var(--ease);
+}
+.toast.is-on{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- lightbox ---------- */
+.lightbox{
+  position:fixed;inset:0;z-index:120;background:rgba(7,26,49,.94);
+  display:none;align-items:center;justify-content:center;padding:var(--s5);
+}
+.lightbox.is-open{display:flex}
+.lightbox-inner{max-width:min(92vw,900px);max-height:92vh;overflow:auto;background:#fff;border-radius:var(--r-md)}
+.lightbox-close{position:absolute;top:18px;right:18px;background:#fff;border:0;width:42px;height:42px;border-radius:50%;font-size:1.2rem;line-height:1}
+
+/* ---------- footer ---------- */
+.footer{background:var(--navy-deep);color:#c9d5e4;padding-block:var(--s8) var(--s6);margin-top:var(--s9)}
+.footer-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:var(--s7)}
+.footer h5{color:#fff;font-family:var(--serif);font-weight:400;font-size:1.0625rem;margin:0 0 var(--s4)}
+.footer p{margin:0;font-size:.875rem;line-height:1.7;max-width:46ch;color:#a9bbd0}
+.footer ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.footer button{background:none;border:0;padding:0;color:#c9d5e4;font-size:.875rem;text-align:left}
+.footer button:hover{color:#fff;text-decoration:underline;text-underline-offset:3px}
+.footer-base{margin-top:var(--s7);padding-top:var(--s5);border-top:1px solid rgba(255,255,255,.14);display:flex;flex-wrap:wrap;gap:var(--s4);justify-content:space-between;font-size:.75rem;color:#8ea3bd}
+
+/* ---------- anchors used as cards / chart bars ---------- */
+.card,.person,.cat{text-decoration:none;color:inherit}
+.bar-v{transform-box:fill-box;transform-origin:center bottom;animation:growY .65s var(--ease) both}
+@keyframes growY{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.chart-grid line{stroke:var(--line)}
+.chart-lab{font-size:11px;fill:var(--ink-3);font-family:var(--sans)}
+.chart-val{font-size:11.5px;fill:var(--navy);font-weight:600;font-family:var(--sans)}
+.donut-seg{transition:opacity .2s var(--ease)}
+.donut-seg:hover{opacity:.75}
+
+/* ---------- routes ---------- */
+[hidden]{display:none !important}
+.route-enter>*{animation:fadeUp .5s var(--ease) both}
+.route-enter>*:nth-child(2){animation-delay:.06s}
+.route-enter>*:nth-child(3){animation-delay:.12s}
+.route-enter>*:nth-child(4){animation-delay:.18s}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:var(--s5);top:var(--s3);z-index:100;background:#fff;padding:10px 16px;border:1px solid var(--navy);border-radius:var(--r-sm)}
+
+/* ---------- responsive ---------- */
+@media (max-width:1040px){
+  .hero-grid{grid-template-columns:1fr;gap:var(--s7)}
+  .wall{height:430px;max-width:520px}
+  .detail-grid{grid-template-columns:1fr;gap:var(--s7)}
+  .viewer{position:static}
+  .panels{grid-template-columns:1fr}
+  .admin-grid{grid-template-columns:1fr;gap:var(--s6)}
+  .footer-grid{grid-template-columns:1fr 1fr;gap:var(--s6)}
+}
+@media (max-width:820px){
+  .nav{
+    display:none;position:absolute;left:0;right:0;top:100%;flex-direction:column;align-items:stretch;
+    background:var(--paper);border-bottom:1px solid var(--line);padding:var(--s3) var(--s5) var(--s5);gap:2px;
+    box-shadow:var(--shadow-lift);
+  }
+  .nav.is-open{display:flex}
+  .nav-link{text-align:left;padding:13px;border-radius:var(--r-sm)}
+  .nav-link[aria-current="page"]::after{left:13px;right:auto;width:16px;bottom:8px}
+  .nav-admin{margin:var(--s2) 0 0;padding:13px;border-left:0;border-top:1px solid var(--line)}
+  .burger{display:flex}
+  .masthead-in{position:relative}
+  .band{padding-block:var(--s7)}
+  .hero{padding-block:var(--s7) var(--s6)}
+  .ribbon-grid{grid-template-columns:1fr 1fr}
+  .stat{border-left:0;border-top:1px solid var(--line);padding:var(--s5) var(--s4)}
+  .stat:nth-child(1),.stat:nth-child(2){border-top:0}
+  .stat:nth-child(odd){padding-left:0}
+  .stat:nth-child(even){border-left:1px solid var(--line)}
+  .sec-head{flex-direction:column;align-items:flex-start}
+  .filters{top:73px}
+  .fact{grid-template-columns:1fr;gap:2px}
+  .profile-head{grid-template-columns:1fr;gap:var(--s5)}
+  .field-row{grid-template-columns:1fr}
+  .donut-wrap{grid-template-columns:1fr}
+  .bar-row{grid-template-columns:110px 1fr 34px;gap:var(--s3)}
+  .footer-grid{grid-template-columns:1fr}
+  .gallery{grid-template-columns:1fr}
+}
+@media (max-width:520px){
+  .wall{height:340px}
+  .btn{padding:11px 18px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
+  html{scroll-behavior:auto}
+  .wall:hover .wall-a,.wall:hover .wall-b,.wall:hover .wall-c{transform:none}
+}
+@media print{
+  .masthead,.filters,.footer,.viewer-tools{display:none}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="masthead">
+  <div class="wrap masthead-in">
+    <a class="brand" href="#/" data-nav>
+      <svg class="brand-mark" viewBox="0 0 34 34" aria-hidden="true">
+        <rect x="1" y="1" width="32" height="32" rx="7" fill="#0c2340"/>
+        <rect x="8" y="18" width="4" height="8" rx="1" fill="#ffffff"/>
+        <rect x="15" y="13" width="4" height="13" rx="1" fill="#1b8a6b"/>
+        <rect x="22" y="8" width="4" height="18" rx="1" fill="#b4862f"/>
+      </svg>
+      <span>
+        <span class="brand-name">Research Gallery</span>
+        <span class="brand-sub">Universitas Nusantara &nbsp;·&nbsp; Research &amp; Innovation</span>
+      </span>
+    </a>
+
+    <button class="burger" id="burger" aria-label="Open menu" aria-expanded="false" aria-controls="nav"><span></span></button>
+
+    <nav class="nav" id="nav" aria-label="Main">
+      <button class="nav-link" data-goto="#/">Home</button>
+      <button class="nav-link" data-goto="#/research">Research</button>
+      <button class="nav-link" data-goto="#/categories">Categories</button>
+      <button class="nav-link" data-goto="#/researchers">Researchers</button>
+      <button class="nav-link" data-goto="#/dashboard">Dashboard</button>
+      <button class="nav-link nav-admin" data-goto="#/admin">Admin</button>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ============ HOME ============ -->
+  <section class="route" id="route-home" hidden>
+    <div class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <span class="hero-kicker">A digital exhibition of our research</span>
+          <h1 class="display">Explore research impact through visual stories</h1>
+          <p class="lede">Discover innovative research outcomes from our researchers through engaging infographics and visual presentations.</p>
+          <div class="hero-actions">
+            <button class="btn" data-goto="#/research">Explore research</button>
+            <button class="btn btn-ghost" data-goto="#/researchers">Researcher profiles</button>
+          </div>
+        </div>
+        <div class="wall" id="hero-wall" aria-hidden="true"></div>
+      </div>
+    </div>
+
+    <div class="ribbon">
+      <div class="wrap">
+        <div class="ribbon-grid" id="stat-ribbon"></div>
+      </div>
+    </div>
+
+    <div class="band">
+      <div class="wrap">
+        <div class="sec-head">
+          <div>
+            <h2 class="display-md">On the wall this month</h2>
+            <p class="lede">Four projects chosen for the clarity of their results and the reach of their impact.</p>
+          </div>
+          <button class="link-quiet" data-goto="#/research">See all research</button>
+        </div>
+        <div class="gallery" id="home-gallery"></div>
+      </div>
+    </div>
+
+    <div class="band band-mist">
+      <div class="wrap">
+        <div class="sec-head">
+          <div>
+            <h2 class="display-md">Browse by field</h2>
+            <p class="lede">Seven fields, one shared question: what changed because of this work?</p>
+          </div>
+          <button class="link-quiet" data-goto="#/categories">Open category view</button>
+        </div>
+        <div class="cats" id="home-cats"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RESEARCH SHOWCASE ============ -->
+  <section class="route" id="route-research" hidden>
+    <div class="wrap band-tight">
+      <h1 class="display-md">Research showcase</h1>
+      <p class="lede" style="margin-top:var(--s3)">Every project is presented as a poster you can read in under a minute. Filter the wall, then open a piece for the full story.</p>
+    </div>
+
+    <div class="filters">
+      <div class="wrap filters-in">
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="f-search" type="search" placeholder="Search research, researcher, or keyword" aria-label="Search research">
+        </div>
+        <div class="select"><select id="f-year" aria-label="Filter by year"></select></div>
+        <div class="select"><select id="f-cat" aria-label="Filter by field"></select></div>
+        <div class="select"><select id="f-fac" aria-label="Filter by faculty"></select></div>
+        <div class="select"><select id="f-person" aria-label="Filter by researcher"></select></div>
+        <div class="select"><select id="f-sort" aria-label="Sort results">
+          <option value="new">Newest first</option>
+          <option value="old">Oldest first</option>
+          <option value="az">Title A–Z</option>
+        </select></div>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <div class="result-line" id="result-line"></div>
+      <div class="gallery" id="research-gallery"></div>
+      <div id="research-empty" hidden>
+        <div class="empty">
+          <h3 class="h3">Nothing on the wall for these filters</h3>
+          <p class="prose" style="margin:0 auto var(--s5)">Try a broader year range or clear the filters to see all projects again.</p>
+          <button class="btn btn-ghost" id="empty-reset">Clear all filters</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DETAIL ============ -->
+  <section class="route" id="route-detail" hidden>
+    <div class="wrap">
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <button data-goto="#/">Home</button><span>/</span>
+        <button data-goto="#/research">Research</button><span>/</span>
+        <span id="crumb-now">Detail</span>
+      </nav>
+    </div>
+    <div class="wrap" id="detail-body"></div>
+  </section>
+
+  <!-- ============ RESEARCHERS ============ -->
+  <section class="route" id="route-researchers" hidden>
+    <div class="wrap band-tight">
+      <h1 class="display-md">Researchers</h1>
+      <p class="lede" style="margin-top:var(--s3)">The people behind the work, their fields of expertise, and everything they have exhibited here.</p>
+    </div>
+    <div class="wrap" style="padding-bottom:var(--s9)">
+      <div class="people" id="people-grid"></div>
+    </div>
+  </section>
+
+  <!-- ============ RESEARCHER PROFILE ============ -->
+  <section class="route" id="route-researcher" hidden>
+    <div class="wrap">
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <button data-goto="#/">Home</button><span>/</span>
+        <button data-goto="#/researchers">Researchers</button><span>/</span>
+        <span id="crumb-person">Profile</span>
+      </nav>
+    </div>
+    <div class="wrap" id="profile-body"></div>
+  </section>
+
+  <!-- ============ CATEGORIES ============ -->
+  <section class="route" id="route-categories" hidden>
+    <div class="wrap band-tight">
+      <h1 class="display-md">Research categories</h1>
+      <p class="lede" style="margin-top:var(--s3)">Pick a field to walk straight into that part of the exhibition.</p>
+    </div>
+    <div class="wrap" style="padding-bottom:var(--s9)">
+      <div class="cats" id="cats-grid"></div>
+    </div>
+  </section>
+
+  <!-- ============ DASHBOARD ============ -->
+  <section class="route" id="route-dashboard" hidden>
+    <div class="wrap band-tight">
+      <h1 class="display-md">Research dashboard</h1>
+      <p class="lede" style="margin-top:var(--s3)">A quick read on the collection: how it grew, what it covers, and which faculties contribute.</p>
+    </div>
+    <div class="wrap" style="padding-bottom:var(--s9)">
+      <div class="panels">
+        <div class="panel">
+          <div class="panel-head"><h4>Projects per year</h4><span id="dash-span"></span></div>
+          <div id="chart-year"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h4>Field distribution</h4><span>share of collection</span></div>
+          <div class="donut-wrap">
+            <div id="chart-donut"></div>
+            <ul class="legend" id="donut-legend"></ul>
+          </div>
+        </div>
+        <div class="panel panel-wide">
+          <div class="panel-head"><h4>Projects by faculty</h4><span>count of exhibited projects</span></div>
+          <div id="chart-faculty"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ADMIN ============ -->
+  <section class="route" id="route-admin" hidden>
+    <div class="wrap band-tight">
+      <h1 class="display-md">Manage the exhibition</h1>
+      <p class="lede" style="margin-top:var(--s3)">Add a project, edit its story, or take it off the wall. Posters are generated automatically from what you enter.</p>
+    </div>
+    <div class="wrap" style="padding-bottom:var(--s9)">
+      <div class="admin-grid">
+        <div>
+          <div class="form-note">This demo keeps changes in the current session only. Connect Supabase or Firebase to make them permanent.</div>
+          <form id="admin-form" novalidate>
+            <div class="field">
+              <label for="a-title">Research title</label>
+              <input id="a-title" required placeholder="e.g. Edge-based rice disease detection">
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="a-person">Researcher</label>
+                <select id="a-person"></select>
+              </div>
+              <div class="field">
+                <label for="a-year">Year</label>
+                <input id="a-year" type="number" min="2010" max="2030" value="2026">
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="a-cat">Field</label>
+                <select id="a-cat"></select>
+              </div>
+              <div class="field">
+                <label for="a-metric">Headline result <span class="micro">(number + unit)</span></label>
+                <input id="a-metric" placeholder="e.g. 94% accuracy">
+              </div>
+            </div>
+            <div class="field">
+              <label for="a-bg">Background</label>
+              <textarea id="a-bg" placeholder="Which problem does this work solve?"></textarea>
+            </div>
+            <div class="field">
+              <label for="a-obj">Objective</label>
+              <textarea id="a-obj" placeholder="What was the study trying to achieve?"></textarea>
+            </div>
+            <div class="field">
+              <label for="a-method">Method</label>
+              <textarea id="a-method" placeholder="How was it done, briefly?"></textarea>
+            </div>
+            <div class="field">
+              <label for="a-find">Key finding</label>
+              <textarea id="a-find" placeholder="The one result a stakeholder should remember."></textarea>
+            </div>
+            <div class="field">
+              <label for="a-impact">Impact <span class="micro">(industry / social / environment, one per line)</span></label>
+              <textarea id="a-impact" placeholder="Cuts inspection cost for smallholder co-ops&#10;Gives 400 farmers same-day diagnosis&#10;Reduces blanket pesticide spraying"></textarea>
+            </div>
+            <div class="form-actions">
+              <button class="btn" type="submit" id="a-submit">Publish project</button>
+              <button class="btn btn-ghost" type="button" id="a-cancel" hidden>Cancel edit</button>
+            </div>
+          </form>
+        </div>
+        <div>
+          <div class="panel-head"><h4 style="font-family:var(--serif);font-size:1.25rem;font-weight:400;margin:0">On the wall</h4><span id="admin-count"></span></div>
+          <div class="admin-list" id="admin-list"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <h5>Research Gallery &amp; Impact Showcase</h5>
+        <p>A digital exhibition run by the Research &amp; Innovation Office. We translate published work into visual stories so partners, policymakers, and students can act on it.</p>
+      </div>
+      <div>
+        <h5>Browse</h5>
+        <ul>
+          <li><button data-goto="#/research">Research showcase</button></li>
+          <li><button data-goto="#/categories">Categories</button></li>
+          <li><button data-goto="#/researchers">Researchers</button></li>
+          <li><button data-goto="#/dashboard">Dashboard</button></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Get in touch</h5>
+        <ul>
+          <li><span>Research &amp; Innovation Office</span></li>
+          <li><span>Jl. Ilmu Pengetahuan 12, Jakarta</span></li>
+          <li><span>research@nusantara.ac.id</span></li>
+          <li><button data-goto="#/admin">Administrator access</button></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-base">
+      <span>© 2026 Universitas Nusantara. Infographics may be reused with attribution.</span>
+      <span>Sample content for demonstration.</span>
+    </div>
+  </div>
+</footer>
+
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Infographic full view">
+  <button class="lightbox-close" id="lightbox-close" aria-label="Close full view">✕</button>
+  <div class="lightbox-inner" id="lightbox-inner"></div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   1. CONTENT
+   ===================================================================== */
+
+const CATS = {
+  ai:      { name:"Artificial Intelligence", color:"#0c2340", blurb:"Vision models, edge inference, and decision support built to run on modest hardware.", motif:0 },
+  health:  { name:"Health",                  color:"#a03a4c", blurb:"Screening, adherence, and public-health surveillance studies carried out with clinics and cadres.", motif:3 },
+  agri:    { name:"Agriculture",             color:"#1b8a6b", blurb:"Field trials and sensing work aimed at yield, input efficiency, and smallholder resilience.", motif:1 },
+  food:    { name:"Food Science",            color:"#b4862f", blurb:"Local commodities turned into safer, longer-lasting, more nutritious products.", motif:1 },
+  env:     { name:"Environment",             color:"#2f7d8c", blurb:"Coastal carbon, water treatment, and monitoring that feeds into regional planning.", motif:3 },
+  eng:     { name:"Engineering",             color:"#4a5c9e", blurb:"Sensor networks and machine reliability engineered for humid, remote, low-power settings.", motif:0 },
+  social:  { name:"Social Science",          color:"#7a5a8c", blurb:"Survey and fieldwork on trust, participation, and information behaviour.", motif:2 }
+};
+
+const PEOPLE = {
+  p1:{ name:"Dr. Adhitya Nugraha, S.Kom., M.Cs.", short:"Adhitya Nugraha", program:"Informatics", faculty:"Faculty of Computer Science",
+       expertise:"Computer vision and efficient deep learning",
+       bio:"Works on making vision models small enough to run where the data is created — on cameras, gateways, and clinic workstations rather than in a data centre. Collaborates with hospitals and agricultural agencies to keep the benchmarks honest.",
+       interests:[["Computer vision","Detection and segmentation for field imagery captured in poor light"],["Efficient deep learning","Pruning, quantisation, and distillation under a fixed latency budget"],["Edge AI","Model deployment on single-board computers and IoT gateways"],["Medical imaging","Triage support that keeps a clinician in the loop"]],
+       stats:{ pubs:34, cites:612, hidx:11 } },
+  p2:{ name:"Dr. Siti Rahmawati, S.TP., M.Si.", short:"Siti Rahmawati", program:"Food Technology", faculty:"Faculty of Agricultural Technology",
+       expertise:"Food preservation and product development",
+       bio:"Develops edible coatings and formulations from crops that already grow well in dry regions, then tests them with the small producers who would actually use them.",
+       interests:[["Edible packaging","Biopolymer films with plant-derived antimicrobials"],["Functional food","Formulation for complementary feeding and school programmes"],["Shelf-life","Storage studies on fermented and minimally processed foods"]],
+       stats:{ pubs:27, cites:398, hidx:9 } },
+  p3:{ name:"Dr. Bayu Prasetyo, S.T., M.T.", short:"Bayu Prasetyo", program:"Electrical Engineering", faculty:"Faculty of Engineering",
+       expertise:"Internet of Things and embedded systems",
+       bio:"Builds low-power sensing networks that survive tropical humidity, unstable grids, and long distances between nodes. Most of his prototypes are still running in the field.",
+       interests:[["IoT networks","LoRa and mesh topologies for rural coverage"],["Embedded systems","Power budgeting for solar-fed nodes"],["Condition monitoring","Vibration and current signatures for early fault detection"]],
+       stats:{ pubs:31, cites:455, hidx:10 } },
+  p4:{ name:"Dr. Maya Anggraini, dr., M.Kes.", short:"Maya Anggraini", program:"Public Health", faculty:"Faculty of Medicine",
+       expertise:"Community health and disease surveillance",
+       bio:"Designs surveillance and adherence programmes that community health workers can run with a phone and a single afternoon of training.",
+       interests:[["Nutrition surveillance","Growth monitoring at posyandu scale"],["Treatment adherence","Behavioural nudges for long treatment courses"],["Health systems","Referral pathways in district-level services"]],
+       stats:{ pubs:41, cites:880, hidx:14 } },
+  p5:{ name:"Dr. Fajar Ramadhan, S.P., M.Sc.", short:"Fajar Ramadhan", program:"Agrotechnology", faculty:"Faculty of Agriculture",
+       expertise:"Precision agriculture and crop breeding",
+       bio:"Runs multi-season field trials on rain-fed land, pairing classical selection with aerial sensing to cut input use without losing yield.",
+       interests:[["Precision agriculture","Multispectral mapping for variable-rate input"],["Crop breeding","Selection for drought tolerance in upland rice"],["Soil fertility","Site-specific nutrient management"]],
+       stats:{ pubs:24, cites:301, hidx:8 } },
+  p6:{ name:"Dr. Lestari Widodo, S.Si., M.Si.", short:"Lestari Widodo", program:"Environmental Science", faculty:"Faculty of Mathematics and Natural Sciences",
+       expertise:"Coastal ecology and water treatment",
+       bio:"Quantifies what coastal ecosystems store and what industry discharges, and turns both into numbers local governments can plan against.",
+       interests:[["Blue carbon","Mangrove biomass and sediment carbon stocks"],["Water treatment","Constructed wetlands for small-industry effluent"],["Remote sensing","Land-cover change along estuaries"]],
+       stats:{ pubs:29, cites:520, hidx:11 } },
+  p7:{ name:"Dr. Hendra Kusuma, S.Sos., M.A.", short:"Hendra Kusuma", program:"Sociology", faculty:"Faculty of Social and Political Sciences",
+       expertise:"Digital society and public trust",
+       bio:"Studies how people decide what to believe and whom to trust, using large local surveys paired with village-level fieldwork.",
+       interests:[["Digital literacy","Misinformation resilience among young voters"],["Public trust","Transparency and accountability in village governance"],["Civic participation","Turnout and deliberation in local decision-making"]],
+       stats:{ pubs:22, cites:274, hidx:8 } }
+};
+
+const SEED_RESEARCH = [
+  { id:"r01", personId:"p1", year:2026, cat:"ai",
+    title:"Edge-deployable maize leaf disease detection with a pruned vision transformer",
+    metric:{ value:"94.6", unit:"%", label:"top-1 accuracy on field images" },
+    aux:[["11 ms","inference per frame"],["8.4 MB","model size after pruning"],["6 classes","disease and healthy"]],
+    keywords:["computer vision","model pruning","edge inference","plant disease"],
+    background:"Extension officers cover hundreds of hectares each, so a diseased plot is often reported weeks after the first symptoms. Cloud-based diagnosis is not an option where mobile data is thin and intermittent.",
+    objective:"Produce a disease classifier accurate enough to be trusted in the field while small enough to run on a low-cost single-board computer with no network connection.",
+    method:"A vision transformer was trained on 18,400 field photographs from three provinces, then compressed with structured pruning and 8-bit quantisation, and finally benchmarked on a Jetson-class board under real daylight variation.",
+    finding:"Pruning removed 78% of parameters while accuracy fell by only 1.2 points, and inference stayed under the 15 ms budget needed for live camera use.",
+    impacts:{ industry:"Seed and agri-input companies can bundle diagnosis into existing handheld tools instead of licensing a cloud service.", social:"Field officers give an answer during the visit, so smallholders act the same day rather than after a lab round trip.", env:"Targeted treatment replaces blanket spraying on plots that turn out to be healthy." },
+    partners:"Provincial Agriculture Agency, two seed producers", output:"IEEE Access, 2026" },
+
+  { id:"r02", personId:"p1", year:2024, cat:"ai",
+    title:"Low-light enhancement for traffic cameras to keep vehicle counting reliable after dark",
+    metric:{ value:"2.3", unit:"×", label:"fewer missed vehicles at night" },
+    aux:[["31 cameras","in the deployment"],["0.4 s","added latency per frame"],["94%","daytime parity"]],
+    keywords:["low-light imaging","object detection","smart city","traffic analytics"],
+    background:"City traffic counts drive signal timing, but the same camera network that performs well at noon loses roughly half its detections between 7pm and 5am, when glare and sensor noise dominate.",
+    objective:"Restore night-time counting accuracy without replacing installed cameras or adding server-side hardware.",
+    method:"A lightweight enhancement network was inserted before the existing detector and trained on paired day and night footage from the city's own cameras, with counts validated against 40 hours of manual annotation.",
+    finding:"Night-time misses dropped by a factor of 2.3 and counting accuracy after dark reached 94% of the daytime figure, using the cameras already installed.",
+    impacts:{ industry:"Camera integrators gain a software upgrade path that avoids a hardware refresh cycle.", social:"Signal timing on evening corridors is now based on measured flow rather than daytime estimates.", env:"Better evening timing cut measured idling at four monitored intersections." },
+    partners:"City Transport Agency", output:"Sensors (MDPI), 2024" },
+
+  { id:"r03", personId:"p1", year:2023, cat:"health",
+    title:"Chest X-ray triage assistant compressed to run on existing hospital workstations",
+    metric:{ value:"41", unit:"%", label:"shorter time to first read" },
+    aux:[["0.93","AUC on held-out set"],["3.1 GB","RAM at runtime"],["4 hospitals","validation sites"],
+         ["No GPU","required"]],
+    keywords:["medical imaging","knowledge distillation","triage","radiology workflow"],
+    background:"District hospitals queue chest radiographs for a visiting radiologist, so urgent findings can sit unread for a day or more. Available AI tools assume a dedicated GPU server that these hospitals do not have.",
+    objective:"Deliver a triage ranking that flags likely-urgent radiographs on the office computers a radiology unit already owns.",
+    method:"A large teacher model was distilled into a compact student, validated on 12,000 radiographs across four hospitals, and deployed as a queue-ordering aid that never issues a diagnosis on its own.",
+    finding:"Urgent cases reached a radiologist 41% sooner, with the compact model holding 0.93 AUC while running on CPU-only workstations.",
+    impacts:{ industry:"Hospital IT vendors can offer triage without selling a GPU server alongside it.", social:"Patients with urgent findings are called back the same week instead of the next visit cycle.", env:"Reuse of existing workstations avoided procurement of new server hardware at all four sites." },
+    partners:"Four district hospitals, Provincial Health Office", output:"Computers in Biology and Medicine, 2023" },
+
+  { id:"r04", personId:"p3", year:2025, cat:"eng",
+    title:"Solar-powered LoRa sensor mesh for flood early warning in ungauged catchments",
+    metric:{ value:"42", unit:"km", label:"end-to-end mesh reach" },
+    aux:[["18 nodes","deployed upstream"],["94 min","median warning lead time"],["11 mo","longest node uptime"]],
+    keywords:["IoT","LoRa mesh","flood warning","low-power design"],
+    background:"The tributaries that flood a downstream district most often are the ones without gauges. Cellular telemetry is unaffordable to run at that many points, and mains power does not reach the upper catchment.",
+    objective:"Build a water-level sensing network that reports reliably for a year without a site visit, a grid connection, or a data plan per node.",
+    method:"Eighteen solar-fed nodes with ultrasonic level sensors relay over a LoRa mesh to a single gateway, with a duty cycle tuned so a node survives eleven consecutive overcast days on its stored charge.",
+    finding:"The mesh carried readings across 42 km of valley and gave downstream villages a median 94 minutes of warning, with 98.6% packet delivery over the trial year.",
+    impacts:{ industry:"Local electronics workshops assemble and service the nodes from a documented bill of materials.", social:"Two villages now run their own evacuation drills off the gateway dashboard.", env:"Continuous level data has become the baseline for catchment restoration planning." },
+    partners:"Regional Disaster Management Agency, village councils", output:"IEEE Internet of Things Journal, 2025" },
+
+  { id:"r05", personId:"p3", year:2022, cat:"eng",
+    title:"Predictive maintenance for irrigation pumps using vibration signatures",
+    metric:{ value:"31", unit:"%", label:"less unplanned downtime" },
+    aux:[["120 pumps","monitored"],["17 days","median early warning"],["USD 62","sensor cost per pump"]],
+    keywords:["condition monitoring","vibration analysis","irrigation","predictive maintenance"],
+    background:"An irrigation pump usually fails in the middle of the dry season, when a week of downtime costs a whole planting block. Maintenance is scheduled by calendar rather than by condition.",
+    objective:"Detect bearing and impeller degradation early enough for a repair to be scheduled between irrigation cycles.",
+    method:"Low-cost accelerometers on 120 pumps fed a spectral feature pipeline and a gradient-boosted classifier, trained against two years of the operator's own maintenance logs.",
+    finding:"Developing faults were flagged a median of 17 days before failure, and unplanned downtime across the monitored fleet fell by 31%.",
+    impacts:{ industry:"The irrigation authority moved from calendar servicing to condition-based scheduling.", social:"Fewer mid-season outages for the farmer groups on the affected blocks.", env:"Repairing worn impellers early cut measured pumping energy per cubic metre." },
+    partners:"Regional Irrigation Authority", output:"Journal of Physics: Conference Series, 2022" },
+
+  { id:"r06", personId:"p5", year:2025, cat:"agri",
+    title:"Drone multispectral mapping for site-specific fertiliser dosing in rain-fed maize",
+    metric:{ value:"22", unit:"%", label:"less fertiliser applied" },
+    aux:[["Yield held","within 2% of control"],["340 ha","mapped across 3 seasons"],["9 zones","per hectare on average"]],
+    keywords:["precision agriculture","multispectral","variable rate","nutrient management"],
+    background:"Fertiliser is applied at one uniform rate across fields that are visibly uneven, so part of every plot is overdosed and part is starved while input prices keep climbing.",
+    objective:"Test whether drone-derived vigour maps can cut total fertiliser use on smallholder plots without giving up yield.",
+    method:"Multispectral flights at three growth stages produced management zones, which were paired with soil sampling and applied as variable-rate dosing across 340 hectares over three seasons, against uniform-rate controls.",
+    finding:"Zone-based dosing used 22% less fertiliser while yield stayed within 2% of the uniformly fertilised control plots.",
+    impacts:{ industry:"Local drone service providers gained a repeatable mapping-to-prescription workflow.", social:"Input spending fell for 210 participating households.", env:"Nitrogen runoff into adjacent waterways declined with lower total application." },
+    partners:"Farmer cooperatives, district extension service", output:"Precision Agriculture, 2025" },
+
+  { id:"r07", personId:"p5", year:2021, cat:"agri",
+    title:"Selecting drought-tolerant upland rice lines for rain-fed dryland systems",
+    metric:{ value:"1.8", unit:"t/ha", label:"yield gain in dry seasons" },
+    aux:[["6 seasons","of field trials"],["48 lines","screened"],["3 lines","released to farmers"]],
+    keywords:["crop breeding","drought tolerance","upland rice","field trials"],
+    background:"Rain-fed upland fields carry most of the region's rice risk, and the varieties farmers plant there were bred for irrigated conditions they will never see.",
+    objective:"Identify rice lines that hold yield through a mid-season dry spell under real rain-fed management.",
+    method:"Forty-eight lines were screened over six seasons at three sites, scored for yield stability, root depth, and days to maturity, with farmer field days used to weight the traits that matter to growers.",
+    finding:"Three lines yielded 1.8 t/ha above the local check in dry seasons while matching it in wet ones, and were released for farmer multiplication.",
+    impacts:{ industry:"Two local seed producers now multiply the released lines.", social:"Dry-season harvest risk dropped for households with no irrigation access.", env:"Deeper-rooted lines maintained yield with no additional water use." },
+    partners:"National seed agency, three farmer groups", output:"Australian Journal of Crop Science, 2021" },
+
+  { id:"r08", personId:"p2", year:2024, cat:"food",
+    title:"Extending tempeh shelf life with an edible chitosan and lemongrass film",
+    metric:{ value:"6", unit:"days", label:"added shelf life at 25 °C" },
+    aux:[["−72%","microbial growth"],["No change","in sensory score"],["8 producers","in the pilot"]],
+    keywords:["edible film","chitosan","shelf life","fermented food"],
+    background:"Fresh tempeh turns over-fermented within two days in ambient conditions, which keeps small producers tied to a same-day local market and pushes a share of every batch into waste.",
+    objective:"Extend usable shelf life with a coating made from ingredients a home-scale producer can buy locally and apply without new equipment.",
+    method:"Chitosan films were loaded with lemongrass essential oil at four concentrations, then assessed for microbial growth, texture, and a blind sensory panel over ten days of ambient storage.",
+    finding:"The 1.5% formulation added six days of usable shelf life and cut microbial growth by 72% with no detectable change in taste or aroma scores.",
+    impacts:{ industry:"Eight small producers now reach markets two districts away instead of selling same-day.", social:"Household income rose with less unsold stock at the end of each day.", env:"Batch waste fell sharply, and the coating itself is edible and compostable." },
+    partners:"Small food producer association", output:"Food Packaging and Shelf Life, 2024" },
+
+  { id:"r09", personId:"p2", year:2022, cat:"food",
+    title:"Sorghum-based instant porridge for toddler complementary feeding",
+    metric:{ value:"18", unit:"g", label:"protein per 100 g serving" },
+    aux:[["Sorghum","replaces imported wheat"],["4.2/5","caregiver acceptance"],["45 s","preparation time"]],
+    keywords:["functional food","sorghum","complementary feeding","nutrition"],
+    background:"Commercial toddler porridge is built on imported wheat and priced beyond many households, while sorghum grows well on the same dry land and is sold mainly as animal feed.",
+    objective:"Formulate an affordable instant porridge from local sorghum that meets complementary-feeding protein targets and that caregivers will actually serve.",
+    method:"Sorghum flour was combined with mung bean and moringa at five ratios, evaluated for proximate composition and viscosity, then tested with 60 caregivers for preparation and acceptance.",
+    finding:"The selected formulation delivered 18 g protein per 100 g at roughly half the retail price of imported equivalents, with a caregiver acceptance score of 4.2 out of 5.",
+    impacts:{ industry:"A district-level cooperative now produces the mix under its own label.", social:"Local health posts use the porridge in supplementary feeding for underweight toddlers.", env:"Demand shifted toward a drought-tolerant crop already suited to the region." },
+    partners:"District Health Office, farmer cooperative", output:"Journal of Food Science and Technology, 2022" },
+
+  { id:"r10", personId:"p4", year:2026, cat:"health",
+    title:"Community stunting surveillance using mobile anthropometry at village health posts",
+    metric:{ value:"9,400", unit:"", label:"children screened in 14 months" },
+    aux:[["120 cadres","trained"],["11 days","faster referral"],["96%","data completeness"]],
+    keywords:["public health","nutrition surveillance","mHealth","stunting"],
+    background:"Growth measurements taken at monthly village sessions are recorded on paper, reach the district office weeks later, and by then a child whose growth has faltered has already missed an intervention window.",
+    objective:"Shorten the gap between measurement and referral without adding to the workload of volunteer health cadres.",
+    method:"A tablet application with offline capture, automatic z-score calculation, and referral flags was rolled out to 120 cadres across 38 villages, with paper records kept in parallel for validation.",
+    finding:"Referrals reached the health centre 11 days sooner on average, and data completeness rose from 71% on paper to 96% in the app.",
+    impacts:{ industry:"Health-tech vendors have a validated offline-first workflow for low-connectivity districts.", social:"Families of flagged children are contacted within the same month as measurement.", env:"Paper record-keeping across 38 villages was retired." },
+    partners:"District Health Office, 38 village health posts", output:"BMC Public Health, 2026" },
+
+  { id:"r11", personId:"p4", year:2023, cat:"health",
+    title:"Text-message reminders to sustain tuberculosis treatment adherence",
+    metric:{ value:"89", unit:"%", label:"six-month adherence, up from 68%" },
+    aux:[["612 patients","enrolled"],["3 clinics","in the trial"],["USD 1.40","cost per patient"]],
+    keywords:["treatment adherence","behavioural nudge","tuberculosis","mHealth"],
+    background:"Tuberculosis treatment runs six months and patients feel better long before it ends, so drop-off after the second month is common and raises the risk of resistant infection.",
+    objective:"Test whether a low-cost reminder schedule can hold adherence through the full course in a routine clinic setting.",
+    method:"A randomised trial across three clinics enrolled 612 patients into a tailored SMS reminder schedule or standard counselling, tracked through pharmacy refill records and sputum conversion.",
+    finding:"Six-month adherence rose from 68% to 89% at a programme cost of about USD 1.40 per patient.",
+    impacts:{ industry:"Telecom partners provide the messaging channel at public-programme rates.", social:"More patients complete treatment, lowering household transmission risk.", env:"Fewer repeat treatment courses reduced pharmaceutical consumption per cured case." },
+    partners:"Provincial TB programme, three clinics", output:"Tropical Medicine & International Health, 2023" },
+
+  { id:"r12", personId:"p6", year:2025, cat:"env",
+    title:"Mangrove carbon stock mapping along the north Java coast",
+    metric:{ value:"184", unit:"t C/ha", label:"mean ecosystem carbon stock" },
+    aux:[["1,240 ha","surveyed"],["68%","stored in sediment"],["4 districts","covered"]],
+    keywords:["blue carbon","mangrove","remote sensing","coastal management"],
+    background:"Coastal districts are asked to report carbon stocks for planning and offset schemes, but the only figures available are national averages that ignore local differences in stand age and sediment depth.",
+    objective:"Produce district-level carbon stock estimates specific enough to support local restoration and permitting decisions.",
+    method:"Biomass plots and sediment cores across 1,240 hectares were paired with satellite imagery to build a district-scale carbon map, with uncertainty reported per stand class.",
+    finding:"Mean ecosystem carbon reached 184 t C/ha, with 68% held in sediment rather than standing biomass — the share most affected by conversion to ponds.",
+    impacts:{ industry:"Aquaculture permit reviews now cite stand-level rather than national figures.", social:"Four district governments adopted the map in their coastal spatial plans.", env:"Restoration funding was redirected toward the sediment-rich stands with most to lose." },
+    partners:"Four district governments, coastal community groups", output:"Estuarine, Coastal and Shelf Science, 2025" },
+
+  { id:"r13", personId:"p6", year:2021, cat:"env",
+    title:"Constructed wetlands for treating tofu processing wastewater",
+    metric:{ value:"87", unit:"%", label:"reduction in chemical oxygen demand" },
+    aux:[["USD 0.06","per m³ operating cost"],["12 producers","connected"],["No power","required"]],
+    keywords:["constructed wetland","wastewater","small industry","water quality"],
+    background:"Home-scale tofu production discharges high-strength wastewater straight into village drains. Conventional treatment plants cost more than a year of a producer's revenue and need a reliable power supply.",
+    objective:"Find a treatment approach a cluster of small producers can build and run together on a shared plot.",
+    method:"A two-stage subsurface flow wetland planted with local species was built for a twelve-producer cluster and monitored for eighteen months of COD, BOD, and total suspended solids.",
+    finding:"Chemical oxygen demand fell by 87% at an operating cost of USD 0.06 per cubic metre, with no electricity and monthly maintenance by the producers themselves.",
+    impacts:{ industry:"The design has been replicated by three other production clusters.", social:"Complaints about odour and drain fouling in the surrounding neighbourhood stopped.", env:"Discharge into the receiving stream now meets the provincial effluent standard." },
+    partners:"Village government, tofu producer cluster", output:"Journal of Water Process Engineering, 2021" },
+
+  { id:"r14", personId:"p7", year:2024, cat:"social",
+    title:"Digital literacy and misinformation resilience among first-time voters",
+    metric:{ value:"1,250", unit:"", label:"first-time voters surveyed" },
+    aux:[["2.4×","better sourcing after training"],["18 schools","in the sample"],["43%","shared unverified claims"]],
+    keywords:["digital literacy","misinformation","civic education","survey research"],
+    background:"First-time voters get most of their political information from short-form video, where the cost of sharing a claim is far lower than the cost of checking it.",
+    objective:"Measure how first-time voters verify political claims, and test whether a short school-based module changes that behaviour.",
+    method:"A survey of 1,250 voters aged 17 to 21 across 18 schools was followed by a four-session module for half the sample, with verification behaviour re-measured after six weeks.",
+    finding:"Before training, 43% had shared a claim they had not checked; afterwards, trained participants were 2.4 times more likely to trace a claim to its original source.",
+    impacts:{ industry:"Platform civic-education teams adopted the module's framing in local campaigns.", social:"The provincial education office added the module to its extracurricular catalogue.", env:"Delivered inside existing school hours, with no printed material." },
+    partners:"Provincial Education Office, election commission", output:"Asian Journal of Communication, 2024" },
+
+  { id:"r15", personId:"p7", year:2020, cat:"social",
+    title:"Village fund transparency and citizen trust in rural Java",
+    metric:{ value:"62", unit:"", label:"villages in the comparative study" },
+    aux:[["+29 pts","trust where budgets are posted"],["840","household interviews"],["3 provinces","sampled"]],
+    keywords:["public trust","transparency","village governance","mixed methods"],
+    background:"Villages receive substantial central transfers, but how each one reports spending to residents is left to local practice, and the effect of that choice on trust was untested.",
+    objective:"Compare transparency practices across villages and measure how each relates to resident trust in local government.",
+    method:"Budget disclosure practices were coded across 62 villages in three provinces, then paired with 840 household interviews and follow-up focus groups in eight contrasting cases.",
+    finding:"Villages that posted itemised budgets in public space scored 29 points higher on trust than those disclosing only in meetings, independent of how much they spent.",
+    impacts:{ industry:"Civic-tech groups built disclosure templates from the coding scheme.", social:"Twelve villages in the sample adopted public budget boards during the study.", env:"Findings supported participatory allocation toward local sanitation projects." },
+    partners:"Village governance network, three provincial offices", output:"Journal of Contemporary Asia, 2020" }
+];
+
+const HEADLINE_STATS = [
+  { value:250, label:"Research projects", note:"since 2016" },
+  { value:500, label:"Publications",      note:"indexed journals and proceedings" },
+  { value:50,  label:"Innovations",       note:"prototypes and licensed outputs" },
+  { value:30,  label:"Collaborations",    note:"industry, government, community" }
+];
+
+let RESEARCH = SEED_RESEARCH.map(r => ({ ...r }));
+/* =====================================================================
+   2. UTILITIES
+   ===================================================================== */
+
+const $  = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+
+function esc(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function hash(str){
+  let h = 2166136261;
+  for (let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return Math.abs(h);
+}
+function seeded(seed){
+  let s = seed % 2147483647; if (s <= 0) s += 2147483646;
+  return () => (s = (s * 16807) % 2147483647) / 2147483647;
+}
+function wrap(text, maxChars, maxLines){
+  const words = String(text).split(/\s+/);
+  const lines = [];
+  let line = "";
+  for (const w of words){
+    const t = line ? line + " " + w : w;
+    if (t.length > maxChars && line){ lines.push(line); line = w; } else { line = t; }
+    if (lines.length === maxLines) break;
+  }
+  if (lines.length < maxLines && line) lines.push(line);
+  if (lines.length === maxLines){
+    const rest = words.join(" ");
+    const used = lines.join(" ");
+    if (rest.length > used.length){
+      let last = lines[maxLines-1];
+      if (last.length > maxChars - 1) last = last.slice(0, maxChars - 1);
+      lines[maxLines-1] = last.replace(/[,;:.\s]+$/,"") + "…";
+    }
+  }
+  return lines;
+}
+function trunc(s, n){
+  s = String(s);
+  return s.length <= n ? s : s.slice(0, n).replace(/[,;:.\s]+$/,"") + "…";
+}
+const person = it => PEOPLE[it.personId];
+const cat    = it => CATS[it.cat];
+
+function toast(msg){
+  const el = $("#toast");
+  el.textContent = msg;
+  el.classList.add("is-on");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove("is-on"), 2600);
+}
+
+/* =====================================================================
+   3. POSTER ENGINE — every project gets a generated infographic
+   ===================================================================== */
+
+function motif(kind, x, y, w, h, color, seed){
+  const rnd = seeded(seed);
+  let out = "";
+
+  if (kind === 0){ // ascending bar field
+    const n = 9, gap = w / n;
+    const bw = gap * 0.44;
+    for (let i=0;i<n;i++){
+      const t = (i + 1) / n;
+      const bh = h * (0.18 + t * 0.72) * (0.72 + rnd() * 0.34);
+      const bx = x + gap * i + (gap - bw) / 2;
+      out += `<rect x="${bx.toFixed(1)}" y="${(y + h - bh).toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="${(bw*0.16).toFixed(1)}" fill="${color}" fill-opacity="${(0.28 + t * 0.62).toFixed(2)}"/>`;
+    }
+    out += `<line x1="${x}" y1="${y+h}" x2="${x+w}" y2="${y+h}" stroke="${color}" stroke-opacity=".35" stroke-width="1.5"/>`;
+  }
+
+  if (kind === 1){ // segmented ring
+    const cx = x + w/2, cy = y + h/2, r = Math.min(w,h)/2 * 0.82, sw = r * 0.34;
+    const parts = [0.42, 0.24, 0.18, 0.16];
+    let a0 = -Math.PI/2;
+    parts.forEach((p,i) => {
+      const a1 = a0 + p * Math.PI * 2 - 0.045;
+      const rr = r - sw/2;
+      const large = (a1 - a0) > Math.PI ? 1 : 0;
+      out += `<path d="M ${(cx + rr*Math.cos(a0)).toFixed(1)} ${(cy + rr*Math.sin(a0)).toFixed(1)} A ${rr.toFixed(1)} ${rr.toFixed(1)} 0 ${large} 1 ${(cx + rr*Math.cos(a1)).toFixed(1)} ${(cy + rr*Math.sin(a1)).toFixed(1)}" fill="none" stroke="${color}" stroke-opacity="${(0.92 - i*0.2).toFixed(2)}" stroke-width="${sw.toFixed(1)}" stroke-linecap="butt"/>`;
+      a0 = a1 + 0.045;
+    });
+    out += `<circle cx="${cx}" cy="${cy}" r="${(r - sw*1.5).toFixed(1)}" fill="${color}" fill-opacity=".08"/>`;
+  }
+
+  if (kind === 2){ // node network
+    const pts = [];
+    const n = 11;
+    for (let i=0;i<n;i++) pts.push([x + 18 + rnd()*(w-36), y + 14 + rnd()*(h-28)]);
+    for (let i=0;i<n;i++){
+      for (let j=i+1;j<n;j++){
+        const d = Math.hypot(pts[i][0]-pts[j][0], pts[i][1]-pts[j][1]);
+        if (d < Math.min(w,h) * 0.46){
+          out += `<line x1="${pts[i][0].toFixed(1)}" y1="${pts[i][1].toFixed(1)}" x2="${pts[j][0].toFixed(1)}" y2="${pts[j][1].toFixed(1)}" stroke="${color}" stroke-opacity=".28" stroke-width="1"/>`;
+        }
+      }
+    }
+    pts.forEach((p,i) => {
+      const r = i % 4 === 0 ? 9 : (i % 3 === 0 ? 6 : 4);
+      out += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${r}" fill="${color}" fill-opacity="${i%4===0?".9":".55"}"/>`;
+    });
+  }
+
+  if (kind === 3){ // trend line with area
+    const n = 8, step = w / (n - 1);
+    const ys = [];
+    let v = 0.62;
+    for (let i=0;i<n;i++){
+      v = Math.max(0.14, Math.min(0.94, v + (rnd() - 0.42) * 0.34));
+      ys.push(y + h - v * h);
+    }
+    const line = ys.map((yy,i) => `${(x + step*i).toFixed(1)} ${yy.toFixed(1)}`).join(" L ");
+    out += `<path d="M ${line} L ${(x+w).toFixed(1)} ${(y+h).toFixed(1)} L ${x} ${(y+h).toFixed(1)} Z" fill="${color}" fill-opacity=".13"/>`;
+    out += `<path d="M ${line}" fill="none" stroke="${color}" stroke-opacity=".85" stroke-width="2.4" stroke-linejoin="round"/>`;
+    ys.forEach((yy,i) => {
+      out += `<circle cx="${(x + step*i).toFixed(1)}" cy="${yy.toFixed(1)}" r="3.6" fill="#fff" stroke="${color}" stroke-width="2"/>`;
+    });
+    out += `<line x1="${x}" y1="${y+h}" x2="${x+w}" y2="${y+h}" stroke="${color}" stroke-opacity=".35" stroke-width="1.5"/>`;
+  }
+
+  return out;
+}
+
+/* thumbnail poster — 640 × 400 */
+function posterThumb(it){
+  const c = cat(it), p = person(it), seed = hash(it.id + it.title);
+  const kind = (c.motif + it.year) % 4;
+  const title = wrap(it.title, 34, 4);
+  const tSize = title.length <= 2 ? 36 : (title.length === 3 ? 32 : 26);
+  const tLead = title.length <= 2 ? 42 : (title.length === 3 ? 38 : 31);
+  const tTop  = title.length <= 2 ? 226 : (title.length === 3 ? 214 : 204);
+  let s = `<svg viewBox="0 0 640 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Infographic poster: ${esc(it.title)}">
+  <rect width="640" height="400" fill="#ffffff"/>
+  <rect width="640" height="170" fill="${c.color}" fill-opacity=".05"/>
+  <g>${motif(kind, 210, 34, 400, 108, c.color, seed)}</g>
+  <rect x="0" y="0" width="640" height="4" fill="${c.color}"/>
+  <text x="28" y="40" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="${c.color}">${esc(c.name)}</text>
+  <text x="28" y="60" font-family="Inter, sans-serif" font-size="12" fill="#71829a">${it.year} · ${esc(p.program)}</text>
+  <line x1="0" y1="170" x2="640" y2="170" stroke="${c.color}" stroke-opacity=".18"/>`;
+  title.forEach((ln,i) => {
+    s += `<text x="28" y="${tTop + i*tLead}" font-family="Instrument Serif, Georgia, serif" font-size="${tSize}" fill="#0c2340">${esc(ln)}</text>`;
+  });
+  s += `<line x1="28" y1="328" x2="612" y2="328" stroke="#dfe4ec"/>
+  <text x="28" y="368" font-family="Instrument Serif, Georgia, serif" font-size="34" fill="#0c2340">${esc(it.metric.value)}<tspan font-size="20" fill="${c.color}">${esc(it.metric.unit)}</tspan></text>
+  <text x="612" y="362" text-anchor="end" font-family="Inter, sans-serif" font-size="11.5" fill="#71829a">${esc(trunc(it.metric.label, 34))}</text>
+  <text x="612" y="378" text-anchor="end" font-family="Inter, sans-serif" font-size="11.5" fill="#4a5c72">${esc(p.short)}</text>
+</svg>`;
+  return s;
+}
+
+/* full poster — 800 wide, height flows with content */
+function posterFull(it){
+  const c = cat(it), p = person(it), seed = hash(it.id + it.title);
+  const kind = (c.motif + it.year) % 4;
+  const title = wrap(it.title, 31, 4);
+  const aux = (it.aux || []).slice(0,3);
+  const objective = wrap(it.objective, 46, 4);
+  const method    = wrap(it.method, 46, 4);
+  const finding   = wrap(it.finding, 86, 3);
+  const T = (x,y,size,fill,txt,opts={}) =>
+    `<text x="${x}" y="${y}" font-family="${opts.serif ? "Instrument Serif, Georgia, serif" : "Inter, sans-serif"}" font-size="${size}"${opts.weight ? ` font-weight="${opts.weight}"` : ""}${opts.anchor ? ` text-anchor="${opts.anchor}"` : ""} fill="${fill}">${txt}</text>`;
+
+  let b = "";
+  let y;
+
+  /* header */
+  b += `<rect width="800" height="10" fill="${c.color}"/>`;
+  b += T(56, 52, 12, "#71829a", "Universitas Nusantara · Research Gallery");
+  b += T(744, 52, 12, c.color, esc(c.name) + " · " + it.year, { anchor:"end", weight:600 });
+
+  /* title */
+  title.forEach((ln,i) => { b += T(56, 130 + i*54, 46, "#0c2340", esc(ln), { serif:true }); });
+  y = 130 + (title.length - 1) * 52 + 26;
+  b += `<line x1="56" y1="${y}" x2="744" y2="${y}" stroke="#dfe4ec"/>`;
+
+  /* headline number + supporting figures */
+  const mTop = y;
+  b += T(56, mTop + 74, 76, "#0c2340", `${esc(it.metric.value)}<tspan font-size="38" fill="${c.color}">${esc(it.metric.unit)}</tspan>`, { serif:true });
+  b += T(56, mTop + 104, 13.5, "#4a5c72", esc(trunc(it.metric.label, 50)));
+  aux.forEach((a,i) => {
+    const ay = mTop + 26 + i*32;
+    b += T(470, ay, 14, "#0c2340", esc(a[0]), { weight:600 });
+    b += T(744, ay, 11.5, "#71829a", esc(trunc(a[1], 30)), { anchor:"end" });
+    b += `<line x1="470" y1="${ay + 11}" x2="744" y2="${ay + 11}" stroke="#eef1f6"/>`;
+  });
+  y = mTop + 130;
+
+  /* generated visualisation panel */
+  b += `<rect x="56" y="${y}" width="688" height="220" rx="6" fill="${c.color}" fill-opacity=".05"/>`;
+  b += `<g>${motif(kind, 92, y + 28, 616, 156, c.color, seed)}</g>`;
+  b += T(72, y + 206, 10.5, "#71829a", "Indicative visualisation of the reported result");
+  y += 268;
+
+  /* objective + method */
+  b += T(56, y, 11.5, c.color, "Objective", { weight:600 });
+  b += T(414, y, 11.5, c.color, "Method", { weight:600 });
+  objective.forEach((ln,i) => { b += T(56, y + 24 + i*19, 12.5, "#4a5c72", esc(ln)); });
+  method.forEach((ln,i)    => { b += T(414, y + 24 + i*19, 12.5, "#4a5c72", esc(ln)); });
+  y += 24 + Math.max(objective.length, method.length) * 19 + 30;
+
+  /* key finding */
+  const fh = 34 + finding.length * 22 + 16;
+  b += `<rect x="56" y="${y}" width="688" height="${fh}" rx="6" fill="#0c2340"/>`;
+  b += T(80, y + 28, 11.5, "#b4862f", "Key finding", { weight:600 });
+  finding.forEach((ln,i) => { b += T(80, y + 54 + i*22, 14, "#e8eef6", esc(ln)); });
+  y += fh + 26;
+
+  /* impact */
+  b += `<rect x="56" y="${y}" width="688" height="96" rx="6" fill="#1b8a6b" fill-opacity=".07"/>`;
+  [["Industry", it.impacts.industry],["Social", it.impacts.social],["Environment", it.impacts.env]].forEach((im,i) => {
+    const x = 80 + i*225;
+    b += `<circle cx="${x + 5}" cy="${y + 26}" r="5" fill="#1b8a6b"/>`;
+    b += T(x + 20, y + 30, 12, "#12674f", im[0], { weight:600 });
+    wrap(im[1], 28, 3).forEach((ln,j) => { b += T(x, y + 52 + j*15, 10.5, "#3d5c53", esc(ln)); });
+  });
+  y += 96 + 34;
+
+  /* footer */
+  b += `<line x1="56" y1="${y}" x2="744" y2="${y}" stroke="#dfe4ec"/>`;
+  b += T(56, y + 26, 12, "#0c2340", esc(p.name));
+  b += T(56, y + 42, 11, "#71829a", esc(p.program) + " · " + esc(p.faculty));
+  b += T(744, y + 26, 15, "#0c2340", "Research Gallery", { anchor:"end", serif:true });
+  b += T(744, y + 42, 11, "#71829a", esc(it.output || "Research output"), { anchor:"end" });
+
+  const H = y + 56;
+  return `<svg viewBox="0 0 800 ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Infographic: ${esc(it.title)}">
+  <rect width="800" height="${H}" fill="#ffffff"/>${b}
+</svg>`;
+}
+
+/* portrait — deterministic monogram */
+function portrait(p){
+  const shades = ["#0c2340","#25476b","#1b8a6b","#2f7d8c","#4a5c9e","#7a5a8c","#a03a4c"];
+  const h = hash(p.name);
+  const bg = shades[h % shades.length];
+  const initials = p.short.split(" ").map(w => w[0]).slice(0,2).join("");
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(p.short)}">
+    <rect width="100" height="100" fill="${bg}"/>
+    <circle cx="${20 + h % 20}" cy="${72 + h % 12}" r="34" fill="#ffffff" fill-opacity=".08"/>
+    <circle cx="${74 + h % 10}" cy="26" r="22" fill="#ffffff" fill-opacity=".07"/>
+    <text x="50" y="62" text-anchor="middle" font-family="Instrument Serif, Georgia, serif" font-size="36" fill="#ffffff">${esc(initials)}</text>
+  </svg>`;
+}
+/* =====================================================================
+   4. ICONS
+   ===================================================================== */
+const I = {
+  bg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.6 2.6 0 1 1 3.6 2.4c-.7.3-1.1 1-1.1 1.8"/><path d="M12 17h.01"/></svg>',
+  obj:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.2"/><circle cx="12" cy="12" r="1"/></svg>',
+  met:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M9 3h6"/><path d="M10 3v5.2L5.6 17A2.6 2.6 0 0 0 8 21h8a2.6 2.6 0 0 0 2.4-4L14 8.2V3"/><path d="M7.4 14h9.2"/></svg>',
+  find:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 3v3"/><path d="M12 18v3"/><path d="M4.2 12H7"/><path d="M17 12h2.8"/><path d="M6.6 6.6 8.5 8.5"/><path d="M15.5 15.5l1.9 1.9"/><path d="M17.4 6.6 15.5 8.5"/><path d="M8.5 15.5 6.6 17.4"/><circle cx="12" cy="12" r="3.2"/></svg>',
+  imp:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.6 2.4 4 5.6 4 9s-1.4 6.6-4 9c-2.6-2.4-4-5.6-4-9s1.4-6.6 4-9Z"/></svg>',
+  ind:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 20h18"/><path d="M4 20V11l5 3V11l5 3V8l6 4v8"/></svg>',
+  soc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="9" cy="8.5" r="3"/><path d="M3.5 19c.6-3 2.8-4.6 5.5-4.6S14 16 14.6 19"/><path d="M16 6.2a3 3 0 0 1 0 5.6"/><path d="M18 14.8c1.6.8 2.6 2.2 3 4.2"/></svg>',
+  env:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M11 21c-4-6 0-13 9-15 1 8-2 14-9 15Z"/><path d="M8 21c0-4 1.5-7 4-9.5"/></svg>'
+};
+
+/* =====================================================================
+   5. CARDS & GALLERY
+   ===================================================================== */
+
+function cardHTML(it, i){
+  const c = cat(it), p = person(it);
+  return `<a class="card enter" href="#/research/${it.id}" style="animation-delay:${Math.min(i,8)*45}ms">
+    <div class="card-poster">${posterThumb(it)}
+      <div class="card-hover">
+        <p>${esc(trunc(it.background, 150))}</p>
+        <span class="btn btn-sm">View detail</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="card-cat"><i class="dot" style="background:${c.color}"></i>${esc(c.name)}</div>
+      <h3 class="card-title">${esc(it.title)}</h3>
+      <div class="card-meta"><b>${esc(p.name)}</b><br>${esc(p.program)} · ${esc(p.faculty)}</div>
+      <div class="card-foot"><span class="num">${esc(it.metric.value + it.metric.unit)}</span><span>${esc(trunc(it.metric.label, 40))}</span><span style="margin-left:auto">${it.year}</span></div>
+    </div>
+  </a>`;
+}
+
+const FILTER = { q:"", year:"", cat:"", fac:"", person:"", sort:"new" };
+
+function faculties(){
+  return [...new Set(Object.values(PEOPLE).map(p => p.faculty))].sort();
+}
+function matches(it){
+  const p = person(it), c = cat(it);
+  if (FILTER.year && String(it.year) !== FILTER.year) return false;
+  if (FILTER.cat && it.cat !== FILTER.cat) return false;
+  if (FILTER.fac && p.faculty !== FILTER.fac) return false;
+  if (FILTER.person && it.personId !== FILTER.person) return false;
+  if (FILTER.q){
+    const hay = [it.title, p.name, p.short, p.program, p.faculty, c.name, (it.keywords||[]).join(" "), it.background, it.finding].join(" ").toLowerCase();
+    if (!hay.includes(FILTER.q.toLowerCase())) return false;
+  }
+  return true;
+}
+function sorted(list){
+  const s = [...list];
+  if (FILTER.sort === "new") s.sort((a,b) => b.year - a.year || a.title.localeCompare(b.title));
+  if (FILTER.sort === "old") s.sort((a,b) => a.year - b.year || a.title.localeCompare(b.title));
+  if (FILTER.sort === "az")  s.sort((a,b) => a.title.localeCompare(b.title));
+  return s;
+}
+
+function buildFilterOptions(){
+  const years = [...new Set(RESEARCH.map(r => r.year))].sort((a,b) => b - a);
+  $("#f-year").innerHTML = `<option value="">All years</option>` + years.map(y => `<option value="${y}">${y}</option>`).join("");
+  $("#f-cat").innerHTML  = `<option value="">All fields</option>` + Object.entries(CATS).map(([k,v]) => `<option value="${k}">${esc(v.name)}</option>`).join("");
+  $("#f-fac").innerHTML  = `<option value="">All faculties</option>` + faculties().map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join("");
+  $("#f-person").innerHTML = `<option value="">All researchers</option>` + Object.entries(PEOPLE).map(([k,v]) => `<option value="${k}">${esc(v.short)}</option>`).join("");
+  $("#f-year").value = FILTER.year; $("#f-cat").value = FILTER.cat;
+  $("#f-fac").value = FILTER.fac;   $("#f-person").value = FILTER.person;
+  $("#f-search").value = FILTER.q;  $("#f-sort").value = FILTER.sort;
+}
+
+function renderResearch(){
+  const list = sorted(RESEARCH.filter(matches));
+  const g = $("#research-gallery"), empty = $("#research-empty");
+  g.innerHTML = list.map(cardHTML).join("");
+  empty.hidden = list.length !== 0;
+  g.hidden = list.length === 0;
+
+  const chips = [];
+  if (FILTER.q)      chips.push(["q", `“${esc(trunc(FILTER.q,24))}”`]);
+  if (FILTER.year)   chips.push(["year", FILTER.year]);
+  if (FILTER.cat)    chips.push(["cat", esc(CATS[FILTER.cat].name)]);
+  if (FILTER.fac)    chips.push(["fac", esc(FILTER.fac)]);
+  if (FILTER.person) chips.push(["person", esc(PEOPLE[FILTER.person].short)]);
+
+  $("#result-line").innerHTML =
+    `<span class="meta"><b class="num" style="color:var(--navy)">${list.length}</b> of ${RESEARCH.length} projects on the wall</span>` +
+    chips.map(([k,v]) => `<span class="chip">${v}<button data-clear="${k}" aria-label="Remove filter">×</button></span>`).join("") +
+    (chips.length ? `<button class="link-quiet" data-clear="all">Clear all</button>` : "");
+}
+
+/* =====================================================================
+   6. DETAIL PAGE
+   ===================================================================== */
+
+let ZOOM = 1, PAN = {x:0,y:0};
+
+function detailHTML(it){
+  const c = cat(it), p = person(it);
+  const related = RESEARCH.filter(r => r.cat === it.cat && r.id !== it.id).slice(0,3);
+  return `
+  <div class="detail-grid">
+    <div class="viewer">
+      <div class="viewer-frame" id="vframe" title="Click to zoom"><div class="viewer-stage" id="vstage">${posterFull(it)}</div></div>
+      <div class="viewer-tools">
+        <button class="btn-icon" data-zoom="out" aria-label="Zoom out">−</button>
+        <span class="zoom-level num" id="zlevel">100%</span>
+        <button class="btn-icon" data-zoom="in" aria-label="Zoom in">+</button>
+        <button class="link-quiet" data-zoom="reset">Reset view</button>
+        <span class="spacer"></span>
+        <button class="btn btn-ghost btn-sm" id="v-full">Full screen</button>
+        <button class="btn btn-sm" id="v-dl">Download infographic</button>
+      </div>
+      <p class="micro" style="margin-top:var(--s3)">Click the poster to zoom in, then drag to move around it.</p>
+    </div>
+
+    <div>
+      <div class="card-cat"><i class="dot" style="background:${c.color}"></i>${esc(c.name)} · ${it.year}</div>
+      <h1 class="display-md detail-title">${esc(it.title)}</h1>
+      <p class="serif-it">${esc(trunc(it.finding, 130))}</p>
+
+      <dl class="factsheet">
+        <div class="fact"><dt>Researcher</dt><dd><button data-goto="#/researcher/${it.personId}">${esc(p.name)}</button></dd></div>
+        <div class="fact"><dt>Program</dt><dd>${esc(p.program)}</dd></div>
+        <div class="fact"><dt>Faculty</dt><dd>${esc(p.faculty)}</dd></div>
+        <div class="fact"><dt>Year</dt><dd>${it.year}</dd></div>
+        <div class="fact"><dt>Field</dt><dd>${esc(c.name)}</dd></div>
+        <div class="fact"><dt>Keywords</dt><dd><div class="tags">${(it.keywords||[]).map(k => `<span class="tag">${esc(k)}</span>`).join("")}</div></dd></div>
+        ${it.partners ? `<div class="fact"><dt>Partners</dt><dd>${esc(it.partners)}</dd></div>` : ""}
+        ${it.output ? `<div class="fact"><dt>Published in</dt><dd>${esc(it.output)}</dd></div>` : ""}
+      </dl>
+
+      <div class="summary">
+        <div class="sum-card">
+          <div class="sum-head">${I.bg}<h4>Background</h4></div>
+          <p>${esc(it.background)}</p>
+        </div>
+        <div class="sum-card">
+          <div class="sum-head">${I.obj}<h4>Objective</h4></div>
+          <p>${esc(it.objective)}</p>
+        </div>
+        <div class="sum-card">
+          <div class="sum-head">${I.met}<h4>Method</h4></div>
+          <p>${esc(it.method)}</p>
+        </div>
+        <div class="sum-card sum-finding">
+          <div class="sum-head">${I.find}<h4>Key finding</h4></div>
+          <div class="finding-fig">${esc(it.metric.value)}<span>${esc(it.metric.unit)}</span></div>
+          <p>${esc(it.finding)}</p>
+        </div>
+        <div class="sum-card sum-impact">
+          <div class="sum-head">${I.imp}<h4>Impact</h4></div>
+          <ul class="impact-list">
+            <li><span class="impact-ico">${I.ind}</span><div><h5>Industry</h5><p>${esc(it.impacts.industry)}</p></div></li>
+            <li><span class="impact-ico">${I.soc}</span><div><h5>Social</h5><p>${esc(it.impacts.social)}</p></div></li>
+            <li><span class="impact-ico">${I.env}</span><div><h5>Environment</h5><p>${esc(it.impacts.env)}</p></div></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  ${related.length ? `<div class="band" style="padding-bottom:var(--s8)">
+    <div class="sec-head"><div><h2 class="display-md">More in ${esc(c.name)}</h2></div>
+    <button class="link-quiet" data-filter-cat="${it.cat}">See the whole field</button></div>
+    <div class="gallery">${related.map(cardHTML).join("")}</div>
+  </div>` : ""}`;
+}
+
+function setZoom(z){
+  ZOOM = Math.max(1, Math.min(3, z));
+  if (ZOOM === 1) PAN = {x:0,y:0};
+  const st = $("#vstage"), fr = $("#vframe");
+  if (!st) return;
+  st.style.transform = `translate(${PAN.x}px,${PAN.y}px) scale(${ZOOM})`;
+  $("#zlevel").textContent = Math.round(ZOOM * 100) + "%";
+  fr.classList.toggle("is-zoomed", ZOOM > 1);
+}
+
+function wireViewer(it){
+  ZOOM = 1; PAN = {x:0,y:0};
+  const fr = $("#vframe"), st = $("#vstage");
+  if (!fr) return;
+
+  $$("[data-zoom]").forEach(b => b.addEventListener("click", e => {
+    e.stopPropagation();
+    const a = b.dataset.zoom;
+    st.classList.remove("no-anim");
+    if (a === "in") setZoom(ZOOM + 0.5);
+    if (a === "out") setZoom(ZOOM - 0.5);
+    if (a === "reset") setZoom(1);
+  }));
+
+  fr.addEventListener("click", e => {
+    if (drag.moved) return;
+    st.classList.remove("no-anim");
+    setZoom(ZOOM > 1 ? 1 : 2);
+  });
+
+  const drag = { on:false, moved:false, sx:0, sy:0, ox:0, oy:0 };
+  fr.addEventListener("pointerdown", e => {
+    if (ZOOM === 1) return;
+    drag.on = true; drag.moved = false;
+    drag.sx = e.clientX; drag.sy = e.clientY; drag.ox = PAN.x; drag.oy = PAN.y;
+    fr.classList.add("is-dragging"); st.classList.add("no-anim");
+    fr.setPointerCapture(e.pointerId);
+  });
+  fr.addEventListener("pointermove", e => {
+    if (!drag.on) return;
+    const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+    if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
+    const lim = fr.clientWidth * (ZOOM - 1) / 2;
+    const limY = fr.clientHeight * (ZOOM - 1) / 2;
+    PAN.x = Math.max(-lim, Math.min(lim, drag.ox + dx));
+    PAN.y = Math.max(-limY, Math.min(limY, drag.oy + dy));
+    st.style.transform = `translate(${PAN.x}px,${PAN.y}px) scale(${ZOOM})`;
+  });
+  const stop = () => { drag.on = false; fr.classList.remove("is-dragging"); setTimeout(() => drag.moved = false, 60); };
+  fr.addEventListener("pointerup", stop);
+  fr.addEventListener("pointercancel", stop);
+
+  $("#v-full").addEventListener("click", () => openLightbox(it));
+  $("#v-dl").addEventListener("click", () => downloadPoster(it));
+}
+
+function openLightbox(it){
+  const lb = $("#lightbox");
+  $("#lightbox-inner").innerHTML = posterFull(it);
+  lb.classList.add("is-open");
+  document.body.style.overflow = "hidden";
+  if (lb.requestFullscreen) lb.requestFullscreen().catch(() => {});
+  $("#lightbox-close").focus();
+}
+function closeLightbox(){
+  $("#lightbox").classList.remove("is-open");
+  document.body.style.overflow = "";
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+}
+
+function downloadPoster(it){
+  const raw = posterFull(it);
+  const H = Number((raw.match(/viewBox="0 0 800 (\d+)"/) || [,1140])[1]);
+  const svg = raw.replace("<svg ", `<svg width="800" height="${H}" `);
+  const name = it.title.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,60);
+  const blob = new Blob([svg], { type:"image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  img.onload = () => {
+    try{
+      const cv = document.createElement("canvas");
+      cv.width = 1600; cv.height = H * 2;
+      const cx = cv.getContext("2d");
+      cx.fillStyle = "#fff"; cx.fillRect(0,0,cv.width,cv.height);
+      cx.drawImage(img, 0, 0, cv.width, cv.height);
+      cv.toBlob(b => {
+        saveBlob(b || blob, name + (b ? ".png" : ".svg"));
+        URL.revokeObjectURL(url);
+      }, "image/png");
+    } catch(err){ saveBlob(blob, name + ".svg"); URL.revokeObjectURL(url); }
+  };
+  img.onerror = () => { saveBlob(blob, name + ".svg"); URL.revokeObjectURL(url); };
+  img.src = url;
+}
+function saveBlob(blob, filename){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast("Infographic downloaded");
+}
+/* =====================================================================
+   7. HOME
+   ===================================================================== */
+
+function countUp(el){
+  const target = Number(el.dataset.count);
+  const dur = 1100, t0 = performance.now();
+  function step(t){
+    const k = Math.min(1, (t - t0) / dur);
+    const eased = 1 - Math.pow(1 - k, 3);
+    el.textContent = Math.round(target * eased).toLocaleString("en-US");
+    if (k < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function renderHome(){
+  $("#hero-wall").innerHTML = ["r01","r12","r08"].map((id,i) => {
+    const it = RESEARCH.find(r => r.id === id) || RESEARCH[i];
+    return `<div class="wall-item wall-${"abc"[i]}">${posterThumb(it)}</div>`;
+  }).join("") + `<span class="wall-caption">Posters generated from each project's own results</span>`;
+
+  $("#stat-ribbon").innerHTML = HEADLINE_STATS.map(s => `
+    <div class="stat">
+      <div class="stat-fig"><span class="num" data-count="${s.value}">0</span><sup>+</sup></div>
+      <div class="stat-label">${esc(s.label)}</div>
+      <div class="stat-note">${esc(s.note)}</div>
+    </div>`).join("");
+  $$("#stat-ribbon [data-count]").forEach(countUp);
+
+  const featured = ["r01","r10","r06","r04"].map(id => RESEARCH.find(r => r.id === id)).filter(Boolean);
+  $("#home-gallery").innerHTML = featured.map(cardHTML).join("");
+
+  const top = Object.keys(CATS)
+    .map(k => [k, RESEARCH.filter(r => r.cat === k).length])
+    .sort((a,b) => b[1] - a[1]).slice(0,4);
+  $("#home-cats").innerHTML = top.map(([k]) => catHTML(k)).join("");
+}
+
+/* =====================================================================
+   8. CATEGORIES
+   ===================================================================== */
+
+function catHTML(key){
+  const c = CATS[key];
+  const n = RESEARCH.filter(r => r.cat === key).length;
+  const max = Math.max(1, ...Object.keys(CATS).map(k => RESEARCH.filter(r => r.cat === k).length));
+  return `<a class="cat" href="#/research" data-filter-cat="${key}">
+    <svg class="cat-art" viewBox="0 0 120 120" aria-hidden="true">${motif(c.motif, 8, 12, 104, 96, c.color, hash(key))}</svg>
+    <h4>${esc(c.name)}</h4>
+    <p>${esc(c.blurb)}</p>
+    <div class="cat-count"><b>${n}</b><span>${n === 1 ? "project" : "projects"} on the wall</span></div>
+    <div class="cat-bar"><i style="width:${Math.round(n / max * 100)}%;background:${c.color}"></i></div>
+  </a>`;
+}
+function renderCats(){
+  $("#cats-grid").innerHTML = Object.keys(CATS)
+    .sort((a,b) => RESEARCH.filter(r => r.cat === b).length - RESEARCH.filter(r => r.cat === a).length)
+    .map(catHTML).join("");
+}
+
+/* =====================================================================
+   9. RESEARCHERS
+   ===================================================================== */
+
+function renderPeople(){
+  $("#people-grid").innerHTML = Object.entries(PEOPLE).map(([id,p]) => {
+    const n = RESEARCH.filter(r => r.personId === id).length;
+    return `<a class="person" href="#/researcher/${id}">
+      <div style="display:flex;gap:var(--s4);align-items:center">
+        <div class="portrait">${portrait(p)}</div>
+        <div>
+          <h3 class="person-name">${esc(p.short)}</h3>
+          <p class="person-role">${esc(p.program)}</p>
+        </div>
+      </div>
+      <p style="margin:0;font-size:.875rem;color:var(--ink-2);line-height:1.6">${esc(p.expertise)}</p>
+      <div class="person-foot"><span><b class="num" style="color:var(--navy)">${n}</b> exhibited</span><span>${p.stats.pubs} publications</span></div>
+    </a>`;
+  }).join("");
+}
+
+function renderProfile(id){
+  const p = PEOPLE[id];
+  if (!p){ location.hash = "#/researchers"; return; }
+  $("#crumb-person").textContent = p.short;
+  const mine = sorted(RESEARCH.filter(r => r.personId === id));
+  $("#profile-body").innerHTML = `
+    <div class="profile-head">
+      <div class="portrait-lg">${portrait(p)}</div>
+      <div>
+        <h1 class="display-md">${esc(p.name)}</h1>
+        <p class="meta" style="margin:var(--s3) 0 var(--s4)">${esc(p.program)} · ${esc(p.faculty)}</p>
+        <p class="prose">${esc(p.bio)}</p>
+      </div>
+    </div>
+    <hr class="rule">
+    <div class="band-tight">
+      <div class="ribbon-grid" style="border:0">
+        <div class="stat"><div class="stat-fig">${mine.length}</div><div class="stat-label">Projects in this gallery</div></div>
+        <div class="stat"><div class="stat-fig">${p.stats.pubs}</div><div class="stat-label">Publications</div></div>
+        <div class="stat"><div class="stat-fig">${p.stats.cites}</div><div class="stat-label">Citations</div></div>
+        <div class="stat"><div class="stat-fig">${p.stats.hidx}</div><div class="stat-label">h-index</div></div>
+      </div>
+    </div>
+    <hr class="rule">
+    <div class="band-tight">
+      <h2 class="h3">Research interests</h2>
+      <div class="interest-grid">
+        ${p.interests.map(([t,d]) => `<div class="interest"><h5>${esc(t)}</h5><p>${esc(d)}</p></div>`).join("")}
+      </div>
+    </div>
+    <div class="band" style="padding-top:var(--s6)">
+      <div class="sec-head"><div><h2 class="display-md">Exhibited work</h2>
+      <p class="lede">${mine.length} ${mine.length === 1 ? "project" : "projects"} on the wall, newest first.</p></div></div>
+      <div class="gallery">${mine.map(cardHTML).join("")}</div>
+    </div>`;
+}
+
+/* =====================================================================
+   10. DASHBOARD
+   ===================================================================== */
+
+function renderDashboard(){
+  const years = [...new Set(RESEARCH.map(r => r.year))].sort((a,b) => a - b);
+  const counts = years.map(y => RESEARCH.filter(r => r.year === y).length);
+  $("#dash-span").textContent = years[0] + "–" + years[years.length-1];
+  $("#chart-year").innerHTML = barChart(years.map(String), counts);
+
+  const entries = Object.keys(CATS)
+    .map(k => ({ k, n: RESEARCH.filter(r => r.cat === k).length }))
+    .filter(e => e.n > 0).sort((a,b) => b.n - a.n);
+  const total = entries.reduce((s,e) => s + e.n, 0);
+  $("#chart-donut").innerHTML = donut(entries, total);
+  $("#donut-legend").innerHTML = entries.map(e => `
+    <li><i class="dot" style="background:${CATS[e.k].color}"></i>${esc(CATS[e.k].name)}
+    <span class="num">${Math.round(e.n / total * 100)}%</span></li>`).join("");
+
+  const facs = faculties().map(f => ({ f, n: RESEARCH.filter(r => person(r).faculty === f).length }))
+    .sort((a,b) => b.n - a.n);
+  const fmax = Math.max(...facs.map(f => f.n));
+  $("#chart-faculty").innerHTML = facs.map((f,i) => `
+    <div class="bar-row">
+      <span style="color:var(--ink-2)">${esc(f.f.replace(/^Faculty of /,""))}</span>
+      <span class="bar-track"><i class="bar-fill" style="width:${Math.round(f.n / fmax * 100)}%;animation-delay:${i*70}ms"></i></span>
+      <span class="num">${f.n}</span>
+    </div>`).join("");
+}
+
+function barChart(labels, values){
+  const W = 620, H = 260, L = 34, R = 8, T = 22, B = 34;
+  const pw = W - L - R, ph = H - T - B;
+  const max = Math.max(...values, 1);
+  const nice = Math.ceil(max / 2) * 2;
+  const band = pw / labels.length;
+  const bw = Math.min(band * 0.5, 40);
+  let g = "";
+  for (let i=0;i<=2;i++){
+    const v = nice / 2 * i, y = T + ph - (v / nice) * ph;
+    g += `<line x1="${L}" y1="${y}" x2="${W-R}" y2="${y}"/>`;
+    g += `<text class="chart-lab" x="${L-8}" y="${y+4}" text-anchor="end">${v}</text>`;
+  }
+  let bars = "";
+  labels.forEach((lb,i) => {
+    const v = values[i];
+    const bh = (v / nice) * ph;
+    const x = L + band*i + (band - bw)/2;
+    const y = T + ph - bh;
+    bars += `<rect class="bar-v" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(bh,1).toFixed(1)}" rx="3" fill="#0c2340" style="animation-delay:${i*55}ms"><title>${lb}: ${v} projects</title></rect>`;
+    bars += `<text class="chart-val" x="${(x + bw/2).toFixed(1)}" y="${(y - 7).toFixed(1)}" text-anchor="middle">${v}</text>`;
+    bars += `<text class="chart-lab" x="${(L + band*i + band/2).toFixed(1)}" y="${H - 12}" text-anchor="middle">${lb}</text>`;
+  });
+  return `<svg class="chart-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Projects per year">
+    <g class="chart-grid">${g}</g>${bars}
+    <line x1="${L}" y1="${T+ph}" x2="${W-R}" y2="${T+ph}" stroke="#c6cedb"/>
+  </svg>`;
+}
+
+function donut(entries, total){
+  const r = 58, sw = 22, cx = 75, cy = 75, C = 2 * Math.PI * r;
+  let off = 0;
+  const segs = entries.map(e => {
+    const frac = e.n / total;
+    const s = `<circle class="donut-seg" cx="${cx}" cy="${cy}" r="${r}" fill="none"
+      stroke="${CATS[e.k].color}" stroke-width="${sw}"
+      stroke-dasharray="${(C*frac - 2).toFixed(2)} ${(C*(1-frac) + 2).toFixed(2)}"
+      stroke-dashoffset="${(-C*off).toFixed(2)}" transform="rotate(-90 ${cx} ${cy})"><title>${esc(CATS[e.k].name)}: ${e.n}</title></circle>`;
+    off += frac;
+    return s;
+  }).join("");
+  return `<svg class="chart-svg" viewBox="0 0 150 150" role="img" aria-label="Field distribution">
+    ${segs}
+    <text x="${cx}" y="${cy - 2}" text-anchor="middle" font-family="Instrument Serif, Georgia, serif" font-size="30" fill="#0c2340">${total}</text>
+    <text x="${cx}" y="${cy + 16}" text-anchor="middle" class="chart-lab">projects</text>
+  </svg>`;
+}
+
+/* =====================================================================
+   11. ADMIN
+   ===================================================================== */
+
+let EDITING = null;
+
+function renderAdmin(){
+  $("#a-person").innerHTML = Object.entries(PEOPLE).map(([k,v]) => `<option value="${k}">${esc(v.short)} — ${esc(v.program)}</option>`).join("");
+  $("#a-cat").innerHTML = Object.entries(CATS).map(([k,v]) => `<option value="${k}">${esc(v.name)}</option>`).join("");
+  $("#admin-count").textContent = RESEARCH.length + " projects";
+  $("#admin-list").innerHTML = sorted(RESEARCH).map(it => `
+    <div class="admin-row">
+      <div class="admin-thumb">${posterThumb(it)}</div>
+      <div>
+        <h5>${esc(trunc(it.title, 72))}</h5>
+        <div class="meta">${esc(person(it).short)} · ${it.year} · ${esc(cat(it).name)}</div>
+      </div>
+      <div class="row-actions">
+        <button class="btn btn-ghost btn-sm" data-edit="${it.id}">Edit</button>
+        <button class="btn btn-ghost btn-sm" data-del="${it.id}">Remove</button>
+      </div>
+    </div>`).join("");
+}
+
+function fillForm(it){
+  $("#a-title").value  = it ? it.title : "";
+  $("#a-person").value = it ? it.personId : "p1";
+  $("#a-year").value   = it ? it.year : 2026;
+  $("#a-cat").value    = it ? it.cat : "ai";
+  $("#a-metric").value = it ? (it.metric.value + it.metric.unit) : "";
+  $("#a-bg").value     = it ? it.background : "";
+  $("#a-obj").value    = it ? it.objective : "";
+  $("#a-method").value = it ? it.method : "";
+  $("#a-find").value   = it ? it.finding : "";
+  $("#a-impact").value = it ? [it.impacts.industry, it.impacts.social, it.impacts.env].join("\n") : "";
+  $("#a-submit").textContent = it ? "Save changes" : "Publish project";
+  $("#a-cancel").hidden = !it;
+}
+
+function readForm(){
+  const raw = $("#a-metric").value.trim() || "New";
+  const m = raw.match(/^([\d.,]+)\s*(.*)$/);
+  const impacts = $("#a-impact").value.split("\n").map(s => s.trim()).filter(Boolean);
+  return {
+    title: $("#a-title").value.trim(),
+    personId: $("#a-person").value,
+    year: Number($("#a-year").value) || new Date().getFullYear(),
+    cat: $("#a-cat").value,
+    metric: { value: m ? m[1] : raw, unit: m ? (m[2] || "") : "", label: "headline result" },
+    aux: [],
+    keywords: [],
+    background: $("#a-bg").value.trim() || "Not yet described.",
+    objective: $("#a-obj").value.trim() || "Not yet described.",
+    method: $("#a-method").value.trim() || "Not yet described.",
+    finding: $("#a-find").value.trim() || "Not yet described.",
+    impacts: { industry: impacts[0] || "To be assessed.", social: impacts[1] || "To be assessed.", env: impacts[2] || "To be assessed." },
+    partners: "", output: ""
+  };
+}
+/* =====================================================================
+   12. ROUTER
+   ===================================================================== */
+
+const NAVBASE = { "#/":"#/", "#/research":"#/research", "#/categories":"#/categories",
+  "#/researchers":"#/researchers", "#/dashboard":"#/dashboard", "#/admin":"#/admin" };
+
+function show(sel, navKey){
+  $$(".route").forEach(s => { s.hidden = true; s.classList.remove("route-enter"); });
+  const el = $(sel);
+  el.hidden = false;
+  void el.offsetWidth;
+  el.classList.add("route-enter");
+  $$(".nav-link").forEach(b => {
+    if (b.dataset.goto === navKey) b.setAttribute("aria-current","page");
+    else b.removeAttribute("aria-current");
+  });
+  $("#nav").classList.remove("is-open");
+  $("#burger").setAttribute("aria-expanded","false");
+}
+
+function route(){
+  const h = location.hash || "#/";
+  const parts = h.replace(/^#\//,"").split("/").filter(Boolean);
+  const head = parts[0] || "";
+
+  if (head === "research" && parts[1]){
+    const it = RESEARCH.find(r => r.id === parts[1]);
+    if (!it){ location.hash = "#/research"; return; }
+    $("#crumb-now").textContent = trunc(it.title, 48);
+    $("#detail-body").innerHTML = detailHTML(it);
+    show("#route-detail", "#/research");
+    wireViewer(it);
+  } else if (head === "research"){
+    buildFilterOptions();
+    renderResearch();
+    show("#route-research", "#/research");
+  } else if (head === "researcher" && parts[1]){
+    renderProfile(parts[1]);
+    show("#route-researcher", "#/researchers");
+  } else if (head === "researchers"){
+    renderPeople();
+    show("#route-researchers", "#/researchers");
+  } else if (head === "categories"){
+    renderCats();
+    show("#route-categories", "#/categories");
+  } else if (head === "dashboard"){
+    renderDashboard();
+    show("#route-dashboard", "#/dashboard");
+  } else if (head === "admin"){
+    renderAdmin();
+    show("#route-admin", "#/admin");
+  } else {
+    renderHome();
+    show("#route-home", "#/");
+  }
+
+  window.scrollTo({ top:0, behavior:"instant" });
+}
+
+/* =====================================================================
+   13. EVENTS
+   ===================================================================== */
+
+document.addEventListener("click", e => {
+  const goto = e.target.closest("[data-goto]");
+  if (goto){ e.preventDefault(); location.hash = goto.dataset.goto; return; }
+
+  const fc = e.target.closest("[data-filter-cat]");
+  if (fc){
+    e.preventDefault();
+    FILTER.cat = fc.dataset.filterCat;
+    FILTER.q = ""; FILTER.year = ""; FILTER.fac = ""; FILTER.person = "";
+    if (location.hash === "#/research"){ buildFilterOptions(); renderResearch(); window.scrollTo({top:0}); }
+    else location.hash = "#/research";
+    return;
+  }
+
+  const clear = e.target.closest("[data-clear]");
+  if (clear){
+    const k = clear.dataset.clear;
+    if (k === "all"){ FILTER.q=""; FILTER.year=""; FILTER.cat=""; FILTER.fac=""; FILTER.person=""; }
+    else FILTER[k === "q" ? "q" : k] = "";
+    buildFilterOptions(); renderResearch();
+    return;
+  }
+
+  const ed = e.target.closest("[data-edit]");
+  if (ed){
+    const it = RESEARCH.find(r => r.id === ed.dataset.edit);
+    EDITING = it.id; fillForm(it);
+    $("#a-title").focus();
+    window.scrollTo({ top:0, behavior:"smooth" });
+    return;
+  }
+
+  const del = e.target.closest("[data-del]");
+  if (del){
+    const it = RESEARCH.find(r => r.id === del.dataset.del);
+    RESEARCH = RESEARCH.filter(r => r.id !== del.dataset.del);
+    if (EDITING === del.dataset.del){ EDITING = null; fillForm(null); }
+    renderAdmin();
+    toast("Removed “" + trunc(it.title, 34) + "”");
+    return;
+  }
+});
+
+$("#burger").addEventListener("click", () => {
+  const nav = $("#nav");
+  const open = nav.classList.toggle("is-open");
+  $("#burger").setAttribute("aria-expanded", open ? "true" : "false");
+});
+
+let searchTimer;
+$("#f-search").addEventListener("input", e => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => { FILTER.q = e.target.value.trim(); renderResearch(); }, 160);
+});
+$("#f-year").addEventListener("change",   e => { FILTER.year = e.target.value; renderResearch(); });
+$("#f-cat").addEventListener("change",    e => { FILTER.cat = e.target.value; renderResearch(); });
+$("#f-fac").addEventListener("change",    e => { FILTER.fac = e.target.value; renderResearch(); });
+$("#f-person").addEventListener("change", e => { FILTER.person = e.target.value; renderResearch(); });
+$("#f-sort").addEventListener("change",   e => { FILTER.sort = e.target.value; renderResearch(); });
+$("#empty-reset").addEventListener("click", () => {
+  FILTER.q=""; FILTER.year=""; FILTER.cat=""; FILTER.fac=""; FILTER.person="";
+  buildFilterOptions(); renderResearch();
+});
+
+$("#lightbox-close").addEventListener("click", closeLightbox);
+$("#lightbox").addEventListener("click", e => { if (e.target.id === "lightbox") closeLightbox(); });
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape"){
+    if ($("#lightbox").classList.contains("is-open")) closeLightbox();
+    $("#nav").classList.remove("is-open");
+  }
+});
+
+$("#admin-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const data = readForm();
+  if (!data.title){ $("#a-title").focus(); toast("Add a research title to publish"); return; }
+  if (EDITING){
+    const i = RESEARCH.findIndex(r => r.id === EDITING);
+    RESEARCH[i] = { ...RESEARCH[i], ...data };
+    toast("Changes saved");
+    EDITING = null;
+  } else {
+    const id = "n" + (hash(data.title + Date.now()) % 100000);
+    RESEARCH.unshift({ id, ...data });
+    toast("Project published to the gallery");
+  }
+  fillForm(null);
+  renderAdmin();
+});
+$("#a-cancel").addEventListener("click", () => { EDITING = null; fillForm(null); });
+
+window.addEventListener("hashchange", route);
+
+/* =====================================================================
+   14. START
+   ===================================================================== */
+buildFilterOptions();
+fillForm(null);
+route();
+
+</script>
+</body>
+</html>

@@ -1,3 +1,4 @@
+<div class="mb-5"><a href="{{ route('publication-dashboard') }}" class="btn btn-primary">Dashboard KPI Publikasi FM</a></div>
 <div class="row table_data mb-5" data-roleable="false" data-role="Company-Read">
     <div class=" col-12" id="tableCourseContainer">
         <div class="card card-bordered">

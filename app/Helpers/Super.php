@@ -534,8 +534,8 @@ function tableKPI($kode_dosen, $nscopus, $scopus) {
 //     return ['kpi' => 0]; // Default score if no match
 // }
 
-function TP12Func($kodeDosen) {
-    $data = RectorateDosen::where('kode_dosen', $kodeDosen)->get();
+function TP12Func($kodeDosen, ?Collection $publications = null) {
+    $data = $publications ?? RectorateDosen::where('kode_dosen', $kodeDosen)->get();
 
     // Data Scopus
     $hasScopus = $data->contains(function ($item) {
@@ -677,8 +677,8 @@ function TP12Func($kodeDosen) {
 //     ];
 // }
 
-function AA2Func($kodeDosen) {
-    $data = RectorateDosen::where('kode_dosen', $kodeDosen)->get();
+function AA2Func($kodeDosen, ?Collection $publications = null) {
+    $data = $publications ?? RectorateDosen::where('kode_dosen', $kodeDosen)->get();
 
     // Filter semua publikasi scopus jenis seminar/jurnal/book chapter
     $scopusItems = $data->filter(function ($item) {
@@ -803,8 +803,8 @@ function AA2Func($kodeDosen) {
 //     ];
 // }
 
-function L2Func($kodeDosen) {
-    $data = RectorateDosen::where('kode_dosen', $kodeDosen)->get();
+function L2Func($kodeDosen, ?Collection $publications = null) {
+    $data = $publications ?? RectorateDosen::where('kode_dosen', $kodeDosen)->get();
 
     // Filter publikasi Scopus dengan jenis seminar, jurnal, atau book chapter
     $scopusItems = $data->filter(function ($item) {
@@ -935,8 +935,8 @@ function L2Func($kodeDosen) {
 //     ];
 // }
 
-function AA3TP3LK2Func($kodeDosen) {
-    $data = RectorateDosen::where('kode_dosen', $kodeDosen)->get();
+function AA3TP3LK2Func($kodeDosen, ?Collection $publications = null) {
+    $data = $publications ?? RectorateDosen::where('kode_dosen', $kodeDosen)->get();
 
     // Filter publikasi scopus dengan jenis seminar, jurnal, atau book chapter
     $scopusItems = $data->filter(function ($item) {
@@ -1060,8 +1060,8 @@ function AA3TP3LK2Func($kodeDosen) {
 //     ];
 // }
 
-function L3LK3Func($kodeDosen) {
-    $data = RectorateDosen::where('kode_dosen', $kodeDosen)->get();
+function L3LK3Func($kodeDosen, ?Collection $publications = null) {
+    $data = $publications ?? RectorateDosen::where('kode_dosen', $kodeDosen)->get();
 
     // Ambil semua publikasi scopus dengan jenis seminar, jurnal, atau book chapter
     $scopusItems = $data->filter(function ($item) {
@@ -1183,8 +1183,8 @@ function L3LK3Func($kodeDosen) {
 //     ];
 // }
 
-function GBFunc($kodeDosen) {
-    $data = RectorateDosen::where('kode_dosen', $kodeDosen)->get();
+function GBFunc($kodeDosen, ?Collection $publications = null) {
+    $data = $publications ?? RectorateDosen::where('kode_dosen', $kodeDosen)->get();
 
     // Ambil semua publikasi scopus dengan jenis seminar, jurnal, atau book chapter
     $scopusItems = $data->filter(function ($item) {
@@ -1324,8 +1324,8 @@ function GBFunc($kodeDosen) {
 //     ];
 // }
 
-function TP12Prof($kodeDosen) {
-    $data = RectorateDosen::where('kode_dosen', $kodeDosen)->get();
+function TP12Prof($kodeDosen, ?Collection $publications = null) {
+    $data = $publications ?? RectorateDosen::where('kode_dosen', $kodeDosen)->get();
 
     $hasScopus = $data->contains(fn($item) => strtolower($item->tipe_publikasi) === 'scopus');
 
@@ -1464,8 +1464,8 @@ function TP12Prof($kodeDosen) {
 //     ];
 // }
 
-function AA2Prof($kodeDosen) {
-    $data = RectorateDosen::where('kode_dosen', $kodeDosen)->get();
+function AA2Prof($kodeDosen, ?Collection $publications = null) {
+    $data = $publications ?? RectorateDosen::where('kode_dosen', $kodeDosen)->get();
 
     // Filter publikasi SCOPUS dan jenis seminar/jurnal/book chapter
     $scopusItems = $data->filter(function ($item) {
@@ -1598,8 +1598,8 @@ function AA2Prof($kodeDosen) {
 //     ];
 // }
 
-function L2Prof($kodeDosen) {
-    $data = RectorateDosen::where('kode_dosen', $kodeDosen)->get();
+function L2Prof($kodeDosen, ?Collection $publications = null) {
+    $data = $publications ?? RectorateDosen::where('kode_dosen', $kodeDosen)->get();
 
     // Filter publikasi SCOPUS dan jenis seminar/jurnal/book chapter
     $scopusItems = $data->filter(function ($item) {
@@ -1730,8 +1730,8 @@ function L2Prof($kodeDosen) {
 //     ];
 // }
 
-function AA3TP3LK2Prof($kodeDosen) {
-    $data = RectorateDosen::where('kode_dosen', $kodeDosen)->get();
+function AA3TP3LK2Prof($kodeDosen, ?Collection $publications = null) {
+    $data = $publications ?? RectorateDosen::where('kode_dosen', $kodeDosen)->get();
 
     // Filter hanya publikasi SCOPUS dan jenis seminar/jurnal/book chapter
     $scopusItems = $data->filter(function ($item) {
@@ -1861,8 +1861,8 @@ function AA3TP3LK2Prof($kodeDosen) {
 //     ];
 // }
 
-function L3Prof($kodeDosen) {
-    $data = RectorateDosen::where('kode_dosen', $kodeDosen)->get();
+function L3Prof($kodeDosen, ?Collection $publications = null) {
+    $data = $publications ?? RectorateDosen::where('kode_dosen', $kodeDosen)->get();
 
     // Filter publikasi Scopus dengan jenis seminar/jurnal/book chapter
     $scopusItems = $data->filter(function ($item) {

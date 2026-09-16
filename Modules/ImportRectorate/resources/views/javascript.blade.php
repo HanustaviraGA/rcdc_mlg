@@ -39,7 +39,10 @@
     }
 
     $(document).ready(function () {
+        $('#year').val('{{ now()->subMonth()->year }}');
+        $('#period').val('{{ (int) ceil(now()->subMonth()->month / 3) }}');
         updateMonthOptions();
+        $('#month').val('{{ now()->subMonth()->month }}');
         $('#period').on('change', updateMonthOptions);
     });
 
@@ -64,12 +67,27 @@
                 unblockPage();
                 SUPER.showMessage({
                     success: true,
-                    message: 'Sukses mengunggah data',
+                    message: response.message || 'Sukses mengunggah data',
                     title: 'Berhasil'
                 });
+                if (response.summary) {
+                    const s = response.summary;
+                    $('#importSummary').text([
+                        response.message,
+                        'Dilewati: ' + s.excluded_campus + ' baris kampus lain; ' + s.excluded_submitted + ' kategori Submitted lain; ' + s.duplicates + ' duplikat.',
+                        'Kolom belum lengkap: ' + (Object.entries(s.missing).map(([key, count]) => key + ' (' + count + ' baris)').join(', ') || 'Tidak ada'),
+                        'Kode dosen belum ada di master: ' + (s.unmatched_codes.join(', ') || 'Tidak ada')
+                    ].join('\n'));
+                }
                 // $('#image_pic').empty().html(response.html);
                 // window.open(response.link);
                 // $("#image_pic object").attr("data", response.data);
+            },
+            error: function (response) {
+                unblockPage();
+                const message = response.responseJSON?.message || 'Import gagal. Periksa format file dan periode.';
+                $('#importSummary').text(message);
+                SUPER.showMessage({success: false, message: message, title: 'Import gagal'});
             }
         });
     }

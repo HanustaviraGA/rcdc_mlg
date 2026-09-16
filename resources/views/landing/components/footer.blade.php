@@ -51,7 +51,7 @@
     </div>
 
     <div class="container copyright text-center mt-4">
-      <p>{{ date('Y') }} © <strong class="px-1 sitename">BINUS University</span></p>
+      <p>{{ date('Y') }} © <strong class="px-1 sitename">BINUS University</strong></p>
       <div class="credits">
         <!-- All the links in the footer should remain intact. -->
         <!-- You can delete the links only if you've purchased the pro version. -->

@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Publication Performance Intelligence Dashboard</title>
+<style>
+:root{
+  --navy-900:#08203F; --navy-800:#0E2E56; --navy-700:#16406F; --navy-600:#1E5391;
+  --blue-500:#2E77C4; --blue-400:#5B98D8; --blue-200:#A9C8E8; --blue-100:#DEEAF7; --blue-050:#F0F6FC;
+  --paper:#FFFFFF; --canvas:#EBEFF5;
+  --ink:#0C1A2B; --ink-2:#3E5064; --ink-3:#6C7E93; --ink-4:#93A3B5;
+  --line:#D6DFEA; --line-2:#E7EDF4;
+  --ok:#12764C; --ok-bg:#E3F3EB;
+  --warn:#B5790C; --warn-bg:#FBF0DA;
+  --bad:#A93226; --bad-bg:#FBE6E3;
+  --neutral:#5E7288; --neutral-bg:#EDF1F6;
+  --shadow:0 1px 2px rgba(8,32,63,.06), 0 6px 18px -8px rgba(8,32,63,.18);
+  --r:10px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--canvas);color:var(--ink);
+  font-family:"Inter","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+button,select,input{font-family:inherit;font-size:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--blue-500);outline-offset:2px}
+
+.wrap{max-width:1560px;margin:0 auto;padding:0 22px 56px}
+header{background:linear-gradient(103deg,var(--navy-900) 0%,var(--navy-700) 62%,var(--navy-600) 100%);color:#fff}
+.hd{max-width:1560px;margin:0 auto;padding:20px 22px 18px;display:flex;flex-wrap:wrap;gap:22px;align-items:flex-end;justify-content:space-between}
+.hd h1{margin:0;font-size:25px;line-height:1.15;font-weight:650;letter-spacing:-.015em}
+.hd .sub{margin:5px 0 0;color:#B9D2EC;font-size:14px}
+.stamps{display:flex;gap:10px;flex-wrap:wrap}
+.stamp{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.20);border-radius:7px;padding:7px 11px;min-width:94px}
+.stamp b{display:block;font-size:15px;font-weight:640;line-height:1.2}
+.stamp span{display:block;font-size:11.5px;color:#A9C6E5;margin-top:1px}
+
+.filters{position:sticky;top:0;z-index:40;background:var(--paper);border-bottom:1px solid var(--line);box-shadow:0 2px 10px -6px rgba(8,32,63,.30)}
+.fin{max-width:1560px;margin:0 auto;padding:11px 22px;display:flex;gap:13px;align-items:flex-end;flex-wrap:wrap}
+.fg{display:flex;flex-direction:column;gap:4px;min-width:124px}
+.fg label{font-size:11.5px;color:var(--ink-3);font-weight:520}
+.fg select{appearance:none;background:var(--blue-050) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='11' height='7'><path d='M1 1l4.5 4.5L10 1' fill='none' stroke='%2316406F' stroke-width='1.6'/></svg>") no-repeat right 9px center;
+  border:1px solid var(--line);border-radius:7px;padding:7px 28px 7px 10px;font-size:13px;font-weight:500;cursor:pointer;max-width:215px}
+.fg select:hover{border-color:var(--blue-400)}
+.fspacer{flex:1}
+.btn{border:1px solid var(--line);background:var(--paper);border-radius:7px;padding:8px 13px;font-size:12.5px;font-weight:540;cursor:pointer;color:var(--ink-2)}
+.btn:hover{background:var(--blue-050);border-color:var(--blue-400)}
+.scope{font-size:12px;color:var(--ink-3);padding-bottom:8px}
+.scope b{color:var(--navy-700)}
+
+.sec{margin-top:22px}
+.sech{display:flex;align-items:baseline;gap:10px;margin:0 0 10px;flex-wrap:wrap}
+.sech .n{font-size:11.5px;font-weight:660;color:var(--blue-400);min-width:16px}
+.sech h2{margin:0;font-size:16.5px;font-weight:620;letter-spacing:-.01em}
+.sech p{margin:0;font-size:12.5px;color:var(--ink-3)}
+.grid{display:grid;gap:16px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:16px 18px 18px}
+.card h3{margin:0 0 2px;font-size:14.5px;font-weight:620}
+.card .hint{margin:0 0 12px;font-size:12px;color:var(--ink-3)}
+
+.kpis{grid-template-columns:repeat(6,1fr)}
+.kpi{background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--blue-400);border-radius:var(--r);padding:13px 15px 14px;box-shadow:var(--shadow)}
+.kpi.ok{border-left-color:var(--ok)} .kpi.warn{border-left-color:var(--warn)} .kpi.bad{border-left-color:var(--bad)}
+.kpi .lab{font-size:12px;color:var(--ink-3);font-weight:520}
+.kpi .val{font-size:29px;font-weight:660;letter-spacing:-.028em;line-height:1.1;margin-top:5px}
+.kpi .val small{font-size:14px;font-weight:540;color:var(--ink-3);letter-spacing:0}
+.kpi .foot{margin-top:6px;font-size:11.5px;color:var(--ink-3);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.dot{width:7px;height:7px;border-radius:50%;flex:none}
+.bar{height:5px;border-radius:3px;background:var(--line-2);margin-top:9px;overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:3px}
+
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:20px;font-size:11.5px;font-weight:560;white-space:nowrap}
+.p-ok{background:var(--ok-bg);color:var(--ok)}
+.p-warn{background:var(--warn-bg);color:var(--warn)}
+.p-bad{background:var(--bad-bg);color:var(--bad)}
+.p-neu{background:var(--neutral-bg);color:var(--neutral)}
+.p-blue{background:var(--blue-100);color:var(--navy-700)}
+
+svg{display:block;width:100%;height:auto;overflow:visible}
+.gridline{stroke:var(--line-2);stroke-width:1}
+.axis{stroke:var(--line);stroke-width:1}
+.tick{fill:var(--ink-3);font-size:11px}
+.tick.b{fill:var(--ink-2);font-weight:560}
+.alab{fill:var(--ink-4);font-size:10.5px}
+.legend{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:12px;font-size:12px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+.mini{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.mini button{border:1px solid var(--line);background:var(--paper);border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--ink-2)}
+.mini button[aria-pressed="true"]{background:var(--navy-700);border-color:var(--navy-700);color:#fff;font-weight:540}
+
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-size:11.5px;font-weight:600;color:var(--ink-3);border-bottom:1px solid var(--line);padding:7px 9px;position:sticky;top:0;background:var(--paper);white-space:nowrap;z-index:2}
+.tbl td{padding:8px 9px;border-bottom:1px solid var(--line-2);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tbody tr:hover{background:var(--blue-050)}
+.tbl .r{text-align:right} .tbl .c{text-align:center}
+.rank{display:inline-flex;align-items:center;justify-content:center;width:23px;height:23px;border-radius:6px;background:var(--blue-100);color:var(--navy-700);font-weight:640;font-size:12px}
+.rank.top{background:var(--navy-700);color:#fff}
+.nm{font-weight:540;color:var(--ink)}
+.sc{display:flex;align-items:center;gap:8px;min-width:112px}
+.sc .track{flex:1;height:6px;border-radius:3px;background:var(--line-2);overflow:hidden}
+.sc .track>i{display:block;height:100%;border-radius:3px}
+.sc b{font-weight:620;min-width:26px;text-align:right}
+.scroll{max-height:400px;overflow:auto;margin:0 -6px;padding:0 6px}
+.empty{padding:26px;text-align:center;color:var(--ink-3);font-size:13px;background:var(--blue-050);border-radius:8px;border:1px dashed var(--line)}
+.srch{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 11px;background:var(--blue-050);margin-bottom:10px}
+.topik{font-size:12.5px;color:var(--ink-2);line-height:1.5}
+.clu{border:1px solid var(--line);border-radius:9px;padding:12px 14px;margin-bottom:10px;background:var(--blue-050)}
+.clu h4{margin:0 0 4px;font-size:13.5px;font-weight:640;display:flex;align-items:center;gap:8px}
+.clu .badge{width:22px;height:22px;border-radius:6px;background:var(--navy-700);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:660}
+.clu ul{margin:4px 0 8px;padding-left:18px;font-size:12.5px;color:var(--ink-2)}
+.clu li{margin:1px 0}
+.note{font-size:12px;color:var(--ink-3);line-height:1.55;margin-top:12px;padding-left:11px;border-left:2px solid var(--blue-200)}
+.foothr{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-3);line-height:1.6}
+
+#tip{position:fixed;z-index:99;pointer-events:none;opacity:0;transition:opacity .1s;background:var(--navy-900);color:#fff;border-radius:8px;padding:8px 11px;font-size:12px;line-height:1.5;box-shadow:0 8px 24px -8px rgba(8,32,63,.55);max-width:290px}
+#tip b{color:#fff;font-weight:620} #tip s{display:block;text-decoration:none;color:#A9C6E5;font-size:11.5px}
+
+@media (max-width:1240px){.kpis{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:900px){.grid[style]{grid-template-columns:1fr!important}}
+@media (max-width:820px){.kpis{grid-template-columns:repeat(2,1fr)}.hd h1{font-size:21px}.fg{min-width:112px}}
+@media (max-width:560px){.kpis{grid-template-columns:1fr}.wrap{padding:0 12px 40px}.hd{padding:16px 12px}.fin{padding:10px 12px}}
+@media print{.filters{position:static}body{background:#fff}.card{box-shadow:none;break-inside:avoid}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="tip"></div>
+
+<header>
+  <div class="hd">
+    <div>
+      <h1>Publication Performance Intelligence Dashboard</h1>
+      <p class="sub">Monitoring KPI Publikasi Faculty Member &middot; Simulasi strategi Scopus &amp; mahasiswa menuju 2027</p>
+    </div>
+    <div class="stamps">
+      <div class="stamp"><b class="num">118</b><span>Faculty member</span></div>
+      <div class="stamp"><b class="num">9</b><span>Program studi</span></div>
+      <div class="stamp"><b class="num">2023&ndash;2025</b><span>Capaian KPI</span></div>
+      <div class="stamp"><b class="num">2023&ndash;2026</b><span>Keterlibatan hibah</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="filters">
+  <div class="fin">
+    <div class="fg"><label for="fYear">Tahun</label><select id="fYear"></select></div>
+    <div class="fg"><label for="fProdi">Program studi</label><select id="fProdi"></select></div>
+    <div class="fg"><label for="fType">Faculty type</label><select id="fType"></select></div>
+    <div class="fg"><label for="fPend">Pendidikan</label><select id="fPend"></select></div>
+    <div class="fg"><label for="fJJA">Jabatan akademik</label><select id="fJJA"></select></div>
+    <div class="fg"><label for="fClu">Cluster FM</label><select id="fClu"></select></div>
+    <div class="fg"><label for="fLab">Label mentor</label><select id="fLab"></select></div>
+    <div class="fg"><label for="fDosen">Nama dosen</label><select id="fDosen"></select></div>
+    <button class="btn" id="fReset">Kosongkan filter</button>
+    <div class="fspacer"></div>
+    <div class="scope" id="scope"></div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <section class="sec">
+    <div class="sech"><span class="n">01</span><h2>Ringkasan capaian</h2><p id="kpiSub"></p></div>
+    <div class="grid kpis" id="kpiRow"></div>
+  </section>
+
+  <section class="sec">
+    <div class="grid" style="grid-template-columns:1.35fr 1fr">
+      <div class="card">
+        <div class="sech" style="margin-bottom:2px"><span class="n">02</span><h2>Perkembangan KPI 2023&ndash;2025</h2></div>
+        <p class="hint" id="trendHint"></p>
+        <div id="trend"></div>
+        <div class="legend" id="trendLeg"></div>
+        <p class="note">Skor KPI memakai skala matriks 0&ndash;6. Dosen Computer Science belum memiliki tabel publikasi 2025, sehingga garis CS berhenti di 2024.</p>
+      </div>
+      <div class="card">
+        <div class="sech" style="margin-bottom:2px"><span class="n">03</span><h2>Status produktivitas dosen</h2></div>
+        <p class="hint" id="donutHint"></p>
+        <div id="donut"></div>
+        <div class="legend" id="donutLeg"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sech"><span class="n">04</span><h2>Performa program studi</h2><p>Peringkat prodi menurut rata-rata skor KPI dan intensitas keterlibatan hibah penelitian.</p></div>
+    <div class="grid" style="grid-template-columns:1fr 1fr">
+      <div class="card"><h3>Rata-rata skor KPI</h3><p class="hint" id="pr1Hint"></p><div id="prodiKPI"></div></div>
+      <div class="card"><h3>Keterlibatan hibah per dosen</h3><p class="hint">Total peran ketua dan anggota 2023&ndash;2026 dibagi jumlah dosen prodi. Garis putus-putus adalah rata-rata institusi.</p><div id="prodiHibah"></div></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="grid" style="grid-template-columns:1.15fr 1fr">
+      <div class="card">
+        <div class="sech" style="margin-bottom:2px"><span class="n">05</span><h2>Publication risk matrix</h2></div>
+        <p class="hint" id="scatHint"></p>
+        <div id="scatter"></div>
+        <div class="legend" id="scatLeg"></div>
+      </div>
+      <div class="card">
+        <div class="sech" style="margin-bottom:2px"><span class="n">06</span><h2>Dosen yang perlu intervensi</h2></div>
+        <p class="hint" id="needHint"></p>
+        <div class="scroll"><div id="needTbl"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sech"><span class="n">07</span><h2>Peringkat dosen</h2><p>Diurutkan menurut skor KPI, lalu total keterlibatan hibah.</p></div>
+    <div class="card">
+      <div class="mini" id="topToggle">
+        <button data-n="10" aria-pressed="true">Top 10</button>
+        <button data-n="25" aria-pressed="false">Top 25</button>
+        <button data-n="0" aria-pressed="false">Semua dosen</button>
+      </div>
+      <div class="scroll" style="max-height:520px"><div id="topTbl"></div></div>
+      <p class="note" id="topNote"></p>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sech"><span class="n">08</span><h2>Kapasitas riset dan pendampingan</h2><p>Ketersediaan mentor, riwayat keterlibatan hibah, dan tren peran per tahun.</p></div>
+    <div class="grid" style="grid-template-columns:1fr 1fr">
+      <div class="card"><h3>Sebaran label mentor per prodi</h3><p class="hint" id="mentorHint"></p><div id="mentorBar"></div><div class="legend" id="mentorLeg"></div></div>
+      <div class="card"><h3>Status keterlibatan hibah per prodi</h3><p class="hint" id="hibahHint"></p><div id="hibahBar"></div><div class="legend" id="hibahLeg"></div></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h3>Peran dalam hibah penelitian 2023&ndash;2026</h3>
+      <p class="hint">Jumlah peran ketua dan anggota yang tercatat tiap tahun pada cakupan aktif.</p>
+      <div id="peranBar"></div><div class="legend" id="peranLeg"></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sech"><span class="n">09</span><h2>Ambang matriks dan cluster faculty member</h2><p>Aturan penilaian yang berlaku dan akses hibah internal menurut cluster.</p></div>
+    <div class="grid" style="grid-template-columns:1.45fr 1fr">
+      <div class="card">
+        <h3>Ambang skor menurut kolom matriks</h3>
+        <p class="hint">Angka adalah bobot karya minimal. Skor 5 dan 6 pada hampir semua kolom mensyaratkan paper jurnal Scopus, bukan konferensi.</p>
+        <div class="scroll" style="max-height:none"><div id="matriksTbl"></div></div>
+        <div id="kolomBar" style="margin-top:16px"></div>
+        <p class="hint" style="margin:8px 0 0" id="kolomHint"></p>
+      </div>
+      <div class="card">
+        <h3>Cluster faculty member</h3>
+        <p class="hint">Cluster menentukan skema hibah internal yang dapat diakses.</p>
+        <div id="cluBox"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sech"><span class="n">10</span><h2>Topik penelitian prioritas 2027</h2><p>Arah riset yang sudah dirumuskan tiap dosen beserta SDG yang dibidik.</p></div>
+    <div class="grid" style="grid-template-columns:1fr 1.9fr">
+      <div class="card"><h3>SDG yang paling banyak dibidik</h3><p class="hint" id="sdgHint"></p><div id="sdgBar"></div></div>
+      <div class="card">
+        <h3>Rumusan topik per dosen</h3>
+        <p class="hint" id="topikHint"></p>
+        <input class="srch" id="fTopik" type="search" placeholder="Cari kata kunci topik, nama dosen, atau SDG&hellip;" aria-label="Cari topik penelitian">
+        <div class="scroll" style="max-height:460px"><div id="topikTbl"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="foothr" id="footnote"></div>
+</div>
+<script>
+"use strict";
+const D = {"dosen": [{"kode": "D5868", "prodi": "EBC", "nama": "Agung Purnomo, S.P., MBA", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 6, "k24": 6, "k25": 6, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [1, 0, 3, 0], "totKetua": 4, "anggota": [0, 1, 2, 1], "totAnggota": 4, "totHibah": 8, "tahunAktif": 4, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 8", "SDG 9"], "topik": "Pengembangan dan validasi model strategi kewirausahaan pemula berbasis transformasi kecerdasan artifisial dan bisnis digital berkelanjutan melalui integrasi fungsi bisnis dan desain produk.", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6552", "prodi": "EBC", "nama": "Audio Valentino Himawan Marhendra, S.AB., M.AB", "tipe": "Professional Faculty(A)", "kolom": "AA S2", "ambang4": "0.50", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 0,25", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 4, "k25": 4, "cluster": "C", "statusHibah": "Pernah menjadi ketua", "labelMentor": "KANDIDAT MENTOR", "ketua": [1, 1, 1, 0], "totKetua": 3, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 3, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 9"], "topik": "Strategi pengembangan Digitalisasi di bidang Pariwisata dengan dikaitkan multidisiplin ilmu", "jalur": "Professional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 0.5, "ambang6num": 0.25}, {"kode": "D5847", "prodi": "EBC", "nama": "Dr. Kukuh Lukiyanto, S.T., M.M., M.T.", "tipe": "Functional Faculty(C)", "kolom": "L S3 / LK S3", "ambang4": "4.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 2,00", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 4, "k25": 6, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [0, 0, 5, 0], "totKetua": 5, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 5, "tahunAktif": 1, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 8", "SDG 9"], "topik": "Model Pembelajaran entrepreneurship berbasis budaya, teknologi dan kesiapan sumberdaya manusia untuk menciptakan star-up dan membangun UMKM berkelanjutan", "jalur": "Functional", "jenjang": "S3", "jabatan": "Lektor / Lektor Kepala", "ambang4num": 4.0, "ambang6num": 2.0}, {"kode": "D6259", "prodi": "EBC", "nama": "Dr. Meilinda Trisilia, S.Si., M.Si.", "tipe": "Professional Faculty(A)", "kolom": "L S3", "ambang4": "2.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 6, "k24": 6, "k25": 4, "cluster": "B", "statusHibah": "Hanya sebagai anggota", "labelMentor": "KANDIDAT MENTOR", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 1, 0], "totAnggota": 1, "totHibah": 1, "tahunAktif": 1, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": ["SDG 8", "SDG 9"], "topik": "Pengembangan Model Business Analytics berbasis data untuk meningkatkan daya saing UMKM, efisiensi organisasi, ketahanan rantai pasok, dan kualitas kebijakan publik.", "jalur": "Professional", "jenjang": "S3", "jabatan": "Lektor", "ambang4num": 2.0, "ambang6num": 1.0}, {"kode": "D6358", "prodi": "EBC", "nama": "Dr. Murniati, S.E., M.Si.", "tipe": "Functional Faculty(A)", "kolom": "L S3 / LK S3", "ambang4": "4.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 2,00", "kpiSumber": "Tabel Score KPI", "k23": 4, "k24": 6, "k25": 6, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [0, 0, 1, 1], "totKetua": 2, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 2, "tahunAktif": 2, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 8", "SDG 9"], "topik": "Pengembangan dampak model bisnis, Perilakuk Konsumen, UMKM, Kewirausahaan dan perilaku konsumen pada bisnis di era digital, Pariwisata dan ekonomi pada riset multidisipline serta sustainability", "jalur": "Functional", "jenjang": "S3", "jabatan": "Lektor / Lektor Kepala", "ambang4num": 4.0, "ambang6num": 2.0}, {"kode": "D6581", "prodi": "EBC", "nama": "Dr. R. Aditya Kristamtomo Putra, S.T., M.M", "tipe": "Functional Faculty(A)", "kolom": "L S3 / LK S3", "ambang4": "4.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 2,00", "kpiSumber": "Tabel Score KPI", "k23": 2, "k24": 4, "k25": 4, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [0, 0, 0, 1], "totKetua": 1, "anggota": [0, 0, 1, 0], "totAnggota": 1, "totHibah": 2, "tahunAktif": 2, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 4", "SDG 8"], "topik": "Pengembangan purwarupa (prototype application) Green-Fin Dashboard dan pengujian validitas model tata kelola portofolio keuanganberkelanjutan pada ekosistem UMKM dan wirausaha perempuan Tahun 2027: Instrumen tersebut ditransformasikan oleh tim multidisiplin STEM ke dalam bentuk aplikasi teknologi digital (Minimum Viable Product/MVP), lalu dilakukan pengujian fungsionalitas dan validasi data secara langsung kepada komunitas mitra (pilot testing). Tahun 2028 (Mendatang): Hasil validasi model dari tahun 2027 ini akan dilanjutkan ke tahap adopsi pasar berskala luas, standardisasi instrumen, hingga komersialisasi bersama mitra industri finansial nasional.", "jalur": "Functional", "jenjang": "S3", "jabatan": "Lektor / Lektor Kepala", "ambang4num": 4.0, "ambang6num": 2.0}, {"kode": "D2693", "prodi": "EBC", "nama": "Dr. Robertus Tang Herman, S.E., M.M.", "tipe": "Functional Faculty(A)", "kolom": "L S3 / LK S3", "ambang4": "4.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 2,00", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": 4, "k25": 4, "cluster": "B", "statusHibah": "Belum pernah terlibat", "labelMentor": "KANDIDAT MENTOR", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "sdg": [], "topik": null, "jalur": "Functional", "jenjang": "S3", "jabatan": "Lektor / Lektor Kepala", "ambang4num": 4.0, "ambang6num": 2.0}, {"kode": "D6373", "prodi": "EBC", "nama": "Dr. Sahnaz Ubud, S.T., M.MT", "tipe": "Functional Faculty(A)", "kolom": "L S3 / LK S3", "ambang4": "4.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 2,00", "kpiSumber": "Tabel Score KPI", "k23": 2, "k24": 4, "k25": 6, "cluster": "B", "statusHibah": "Belum pernah terlibat", "labelMentor": "KANDIDAT MENTOR", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "sdg": ["SDG 8", "SDG 9"], "topik": "Pengembangan model integratif strategi bisnis dan rantai pasok keberlanjutan yang mampu menciptakan keunggulan bersaing", "jalur": "Functional", "jenjang": "S3", "jabatan": "Lektor / Lektor Kepala", "ambang4num": 4.0, "ambang6num": 2.0}, {"kode": "D5835", "prodi": "EBC", "nama": "Dr. Yoseph Benny Kusuma, S.M., M.SM.", "tipe": "Functional Faculty(C)", "kolom": "AA S3 / TP S3 / LK S2", "ambang4": "2.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,50", "kpiSumber": "Tabel Score KPI", "k23": 2, "k24": 4, "k25": 2, "cluster": "B", "statusHibah": "Belum pernah terlibat", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "sdg": ["SDG 8", "SDG 9"], "topik": "Pengembangan model bisnis dan strategi pemasaran berbasis teknologi digital serta perilaku konsumen untuk menciptakan nilai yangberkelanjutan.", "jalur": "Functional", "jenjang": "S3 (atau LK S2)", "jabatan": "Asisten Ahli / TP / Lektor Kepala", "ambang4num": 2.0, "ambang6num": 1.5}, {"kode": "D7213", "prodi": "EBC", "nama": "Elysabet Christy Diandra Selano, S.Ak., M.A.", "tipe": "Tidak tercatat", "kolom": "TP S1 / TP S2", "ambang4": "SINTA", "skor5": "Skor 4 + paper Scopus >= 0,25", "skor6": "Skor 4 + paper Scopus >= 0,5", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": null, "k25": 3, "cluster": "C", "statusHibah": "Belum pernah terlibat", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "sdg": ["SDG 8", "SDG 9"], "topik": "Pengembangan model tata kelola dan pengambilan keputusan bisnis berbasis digital", "jalur": "Tidak tercatat", "jenjang": "S1/S2", "jabatan": "Tenaga Pengajar", "ambang4num": null, "ambang6num": 0.5}, {"kode": "D6161", "prodi": "EBC", "nama": "Etsa Astridya Setiyati, S.E., M.Comm.", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 6, "k25": 6, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [0, 0, 1, 0], "totKetua": 1, "anggota": [0, 0, 1, 2], "totAnggota": 3, "totHibah": 4, "tahunAktif": 2, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 8", "SDG 9"], "topik": "Pengembangan dampak model marketing dan perilaku konsumen pada bisnis di era digital pada riset multidisipliner", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6258", "prodi": "EBC", "nama": "Febby Candra Pratama, S.E., M.M.", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 5, "k25": 5, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [0, 1, 1, 0], "totKetua": 2, "anggota": [1, 1, 0, 0], "totAnggota": 2, "totHibah": 4, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 8", "SDG 9"], "topik": "Pengembangan dan validasi model transformasi digital di era kecerdasan buatan pada pertumbuhan bisnis berkelanjutan melalui riset multidisipliner", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D7056", "prodi": "EBC", "nama": "Hany Azza Umama, S.E., M.M.", "tipe": "Functional Faculty(A)", "kolom": "AA S3 / TP S3 / LK S2", "ambang4": "2.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,50", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": 0, "k25": 6, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "KANDIDAT MENTOR", "ketua": [0, 0, 1, 0], "totKetua": 1, "anggota": [0, 0, 0, 1], "totAnggota": 1, "totHibah": 2, "tahunAktif": 2, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 8", "SDG 9"], "topik": "Pengembangan model perilaku manusia melalui pendekatan multidisiplin dengan mengeksplorasi berbagai perspektif perilaku, sepertiperilaku organisasi, konsumen, masyarakat, budaya, dan konteks digital dalam menghadapi perubahan lingkungan", "jalur": "Functional", "jenjang": "S3 (atau LK S2)", "jabatan": "Asisten Ahli / TP / Lektor Kepala", "ambang4num": 2.0, "ambang6num": 1.5}, {"kode": "D7058", "prodi": "EBC", "nama": "Harris Prasetya Rahmandika, S.M., M.M.", "tipe": "Functional Faculty(A)", "kolom": "TP S1 / TP S2", "ambang4": "SINTA", "skor5": "Skor 4 + paper Scopus >= 0,25", "skor6": "Skor 4 + paper Scopus >= 0,5", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": 0, "k25": 6, "cluster": "C", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTEE", "ketua": [0, 0, 1, 0], "totKetua": 1, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 1, "tahunAktif": 1, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 8", "SDG 9"], "topik": "Pengembangan dampak model SDM optimal pada bisnis di era digital pada riset multidisipliner Integrasi teknis SDM dan teknologi pada kebaharuan inovasi bisnis di era digital pada riset multidisipliner", "jalur": "Functional", "jenjang": "S1/S2", "jabatan": "Tenaga Pengajar", "ambang4num": null, "ambang6num": 0.5}, {"kode": "D6605", "prodi": "EBC", "nama": "Helena Hanindya Kartika Putri, S.S., MBA", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 3, "k25": 5, "cluster": "C", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTEE", "ketua": [0, 1, 0, 0], "totKetua": 1, "anggota": [1, 0, 0, 0], "totAnggota": 1, "totHibah": 2, "tahunAktif": 2, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": [], "topik": null, "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6166", "prodi": "EBC", "nama": "Hera Rachmahani, S.M., M.S.M.", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 4, "k25": 0, "cluster": "C", "statusHibah": "Belum pernah terlibat", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "sdg": [], "topik": null, "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6916", "prodi": "EBC", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": 0, "k25": 0, "nama": "Ir. Fourry Handoko, S.T., S.S., M.T., Ph.D.", "jalur": "Tidak tercatat", "tipe": "Tidak tercatat", "kolom": "Tidak terpetakan", "jenjang": "Tidak terpetakan", "jabatan": "Belum ditetapkan", "ambang4num": null, "ambang4": "Tidak terpetakan", "ambang6num": null, "ketua": [0, 0, 0, 0], "anggota": [0, 0, 0, 0], "totKetua": 0, "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Tidak tercatat", "cluster": "Tidak tercatat", "statusHibah": "Tidak tercatat", "labelMentor": "Tidak tercatat", "sdg": [], "topik": null}, {"kode": "D6966", "prodi": "EBC", "nama": "Krismi Budi Sienatra, S.E., M.M.", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": 3, "k25": 6, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "KANDIDAT MENTOR", "ketua": [0, 0, 1, 0], "totKetua": 1, "anggota": [0, 0, 0, 1], "totAnggota": 1, "totHibah": 2, "tahunAktif": 2, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 8", "SDG 9"], "topik": "Pengembangan dampak model perilaku keuangan dan keuangan korporasi pada bisnis di era teknologi digital dan sustainability meliputi bisnis dalam skala SME dalam berbagai area serta penerapan kompetensi entrepreneurship dalam lapisan masyarakat pada riset multidisipliner", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6284", "prodi": "EBC", "nama": "Mardhatilah Shanti, S.E., M.M.", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 5, "k25": 5, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [1, 0, 0, 1], "totKetua": 2, "anggota": [0, 1, 0, 0], "totAnggota": 1, "totHibah": 3, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 8", "SDG 9"], "topik": "Pengembangan model bisnis dan strategi pemasaran berbasis teknologi digital serta perilaku konsumen untuk menciptakan nilai yangberkelanjutan.", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6587", "prodi": "EBC", "nama": "Mufida Sekardhani, S.E., MBA", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 5, "k25": 6, "cluster": "C", "statusHibah": "Pernah menjadi ketua", "labelMentor": "KANDIDAT MENTOR", "ketua": [1, 0, 0, 0], "totKetua": 1, "anggota": [1, 0, 1, 1], "totAnggota": 3, "totHibah": 4, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 8", "SDG 9"], "topik": "2027: From Digital Business Intention to Entrepreneurial Action. Topik Penelitian Prioritas 2027 akan dilanjutkan dan dikembangkan pada tahun 2028.", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D5390", "prodi": "EBC", "nama": "Muhammad Idham Sofyan, S.E., M.M.", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": 0, "k25": 5, "cluster": "C", "statusHibah": "Belum pernah terlibat", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "sdg": ["SDG 8", "SDG 9"], "topik": "Penguatan kapasitas & kapabilitas fungsi bisnis dan manajemen di era digital", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D7057", "prodi": "EBC", "nama": "Nur Yudiono, S.AB., M.AB.", "tipe": "Professional Faculty(A)", "kolom": "TP S1 / TP S2", "ambang4": "SINTA", "skor5": "Skor 4 + paper Scopus >= 0,25", "skor6": "Skor 4 + paper Scopus >= 0,5", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": 0, "k25": 3, "cluster": "C", "statusHibah": "Belum pernah terlibat", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "sdg": ["SDG 8", "SDG 9"], "topik": "Pengembangan dampak model manajemen strategis terhadap inovasi, adaptabilitas, dan keberlanjutan bisnis di era digital", "jalur": "Professional", "jenjang": "S1/S2", "jabatan": "Tenaga Pengajar", "ambang4num": null, "ambang6num": 0.5}, {"kode": "D7321", "prodi": "EBC", "nama": "Pregnandia Ladina, S.AB., M.AB.", "cluster": "C", "statusHibah": "Belum pernah terlibat", "labelMentor": "MENTEE", "k23": 0, "kpiSumber": "Tabel Mentor", "k24": 0, "k25": 0, "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "sdg": [], "topik": null, "jalur": "Tidak tercatat", "tipe": "Tidak tercatat", "kolom": "Tidak terpetakan", "jenjang": "Tidak terpetakan", "jabatan": "Belum ditetapkan", "ambang4num": null, "ambang4": "Tidak terpetakan", "ambang6num": null}, {"kode": "D6067", "prodi": "EBC", "nama": "Priska Arindya Purnama, S.Si., M.Si.", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 5, "k25": 3, "cluster": "B", "statusHibah": "Hanya sebagai anggota", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 2, 3, 0], "totAnggota": 5, "totHibah": 5, "tahunAktif": 2, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": ["SDG 8", "SDG 9"], "topik": "Pengembangan dampak strategi kewirausahaan dan operasional pada bisnis di era digital pada riset multidisipliner", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6399", "prodi": "EBC", "nama": "Riefky Prabowo, S.E., M.A.B", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 4, "k25": 5, "cluster": "C", "statusHibah": "Hanya sebagai anggota", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 1, 0], "totAnggota": 1, "totHibah": 1, "tahunAktif": 1, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": ["SDG 8", "SDG 9"], "topik": "Penguatan Ekosistem Digital Entrepreneurship untuk Meningkatkan Inovasi dan Daya Saing Bisnis", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D5844", "prodi": "EBC", "nama": "Riesta Devi Kumalasari, S.E., M.M.", "tipe": "Functional Faculty(A)", "kolom": "L S3 / LK S3", "ambang4": "4.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 2,00", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 5, "k25": 6, "cluster": "B", "statusHibah": "Hanya sebagai anggota", "labelMentor": "KANDIDAT MENTOR", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [1, 1, 1, 1], "totAnggota": 4, "totHibah": 4, "tahunAktif": 4, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": ["SDG 8", "SDG 9"], "topik": "Model daya saing UMKM secara berkelanjutan di berbagai industri Inovasi dalam implementasi marketing, operation, HRM dan financial dalam menciptakan competitive advantage Peningkatan daya saing organisasi dalam peningkatan pertumbuhan ekonomi Start-up and innovative strategy Studi yang berkontribusi pada bidang Family Business, UMKM, perusahaan Start-up baru, social entrepreneurship, social enterprise, women & entrepreneurship, inovasi, dan pariwisata", "jalur": "Functional", "jenjang": "S3", "jabatan": "Lektor / Lektor Kepala", "ambang4num": 4.0, "ambang6num": 2.0}, {"kode": "D6866", "prodi": "EBC", "nama": "Risca Kurnia Sari, S.E., M.M.", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 4, "k25": 4, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [0, 0, 0, 1], "totKetua": 1, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 1, "tahunAktif": 1, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 8", "SDG 9"], "topik": "AI-driven Marketing and Business Decision Making", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6553", "prodi": "EBC", "nama": "Riza Rizqiyah, S.M., MBA", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 5, "k25": 5, "cluster": "C", "statusHibah": "Pernah menjadi ketua", "labelMentor": "KANDIDAT MENTOR", "ketua": [0, 1, 0, 0], "totKetua": 1, "anggota": [1, 0, 0, 0], "totAnggota": 1, "totHibah": 2, "tahunAktif": 2, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 8", "SDG 9"], "topik": "Pengembangan dan validasi model social venture creation untuk meningkatkan keberlanjutan usaha", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6654", "prodi": "EBC", "nama": "Satria Fadil Persada, S.Kom., MBA., Ph.D.", "tipe": "Functional Faculty(A)", "kolom": "L S3 / LK S3", "ambang4": "4.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 2,00", "kpiSumber": "Tabel Score KPI", "k23": 6, "k24": 6, "k25": 6, "cluster": "B", "statusHibah": "Hanya sebagai anggota", "labelMentor": "KANDIDAT MENTOR", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [1, 2, 4, 3], "totAnggota": 10, "totHibah": 10, "tahunAktif": 4, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": ["SDG 8", "SDG 9"], "topik": "Pengembangan dampak model perilaku konsumen pada bisnis di era digital pada riset multidisipliner", "jalur": "Functional", "jenjang": "S3", "jabatan": "Lektor / Lektor Kepala", "ambang4num": 4.0, "ambang6num": 2.0}, {"kode": "D7214", "prodi": "EBC", "nama": "Theodosia Yunita Durman, S.M., M.MT.", "tipe": "Functional Faculty(A)", "kolom": "TP S1 / TP S2", "ambang4": "SINTA", "skor5": "Skor 4 + paper Scopus >= 0,25", "skor6": "Skor 4 + paper Scopus >= 0,5", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": null, "k25": 3, "cluster": "C", "statusHibah": "Hanya sebagai anggota", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 1], "totAnggota": 1, "totHibah": 1, "tahunAktif": 1, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": ["SDG 8", "SDG 9"], "topik": "Implementasi Business Management Analytics Berbasis Digital dan Studi Komparasi Antar Negara", "jalur": "Functional", "jenjang": "S1/S2", "jabatan": "Tenaga Pengajar", "ambang4num": null, "ambang6num": 0.5}, {"kode": "D7059", "prodi": "EBC", "nama": "Veronica Swasti Paramitha, S.E., M.B.A.", "tipe": "Functional Faculty(A)", "kolom": "TP S1 / TP S2", "ambang4": "SINTA", "skor5": "Skor 4 + paper Scopus >= 0,25", "skor6": "Skor 4 + paper Scopus >= 0,5", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": 3, "k25": 3, "cluster": "C", "statusHibah": "Belum pernah terlibat", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "sdg": [], "topik": null, "jalur": "Functional", "jenjang": "S1/S2", "jabatan": "Tenaga Pengajar", "ambang4num": null, "ambang6num": 0.5}, {"kode": "D6561", "prodi": "EBC", "nama": "Wilyan Adiasari, S.E., M.M.", "tipe": "Professional Faculty(A)", "kolom": "TP S1 / TP S2", "ambang4": "SINTA", "skor5": "Skor 4 + paper Scopus >= 0,25", "skor6": "Skor 4 + paper Scopus >= 0,5", "kpiSumber": "Tabel Score KPI", "k23": 4, "k24": 0, "k25": 4, "cluster": "C", "statusHibah": "Belum pernah terlibat", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "sdg": ["SDG 9", "SDG 12"], "topik": "Pengembangan pemasaran yang berkelanjutan pada UMKM di Era Digital", "jalur": "Professional", "jenjang": "S1/S2", "jabatan": "Tenaga Pengajar", "ambang4num": null, "ambang6num": 0.5}, {"kode": "D7322", "prodi": "EBC", "nama": "Yusuf Akbar Santoso, S.M., M.PSDM.", "cluster": "C", "statusHibah": "Belum pernah terlibat", "labelMentor": "MENTEE", "k23": 0, "kpiSumber": "Tabel Mentor", "k24": 0, "k25": 0, "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "sdg": [], "topik": null, "jalur": "Tidak tercatat", "tipe": "Tidak tercatat", "kolom": "Tidak terpetakan", "jenjang": "Tidak terpetakan", "jabatan": "Belum ditetapkan", "ambang4num": null, "ambang4": "Tidak terpetakan", "ambang6num": null}, {"kode": "D6588", "prodi": "EBC", "nama": "Zainiyah Alfirdaus, S.M., M.SM.", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 5, "k25": 3, "cluster": "C", "statusHibah": "Hanya sebagai anggota", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [1, 0, 0, 0], "totAnggota": 1, "totHibah": 1, "tahunAktif": 1, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": ["SDG 8", "SDG 9"], "topik": "Pengembangandan implementasimodel kapabilitasorganisasiyang meliputipemanfaatanteknologidigital, inovasibisnis, dan entrepreneurship pada organisasibisnis, UMKM, maupunstart-up", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D3708", "prodi": "CS", "nama": "Albert Verasius Dian Sano, S.T., M.Kom.", "tipe": "Functional Faculty(C)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 5, "k24": 5, "k25": null, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [0, 0, 1, 0], "totKetua": 1, "anggota": [0, 0, 1, 0], "totAnggota": 1, "totHibah": 2, "tahunAktif": 1, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 3", "SDG 4"], "topik": "Integrasi generative AI untuk pembuatan materi ajar otomatis dan sistem prediksi kesehatan berbasis telemedicine", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D3555", "prodi": "CS", "nama": "Alvin Chandra, S.Kom., M.M.", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot>= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": 0, "k25": null, "cluster": "C", "statusHibah": "Belum pernah terlibat", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "sdg": ["SDG 4", "SDG 9"], "topik": "Optimalisasi metode basic algorithm untuk pengembangan aplikasi dengan pemanfaatan AI", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D7319", "prodi": "CS", "nama": "Asyrofa Rahmi, S.Kom., M.Kom., Ph.D", "tipe": "Tidak tercatat", "kolom": "TP S1 / TP S2", "ambang4": "SINTA", "skor5": "Skor 4 + paper Scopus >= 0,25", "skor6": "Skor 4 + paper Scopus >= 0,5", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": null, "k25": null, "cluster": "C", "statusHibah": "Belum pernah terlibat", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "sdg": [], "topik": null, "jalur": "Tidak tercatat", "jenjang": "S1/S2", "jabatan": "Tenaga Pengajar", "ambang4num": null, "ambang6num": 0.5}, {"kode": "D6365", "prodi": "CS", "nama": "Chasandra Puspitasari, S.Kom., M.Cs.", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 5, "k25": null, "cluster": "B", "statusHibah": "Hanya sebagai anggota", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 2, 1], "totAnggota": 3, "totHibah": 3, "tahunAktif": 2, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": ["SDG 4", "SDG 9"], "topik": "Optimalisasi teknik machine learning untuk meningkatkan kinerja model dalam berbagai skenario penerapan, termasuk prediksi dan klasifikasi", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D7181", "prodi": "CS", "nama": "Daniel Anando Wangean, S.Kom., M.Kom.", "tipe": "Functional Faculty(A)", "kolom": "TP S1 / TP S2", "ambang4": "SINTA", "skor5": "Skor 4 + paper Scopus >= 0,25", "skor6": "Skor 4 + paper Scopus >= 0,5", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": null, "k25": null, "cluster": "C", "statusHibah": "Belum pernah terlibat", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "sdg": ["SDG 4", "SDG 9"], "topik": "Optimalisasi model deep learning untuk meningkatkan kinerja sistem dan infrastruktur industri pendidikan serta integrasi dengan sistem otomasi.", "jalur": "Functional", "jenjang": "S1/S2", "jabatan": "Tenaga Pengajar", "ambang4num": null, "ambang6num": 0.5}, {"kode": "D6910", "prodi": "CS", "nama": "Dio Saputra Kudori, S.Kom., M.Kom.", "tipe": "Professional Faculty(C)", "kolom": "TP S1 / TP S2", "ambang4": "SINTA", "skor5": "Skor 4 + paper Scopus >= 0,25", "skor6": "Skor 4 + paper Scopus >= 0,5", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": 3, "k25": null, "cluster": "C", "statusHibah": "Hanya sebagai anggota", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 2, 0], "totAnggota": 2, "totHibah": 2, "tahunAktif": 1, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": ["SDG 8", "SDG 9"], "topik": "Fokus pengujian, pengembangan model/prototype, validasi", "jalur": "Professional", "jenjang": "S1/S2", "jabatan": "Tenaga Pengajar", "ambang4num": null, "ambang6num": 0.5}, {"kode": "D4749", "prodi": "CS", "nama": "Dr. Anita Rahayu, S.Si., M.Si.", "tipe": "Functional Faculty(C)", "kolom": "L S3 / LK S3", "ambang4": "4.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 2,00", "kpiSumber": "Tabel Score KPI", "k23": 2, "k24": 4, "k25": null, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "KANDIDAT MENTOR", "ketua": [0, 4, 1, 1], "totKetua": 6, "anggota": [0, 0, 1, 1], "totAnggota": 2, "totHibah": 8, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 1", "SDG 8"], "topik": "(Pemodelan & Analisis Lanjutan) Pemanfaatan data science dan spatial modeling untuk mengembangkan model prediktif dan clustering wilayah, sehingga dapat mengelompokkan daerah berdasarkan tingkat kemiskinan dan karakteristiknya serta menghasilkan rekomendasi kebijakan berbasis data", "jalur": "Functional", "jenjang": "S3", "jabatan": "Lektor / Lektor Kepala", "ambang4num": 4.0, "ambang6num": 2.0}, {"kode": "D5850", "prodi": "CS", "nama": "Dr. Hanugra Aulia Sidharta, S.T., M.MT.", "tipe": "Functional Faculty(A)", "kolom": "AA S3 / TP S3 / LK S2", "ambang4": "2.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,50", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 0, "k25": null, "cluster": "C", "statusHibah": "Belum pernah terlibat", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "sdg": ["SDG 3", "SDG 4"], "topik": "Optimasi rekonstruksi 3D: fusion Deployment multi-view, temporal smoothing, domain, real-time processing impact", "jalur": "Functional", "jenjang": "S3 (atau LK S2)", "jabatan": "Asisten Ahli / TP / Lektor Kepala", "ambang4num": 2.0, "ambang6num": 1.5}, {"kode": "D5707", "prodi": "CS", "nama": "Elizabeth Paskahlia Gunawan, S.Kom., M.Cs.", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 4, "k24": 5, "k25": null, "cluster": "C", "statusHibah": "Belum pernah terlibat", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "sdg": ["SDG 4", "SDG 9"], "topik": "Optimalisasi teknik machine learning untuk meningkatkan kinerja model dalam berbagai skenario penerapan, termasuk prediksi dan klasifikasi", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6066", "prodi": "CS", "nama": "Fairuz Iqbal Maulana, S.T., M.Eng., M.T.", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 5, "k24": 5, "k25": null, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [3, 1, 0, 1], "totKetua": 5, "anggota": [0, 1, 4, 0], "totAnggota": 5, "totHibah": 10, "tahunAktif": 4, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 4", "SDG 9"], "topik": "Tahun 2027: Fase Integrasi dan Uji Coba • Pelaksanaan uji coba platform terintegrasi di sektor pendidikan dan kesehatan dalam skala terbatas. • Melakukan analisis komparatif dampak platform serta evaluasi usability dan efektivitas UI/UX berdasarkan interaksi pengguna. • Generalisasi kerangka kerja NLP untuk meningkatkan skalabilitas teknologi.", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6371", "prodi": "CS", "nama": "Frihandhika Permana, S.Pd., M.Kom.", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 5, "k24": 5, "k25": null, "cluster": "C", "statusHibah": "Pernah menjadi ketua", "labelMentor": "KANDIDAT MENTOR", "ketua": [1, 1, 1, 0], "totKetua": 3, "anggota": [2, 0, 0, 0], "totAnggota": 2, "totHibah": 5, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 4", "SDG 9"], "topik": "Optimalisasi model dan prototipe AR/VR/XR, AI, dan game-based learning melalui evaluasi pengguna, pengujian usability, serta integrasi dengan kebutuhan pembelajaran dan industri kreatif.", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6404", "prodi": "CS", "nama": "Gusti Pangestu, S.Kom., M.Kom.", "tipe": "Functional Faculty(C)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 5, "k24": 5, "k25": null, "cluster": "A", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [1, 0, 0, 2], "totKetua": 3, "anggota": [1, 1, 3, 1], "totAnggota": 6, "totHibah": 9, "tahunAktif": 4, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 3", "SDG 5"], "topik": "2027: fokus ke pengembangan aplikasi beserta integrasi dengan gadget", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6834", "prodi": "CS", "nama": "Ir. Simeon Yuda Prasetyo, S.Kom., M.Kom., IPP, CSCU", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": null, "k25": null, "cluster": "C", "statusHibah": "Belum pernah terlibat", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "sdg": ["SDG 3", "SDG 9"], "topik": "Optimalisasi teknik machine learning untuk meningkatkan kinerja model dalam berbagai skenario penerapan, termasuk diagnosis, prediksi, dan klasifikasi", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6394", "prodi": "CS", "nama": "M. Aldiki Febriantono, S.T., M.T.", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 5, "k24": 5, "k25": null, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [1, 1, 1, 0], "totKetua": 3, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 3, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 2", "SDG 15"], "topik": "Pengembangan dan pengujian prototype sistem deteksi penyakit buah apel berbasis deep learning pada lingkungan pertanian nyata melalui validasi performa model, optimasi akurasi deteksi, dan integrasi monitoring penyakit apel secara real-time sebagai lanjutan penelitian tahun 2028.", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6747", "prodi": "CS", "nama": "Milkhatussyafa'ah Taufiq, S.T., M.T.", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 5, "k25": null, "cluster": "C", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTEE", "ketua": [1, 0, 0, 0], "totKetua": 1, "anggota": [1, 0, 0, 0], "totAnggota": 1, "totHibah": 2, "tahunAktif": 1, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 3", "SDG 4"], "topik": "Analisa kebutuhan fitur dan membuat prototype dengan metode terbaik", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6261", "prodi": "CS", "nama": "Mirza Ramadhani, S.Kom., M.Kom.", "tipe": "Professional Faculty(C)", "kolom": "AA S2", "ambang4": "0.50", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 0,25", "kpiSumber": "Tabel Score KPI", "k23": 5, "k24": 4, "k25": null, "cluster": "C", "statusHibah": "Pernah menjadi ketua", "labelMentor": "KANDIDAT MENTOR", "ketua": [1, 0, 0, 0], "totKetua": 1, "anggota": [1, 0, 1, 1], "totAnggota": 3, "totHibah": 4, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 3", "SDG 4"], "topik": "Pengembangan prototipe interaktif AI + AR/VR, integrasi metode evaluasi UX untuk immersive tech, uji coba usability di lingkungan terkontrol, iterasi desain berdasarkan feedback", "jalur": "Professional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 0.5, "ambang6num": 0.25}, {"kode": "D6494", "prodi": "CS", "nama": "Nyoman Wira Prasetya, S.Kom., M.T., M. Sc.", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 3, "k25": null, "cluster": "C", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTEE", "ketua": [1, 0, 0, 0], "totKetua": 1, "anggota": [2, 1, 3, 0], "totAnggota": 6, "totHibah": 7, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 3", "SDG 9"], "topik": "Optimalisasi metode untuk pengembangan aplikasi, IoT, dan AI dalam kesehatan", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D5848", "prodi": "CS", "nama": "Sidharta, S.Si., M.MT.", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 5, "k24": 4, "k25": null, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [0, 1, 0, 0], "totKetua": 1, "anggota": [2, 1, 2, 0], "totAnggota": 5, "totHibah": 6, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 4", "SDG 9"], "topik": "Optimalisasi metode untuk pengembangan aplikasi, IoT, dan AI", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D7182", "prodi": "CS", "nama": "Sinjiru Setyawan, S.Kom., M.Kom.", "tipe": "Functional Faculty(A)", "kolom": "TP S1 / TP S2", "ambang4": "SINTA", "skor5": "Skor 4 + paper Scopus >= 0,25", "skor6": "Skor 4 + paper Scopus >= 0,5", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": null, "k25": null, "cluster": "C", "statusHibah": "Hanya sebagai anggota", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 1], "totAnggota": 1, "totHibah": 1, "tahunAktif": 1, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": ["SDG 7", "SDG 9"], "topik": "• 2027: Optimalisasi metode untuk pengembangan aplikasi dan IoT dengan Edge Computing • Topik Penelitian Prioritas 2027 akan dilanjutkan dan dikembangkan pada tahun 2028 menjadi: Kombinasi metode untuk pengembangan aplikasi dan IoT dengan Edge Computing", "jalur": "Functional", "jenjang": "S1/S2", "jabatan": "Tenaga Pengajar", "ambang4num": null, "ambang6num": 0.5}, {"kode": "D5975", "prodi": "CS", "nama": "Wina Permana Sari, S.T., M.Kom.", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 6, "k24": 5, "k25": null, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [1, 1, 2, 0], "totKetua": 4, "anggota": [1, 1, 2, 0], "totAnggota": 4, "totHibah": 8, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 3", "SDG 11"], "topik": "Optimalisasi metode AI untuk meningkatkan kinerja model dalam berbagai skenario penerapan, termasuk prediksi, clustering, diagnosis dan klasifikasi pada bidang kesehatan dan serta berkelanjutan pada tahun 2028", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6671", "prodi": "CS", "nama": "Yulianto, S.Kom., M.Kom.", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 6, "k24": 5, "k25": null, "cluster": "C", "statusHibah": "Pernah menjadi ketua", "labelMentor": "KANDIDAT MENTOR", "ketua": [1, 1, 2, 0], "totKetua": 4, "anggota": [3, 0, 2, 0], "totAnggota": 5, "totHibah": 9, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 8", "SDG 9"], "topik": "Implement and optimize the image processing methodology onto embedded hardware; outputs: functional system prototype and performance benchmark report (Accuracy/Latency)", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6495", "prodi": "DKV", "nama": "Asri Radhitanti, S.Sn., M.Ds.", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot>= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 3, "k25": 5, "cluster": "C", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTEE", "ketua": [0, 1, 0, 0], "totKetua": 1, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 1, "tahunAktif": 1, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 4", "SDG 8"], "topik": "Pengembangan prototipe desain (branding dan produk) inovatif berbasis persona dan kebutuhan target audiens UMKM dan komunitas lokal Malang Raya disertai pengembangan nilai-nilai kearifan lokal untuk menciptakan pembeda, didukung validasi uji persepsi target audiens dan pemangku kepentingan, agar desain inovatif dapat dipraktikkan secara berkelanjutan oleh UMKM dan komunitas lokal Malang Raya.", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6110", "prodi": "DKV", "nama": "Cahyaning Umul Chasanah Nursyifani, S.T., M.Ds.", "tipe": "Functional Faculty(B)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 5, "k25": 4, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [0, 1, 1, 0], "totKetua": 2, "anggota": [1, 1, 2, 0], "totAnggota": 4, "totHibah": 6, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 4", "SDG 9"], "topik": "Pengembangan Aset Kreatif Berbasis Desain Komunikasi Visual", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6557", "prodi": "DKV", "nama": "Donna Carollina, S.Sn., MSn", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "ketua": [3, 0, 0, 0], "totKetua": 3, "anggota": [1, 0, 0, 0], "totAnggota": 1, "totHibah": 4, "tahunAktif": 1, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": [], "topik": null, "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0, "cluster": "Tidak tercatat", "statusHibah": "Tidak tercatat", "labelMentor": "Tidak tercatat", "kpiSumber": "Tidak tercatat", "k23": null, "k24": null, "k25": null}, {"kode": "D6999", "prodi": "DKV", "nama": "Elsa Graciana Nugraeni, S.Ds., M.Ds.", "tipe": "Functional Faculty(A)", "kolom": "TP S1 / TP S2", "ambang4": "SINTA", "skor5": "Skor 4 + paper Scopus >= 0,25", "skor6": "Skor 4 + paper Scopus >= 0,5", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": 0, "k25": 0, "cluster": "C", "statusHibah": "Belum pernah terlibat", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "sdg": ["SDG 8", "SDG 11"], "topik": "Pengembangan Aset Kreatif dan Identitas Visual Merek Berbasis Desain Komunikasi Visual", "jalur": "Functional", "jenjang": "S1/S2", "jabatan": "Tenaga Pengajar", "ambang4num": null, "ambang6num": 0.5}, {"kode": "D7002", "prodi": "DKV", "nama": "Erik Arma Yuda, S.Sn, M.Ds., Ph.D.", "tipe": "Professional Faculty(A)", "kolom": "L S3", "ambang4": "2.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": 4, "k25": 0, "cluster": "C", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 1], "totKetua": 1, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 1, "tahunAktif": 1, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 4", "SDG 8"], "topik": "1. Pengembangan board game edukasi sosial untuk B to B 2. Implementasi model transformasi", "jalur": "Professional", "jenjang": "S3", "jabatan": "Lektor", "ambang4num": 2.0, "ambang6num": 1.0}, {"kode": "D6392", "prodi": "DKV", "nama": "Hindam Basith Rafiqi, S.Sn., M.Sn.", "tipe": "Professional Faculty(A)", "kolom": "L S2", "ambang4": "0.50", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 0,50", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 4, "k25": 4, "cluster": "B", "statusHibah": "Hanya sebagai anggota", "labelMentor": "KANDIDAT MENTOR", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [2, 1, 2, 0], "totAnggota": 5, "totHibah": 5, "tahunAktif": 3, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": ["SDG 4", "SDG 8"], "topik": "AI-Driven Photography for Cultural Heritage and Immersive Storytelling : Pemanfaatan AI, cinemagraph, dan fotografi interaktif untuk pelestarian budaya lokal (misalnya Batik Malang, desa wisata, warisan budaya).", "jalur": "Professional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 0.5, "ambang6num": 0.5}, {"kode": "D6875", "prodi": "DKV", "nama": "Jevon Jeremy, S.Ds., M.Sn.", "tipe": "Professional Faculty(C)", "kolom": "TP S1 / TP S2", "ambang4": "SINTA", "skor5": "Skor 4 + paper Scopus >= 0,25", "skor6": "Skor 4 + paper Scopus >= 0,5", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": 3, "k25": 5, "cluster": "C", "statusHibah": "Hanya sebagai anggota", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 1, 0], "totAnggota": 1, "totHibah": 1, "tahunAktif": 1, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": ["SDG 4", "SDG 5"], "topik": "Perancangan kampanye edukasi visual menanggulangi problem gender war", "jalur": "Professional", "jenjang": "S1/S2", "jabatan": "Tenaga Pengajar", "ambang4num": null, "ambang6num": 0.5}, {"kode": "D6103", "prodi": "DKV", "nama": "Lutfi Tri Atmaji, S.T., M.Sn.", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 4, "k25": 6, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [1, 0, 0, 0], "totKetua": 1, "anggota": [2, 3, 3, 2], "totAnggota": 10, "totHibah": 11, "tahunAktif": 4, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 4", "SDG 9"], "topik": "Pengembangan Aset Kreatif Berbasis Desain Komunikasi Visual", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D5942", "prodi": "DKV", "nama": "Miranti Nurul Huda, S.Sn., M.Ds.", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 5, "k25": 5, "cluster": "C", "statusHibah": "Pernah menjadi ketua", "labelMentor": "KANDIDAT MENTOR", "ketua": [0, 1, 0, 0], "totKetua": 1, "anggota": [3, 2, 0, 0], "totAnggota": 5, "totHibah": 6, "tahunAktif": 2, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 8", "SDG 11"], "topik": "Pengembangan Aset Kreatif Berbasis UI/UX sebagai sarana edukasi kepada masyarakat", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6874", "prodi": "DKV", "nama": "Muhammad Khirzan Ulinnuha, S.T., M.Sn.", "tipe": "Professional Faculty(C)", "kolom": "TP S1 / TP S2", "ambang4": "SINTA", "skor5": "Skor 4 + paper Scopus >= 0,25", "skor6": "Skor 4 + paper Scopus >= 0,5", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": 0, "k25": 3, "cluster": "C", "statusHibah": "Hanya sebagai anggota", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 1, 1, 0], "totAnggota": 2, "totHibah": 2, "tahunAktif": 2, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": ["SDG 11"], "topik": "Penyusunan buku arsip ilustratif kekayaan visual kebudayaan Kota malang", "jalur": "Professional", "jenjang": "S1/S2", "jabatan": "Tenaga Pengajar", "ambang4num": null, "ambang6num": 0.5}, {"kode": "D6917", "prodi": "DKV", "nama": "Ni Putu Elvian Andreani, S.Ds., M.Ds.", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": 4, "k25": 4, "cluster": "C", "statusHibah": "Belum pernah terlibat", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "sdg": ["SDG 8", "SDG 11"], "topik": "Perancangan dan pengujian model digital destination branding berbasis fotografi, visual storytelling, dan media interaktif.", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D7026", "prodi": "DKV", "nama": "Reven Praga Deva, S.Ds., M.Ds.", "tipe": "Professional Faculty(A)", "kolom": "TP S1 / TP S2", "ambang4": "SINTA", "skor5": "Skor 4 + paper Scopus >= 0,25", "skor6": "Skor 4 + paper Scopus >= 0,5", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": 3, "k25": 0, "cluster": "C", "statusHibah": "Hanya sebagai anggota", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 1], "totAnggota": 1, "totHibah": 1, "tahunAktif": 1, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": ["SDG 8", "SDG 9"], "topik": "Pengembangan model framework strategis untuk dengan memanfaatkan AI untuk membuat tools pembuatan motif daerah berdasarkan framework/metode yang sesuai dengan konteks daerah", "jalur": "Professional", "jenjang": "S1/S2", "jabatan": "Tenaga Pengajar", "ambang4num": null, "ambang6num": 0.5}, {"kode": "D7000", "prodi": "DKV", "nama": "Reyza Dwi Dzulqarnain Kahfi, S.Sn., M.Ds.", "tipe": "Functional Faculty(A)", "kolom": "TP S1 / TP S2", "ambang4": "SINTA", "skor5": "Skor 4 + paper Scopus >= 0,25", "skor6": "Skor 4 + paper Scopus >= 0,5", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": 0, "k25": 0, "cluster": "C", "statusHibah": "Belum pernah terlibat", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "sdg": ["SDG 4", "SDG 11"], "topik": "Pengembangan Model Narasi Visual Berbasis Kearifan Lokal.", "jalur": "Functional", "jenjang": "S1/S2", "jabatan": "Tenaga Pengajar", "ambang4num": null, "ambang6num": 0.5}, {"kode": "D6775", "prodi": "DKV", "nama": "Rudi Yulio Arindiono, S.T., M.A", "tipe": "Professional Faculty(A)", "kolom": "AA S2", "ambang4": "0.50", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 0,25", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 3, "k25": 5, "cluster": "C", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTEE", "ketua": [0, 0, 1, 1], "totKetua": 2, "anggota": [0, 2, 0, 0], "totAnggota": 2, "totHibah": 4, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 8", "SDG 9"], "topik": "Pengembangan model kerangka kerja strategis (brand architecture & cultural integration framework) berbasis budaya dan teknologi untuk peningkatan nilai unik dan daya saing pasar.", "jalur": "Professional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 0.5, "ambang6num": 0.25}, {"kode": "D6496", "prodi": "DKV", "nama": "Safitri Aprillia Putri, S.Sn., M.Ds.", "tipe": "Professional Faculty(A)", "kolom": "AA S2", "ambang4": "0.50", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 0,25", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 4, "k25": 4, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [0, 1, 0, 0], "totKetua": 1, "anggota": [0, 1, 2, 1], "totAnggota": 4, "totHibah": 5, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 4", "SDG 8"], "topik": "Pengembangan media komunikasi visual berbasis teknologi kreatif (AI-assisted design, immersive media). Implementasi riset terapan pada pendidikan, pariwisata, dan industri kreatif.", "jalur": "Professional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 0.5, "ambang6num": 0.25}, {"kode": "D6262", "prodi": "DKV", "nama": "Satrya Dirgantara, ST, MSn", "tipe": "Professional Faculty(C)", "kolom": "L S2", "ambang4": "0.50", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 0,50", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 0, "k25": 4, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "KANDIDAT MENTOR", "ketua": [1, 0, 1, 0], "totKetua": 2, "anggota": [2, 0, 0, 0], "totAnggota": 2, "totHibah": 4, "tahunAktif": 2, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 4"], "topik": "Pengembangan buku dengan media pendukung interaktif serta uji coba kepada siswa.", "jalur": "Professional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 0.5, "ambang6num": 0.5}, {"kode": "D5845", "prodi": "DKV", "nama": "Victor Adiluhung Abednego, S.T., M.Ds.", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 3, "k25": 2, "cluster": "B", "statusHibah": "Hanya sebagai anggota", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 1, 0], "totAnggota": 1, "totHibah": 1, "tahunAktif": 1, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": [], "topik": null, "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6497", "prodi": "DKV", "nama": "Wahyu Kurnia Dewi, S.Sn., M.Sn.", "tipe": "Professional Faculty(C)", "kolom": "AA S2", "ambang4": "0.50", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 0,25", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 4, "k25": 4, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [2, 0, 0, 0], "totKetua": 2, "anggota": [1, 0, 1, 1], "totAnggota": 3, "totHibah": 5, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 4", "SDG 8"], "topik": "Pengembangan Aset Kreatif Berbasis Desain Komunikasi Visual", "jalur": "Professional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 0.5, "ambang6num": 0.25}, {"kode": "D6032", "prodi": "DKV", "nama": "Yongkie Angkawijaya, S.Sn., M.Ds.", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 2, "k24": 5, "k25": 4, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [1, 1, 1, 0], "totKetua": 3, "anggota": [0, 1, 0, 0], "totAnggota": 1, "totHibah": 4, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 8", "SDG 11"], "topik": "Mentransformasi hasil pendokumentasian menjadi eksplorasi desain, prototipe toolkit komunikasi visual, media edukasi/promosi interaktif, serta pengujian/validasi persepsi bersama mitra dan pemangku kepentingan", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D5838", "prodi": "DKV", "nama": "Yudhistya Ayu Kusumawati, S.Sn., M.Ds.", "tipe": "Functional Faculty(C)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 5, "k24": 5, "k25": 4, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [4, 2, 0, 0], "totKetua": 6, "anggota": [1, 1, 0, 0], "totAnggota": 2, "totHibah": 8, "tahunAktif": 2, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 8", "SDG 11"], "topik": "Pengembangan Aset Kreatif Berbasis Desain Komunikasi Visual", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6585", "prodi": "DI", "nama": "Andhika Pramalystianto, S.T., M.Ds.", "tipe": "Professional Faculty(C)", "kolom": "AA S2", "ambang4": "0.50", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 0,25", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 4, "k25": 4, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [1, 0, 2, 1], "totKetua": 4, "anggota": [2, 0, 2, 1], "totAnggota": 5, "totHibah": 9, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 4", "SDG 11"], "topik": "Konsep, model/prototipe, kebijakan, dan prototipe Komunikasi Lintas Budaya pada topik 3D visual interior desain: (1) pemilihan hasil eksplorasi 3D interior/arsitektur berbasis local content yang dapat diimplementasikan pada desain; (2) penerapan motif, ornamen, atau image style ke dalam karya desain melalui pemodelan/visual 3D berbasis local content.", "jalur": "Professional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 0.5, "ambang6num": 0.25}, {"kode": "D6339", "prodi": "DI", "nama": "Andi Pramono, S.T., M.Arch", "tipe": "Functional Faculty(C)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 5, "k24": 5, "k25": 4, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [0, 1, 2, 0], "totKetua": 3, "anggota": [0, 1, 1, 1], "totAnggota": 3, "totHibah": 6, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 11"], "topik": "Pengembangan Prototipe dan Validasi Sistem Pencahayaan Adaptif (Human-Centric Lighting) Berbasis IoT pada Lingkungan Panti Jompo untuk Evaluasi Efisiensi Energi dan Kesehatan Sirkadian.", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D7001", "prodi": "DI", "nama": "Asteria Nabila Noviandari Ernanda, S.Ds., M.Ds.", "tipe": "Functional Faculty(A)", "kolom": "TP S1 / TP S2", "ambang4": "SINTA", "skor5": "Skor 4 + paper Scopus >= 0,25", "skor6": "Skor 4 + paper Scopus >= 0,5", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": 0, "k25": 3, "cluster": "C", "statusHibah": "Hanya sebagai anggota", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 1, 0], "totAnggota": 1, "totHibah": 1, "tahunAktif": 1, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": ["SDG 8", "SDG 11"], "topik": "Pengujian dan validasi model hubungan identitas bisnis, branding, dan elemen interior terhadap pengalaman pengguna pada ruang komersial melalui pendekatan human-centered design.", "jalur": "Functional", "jenjang": "S1/S2", "jabatan": "Tenaga Pengajar", "ambang4num": null, "ambang6num": 0.5}, {"kode": "D3682", "prodi": "DI", "nama": "Bambang Kartono K, S.Sn., M.A.", "tipe": "Functional Faculty(C)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 4, "k25": 4, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [0, 1, 1, 0], "totKetua": 2, "anggota": [0, 0, 2, 0], "totAnggota": 2, "totHibah": 4, "tahunAktif": 2, "statusKeterlibatan": "Pernah menjadi ketua", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0, "sdg": [], "topik": null}, {"kode": "D6383", "prodi": "DI", "nama": "Baskoro Azis, S.T., M.T.", "tipe": "Functional Faculty(C)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 6, "k24": 4, "k25": 3, "cluster": "B", "statusHibah": "Hanya sebagai anggota", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [4, 0, 2, 1], "totAnggota": 7, "totHibah": 7, "tahunAktif": 3, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": ["SDG 4", "SDG 11"], "topik": "Implementasi dan Evaluasi Teknologi Imersif pada Interior Bangunan Bersejarah dan Fasilitas Publik: mengukur efektivitas penggunaan AR, virtual tour, dan rekonstruksi 3D terhadap kepuasan pengguna, keterlibatan pengunjung, serta pemahaman nilai budaya dan sejarah bangunan.", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6720", "prodi": "DI", "nama": "Brainnisa Ramadhani Nur Nisrina, S.Ds., M.Ds.", "tipe": "Professional Faculty(C)", "kolom": "AA S2", "ambang4": "0.50", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 0,25", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 5, "k25": 4, "cluster": "C", "statusHibah": "Pernah menjadi ketua", "labelMentor": "KANDIDAT MENTOR", "ketua": [1, 1, 0, 0], "totKetua": 2, "anggota": [0, 1, 1, 1], "totAnggota": 3, "totHibah": 5, "tahunAktif": 4, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 3", "SDG 4"], "topik": "Pengembangan prototipe skala 1:1 dan uji coba fungsional-psikologis adaptive modular reading furniture pada komunitas ruang publik Kota Malang.", "jalur": "Professional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 0.5, "ambang6num": 0.25}, {"kode": "D6790", "prodi": "DI", "nama": "Hilmi Dzakaaul Islam, S.Ds., M.Ds.", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 3, "k25": 5, "cluster": "C", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTEE", "ketua": [0, 0, 1, 1], "totKetua": 2, "anggota": [1, 0, 1, 0], "totAnggota": 2, "totHibah": 4, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 8", "SDG 11"], "topik": "Analisis bangunan warisan budaya pada kawasan heritage dan ekonomi kreatif berkelanjutan di Kota Malang (studi kasus: Kampoeng Heritage Kajoetangan), dengan fokus khusus pada interior dari aspek bentuk, makna, fungsi, ruang, dan aksesoris interior, serta kajian integrasi AI dan IoT pada bangunan heritage.", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6104", "prodi": "DI", "nama": "Ida Bagus Ananta Wijaya, S.T., M.T.", "tipe": "Functional Faculty(C)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 4, "k25": 4, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [0, 1, 2, 0], "totKetua": 3, "anggota": [1, 1, 1, 1], "totAnggota": 4, "totHibah": 7, "tahunAktif": 4, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 9", "SDG 11"], "topik": "(1) Implementasi dan validasi Smart Interior berbasis AI pada proyek riil bersama industri dan pemerintah daerah; (2) implementasi dan evaluasi desain interior berbasis local content pada UMKM dan industri kreatif; (3) pengujian dan penyempurnaan produk melalui living laboratory.", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6077", "prodi": "DI", "nama": "Ira Audia Agustina, S.T., M.Ds.", "tipe": "Functional Faculty(C)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 4, "k25": 4, "cluster": "B", "statusHibah": "Hanya sebagai anggota", "labelMentor": "KANDIDAT MENTOR", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 2, 0], "totAnggota": 2, "totHibah": 2, "tahunAktif": 1, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": ["SDG 3", "SDG 11"], "topik": "Pengembangan konsep dan prototipe desain interior cerdas-berkelanjutan yang mengintegrasikan data pengguna, AI/IoT/AR-VR, prinsip keberlanjutan, dan pengalaman ruang berbasis identitas lokal.", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6106", "prodi": "DI", "nama": "Tiara Ika Widia Primadani, S.T., M.Ds.", "tipe": "Functional Faculty(C)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 2, "k24": 4, "k25": 4, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [1, 1, 0, 0], "totKetua": 2, "anggota": [2, 1, 2, 0], "totAnggota": 5, "totHibah": 7, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 3", "SDG 11"], "topik": "Pengembangan model desain ruang berkelanjutan berbasis hasil baseline dan validasi pengguna (User-Centered Sustainable Interior Design), termasuk pengembangan prototipe furnitur ergonomis adaptif.", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6167", "prodi": "DI", "nama": "Wahyu Waskito Putra, S.Sn., M.Sn.", "tipe": "Professional Faculty(C)", "kolom": "L S2", "ambang4": "0.50", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 0,50", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 4, "k25": 4, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [1, 1, 1, 0], "totKetua": 3, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 3, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 9", "SDG 12"], "topik": "(1) Implementasidan validasiprodukupcycling pada pengguna/mitra; (2) pengujiansmart lighting/fitur teknologisertaevaluasiergonomidan pengalamanpengguna; (3) penyempurnaanprototipeberbasis data penggunaandan evaluasilapangan.", "jalur": "Professional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 0.5, "ambang6num": 0.5}, {"kode": "D6263", "prodi": "PR", "nama": "Achmad Safiaji, S.I.Kom., M.I.Kom", "tipe": "Professional Faculty(A)", "kolom": "AA S2", "ambang4": "0.50", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 0,25", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 3, "k25": 3, "cluster": "C", "statusHibah": "Hanya sebagai anggota", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 1, 2, 0], "totAnggota": 3, "totHibah": 3, "tahunAktif": 2, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": [], "topik": null, "jalur": "Professional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 0.5, "ambang6num": 0.25}, {"kode": "D6070", "prodi": "PR", "nama": "Adhimurti Citra Amalia, S.Ant., M.Med.Kom.", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 5, "k25": 4, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [0, 1, 1, 1], "totKetua": 3, "anggota": [0, 0, 1, 2], "totAnggota": 3, "totHibah": 6, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 8", "SDG 11"], "topik": "1. Pendampingan AI-based digital branding untuk 15 UMKM dan komunitas wisata. Output: brand guideline dan storytelling multiplatform.", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D5836", "prodi": "PR", "nama": "Anindya Widita, B.A., M.A.", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 4, "k24": 4, "k25": 1, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "KANDIDAT MENTOR", "ketua": [1, 0, 0, 0], "totKetua": 1, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 1, "tahunAktif": 1, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": [], "topik": null, "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6069", "prodi": "PR", "nama": "Eflina Nurdini Febrita Mona, S.I.Kom., M.I.Kom.", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 5, "k25": 4, "cluster": "C", "statusHibah": "Pernah menjadi ketua", "labelMentor": "KANDIDAT MENTOR", "ketua": [1, 0, 1, 0], "totKetua": 2, "anggota": [0, 0, 2, 0], "totAnggota": 2, "totHibah": 4, "tahunAktif": 2, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 4", "SDG 8"], "topik": "1. Demonstrasi model komunikasi strategik dalam lingkungan relevan. Rekomendasi tata laksana komunikasi strategik dan keberlangsungan korporasi. Tersedia rancangan", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D5910", "prodi": "PR", "nama": "Gabriela Sagita Putri, S.Sosio., M.Med.Kom.", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 5, "k24": 4, "k25": 4, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [1, 1, 1, 0], "totKetua": 3, "anggota": [1, 1, 3, 2], "totAnggota": 7, "totHibah": 10, "tahunAktif": 4, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 8", "SDG 17"], "topik": "1. Demonstrasimodel komunikasistrategikdalamlingkunganrelevan. Rekomendasitata laksanakomunikasistrategik dan keberlangsungankorporasi. Tersediarancangan", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D5837", "prodi": "PR", "nama": "Galuh Ayu Savitri, S.I.Kom., M.I.Kom.", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 4, "k25": 2, "cluster": "C", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTEE", "ketua": [1, 1, 0, 0], "totKetua": 2, "anggota": [0, 1, 2, 1], "totAnggota": 4, "totHibah": 6, "tahunAktif": 4, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 8", "SDG 9"], "topik": "Topik penelitian prioritas tahun 2027 difokuskan pada tahap pengujian, pengembangan prototype/model, dan validasi. Hasil penelitian akan menjadi dasar penyempurnaan model,", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6381", "prodi": "PR", "nama": "Lailatul Rif'ah, S.Pd., M.Pd.", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "KANDIDAT MENTOR", "k23": 0, "kpiSumber": "Tabel Mentor", "k24": 0, "k25": 0, "ketua": [0, 1, 0, 0], "totKetua": 1, "anggota": [2, 0, 0, 0], "totAnggota": 2, "totHibah": 3, "tahunAktif": 2, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 4", "SDG 8"], "topik": "1. Demonstrasi model komunikasi strategik dalam lingkungan relevan. Rekomendasi tata laksana komunikasi strategik dan keberlangsungan korporasi. Tersedia rancangan", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D5936", "prodi": "PR", "nama": "Nisrin Husna, S.I.Kom., M.I.Kom.", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 2, "k24": 5, "k25": 5, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [0, 1, 1, 1], "totKetua": 3, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 3, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 4", "SDG 8"], "topik": "1. Demonstrasi model komunikasi strategik dalam lingkungan relevan. Rekomendasi tata laksana komunikasi strategik dan keberlangsungan korporasi. Tersedia rancangan", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6395", "prodi": "PR", "nama": "Okky Pramudita, S.I.Kom., M.I.Kom", "tipe": "Professional Faculty(A)", "kolom": "AA S2", "ambang4": "0.50", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 0,25", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 4, "k25": 4, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [0, 0, 1, 0], "totKetua": 1, "anggota": [1, 0, 2, 1], "totAnggota": 4, "totHibah": 5, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": [], "topik": null, "jalur": "Professional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 0.5, "ambang6num": 0.25}, {"kode": "D6529", "prodi": "DIGICOM", "nama": "Bhekti Setyowibowo, S.Ikom., M.Si.", "tipe": "Professional Faculty(A)", "kolom": "AA S2", "ambang4": "0.50", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 0,25", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 4, "k25": 3, "cluster": "C", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTEE", "ketua": [0, 0, 1, 0], "totKetua": 1, "anggota": [1, 1, 2, 0], "totAnggota": 4, "totHibah": 5, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 4", "SDG 8"], "topik": "Film Studies, Industri Kreatif, Media Digital", "jalur": "Professional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 0.5, "ambang6num": 0.25}, {"kode": "D5925", "prodi": "DIGICOM", "nama": "Frederik Masri Gasa, S.IP., M.Si.", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 4, "k25": 4, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [1, 1, 3, 0], "totKetua": 5, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 5, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 4", "SDG 8"], "topik": "Digital literacy, Political Communication in Digital Age, Digital Society", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6295", "prodi": "DIGICOM", "nama": "Lila Nathania, S.I.Kom., M.Litt.", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 2, "k24": 5, "k25": 4, "cluster": "B", "statusHibah": "Hanya sebagai anggota", "labelMentor": "KANDIDAT MENTOR", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 1, 0], "totAnggota": 1, "totHibah": 1, "tahunAktif": 1, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": ["SDG 4", "SDG 8"], "topik": "Komunikasi Lingkungan, Digital Campaign, Social Media Studies", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D5911", "prodi": "DIGICOM", "nama": "Nur Kholis, S.S., M.I.Kom", "tipe": "Professional Faculty(A)", "kolom": "AA S2", "ambang4": "0.50", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 0,25", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 3, "k25": 4, "cluster": "C", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTEE", "ketua": [0, 1, 0, 0], "totKetua": 1, "anggota": [0, 1, 2, 0], "totAnggota": 3, "totHibah": 4, "tahunAktif": 2, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 4", "SDG 8"], "topik": "Komunikasi Organisasi, Manajemen Media, Industri Media", "jalur": "Professional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 0.5, "ambang6num": 0.25}, {"kode": "D6773", "prodi": "DIGICOM", "nama": "Radityo Widiatmojo, S.Sos., M.Si.", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 4, "k25": 4, "cluster": "B", "statusHibah": "Hanya sebagai anggota", "labelMentor": "KANDIDAT MENTOR", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [1, 0, 2, 0], "totAnggota": 3, "totHibah": 3, "tahunAktif": 2, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": ["SDG 4", "SDG 8"], "topik": "Visual Literacy, Visual Learning, Algorithm Literacy", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6926", "prodi": "DIGICOM", "nama": "Rio Satria Nugroho, S.Hum., M.Med.Kom.", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": 5, "k25": 3, "cluster": "C", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTEE", "ketua": [0, 0, 1, 1], "totKetua": 2, "anggota": [0, 0, 2, 2], "totAnggota": 4, "totHibah": 6, "tahunAktif": 2, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 4", "SDG 8"], "topik": "Cyberculture, Digital Science Communication, Sustainability Studies, Digital identity.", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6772", "prodi": "DIGICOM", "nama": "Wahyu Kristian Natalia, S.I.Kom., M.I.Kom.", "tipe": "Professional Faculty(A)", "kolom": "L S2", "ambang4": "0.50", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 0,50", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 4, "k25": 6, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [1, 0, 1, 0], "totKetua": 2, "anggota": [1, 0, 0, 1], "totAnggota": 2, "totHibah": 4, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 4", "SDG 8"], "topik": "media management, digital journalism, ethics and social media", "jalur": "Professional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 0.5, "ambang6num": 0.5}, {"kode": "D5567", "prodi": "DIGICOM", "nama": "Windaningsih, S.Sos., M.I.Kom", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 4, "k25": 4, "cluster": "B", "statusHibah": "Hanya sebagai anggota", "labelMentor": "KANDIDAT MENTOR", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 1, 2, 0], "totAnggota": 3, "totHibah": 3, "tahunAktif": 2, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": ["SDG 4", "SDG 8"], "topik": "kajian gender, media dan Teknologi, komunikasi keluarga di era digital, literasi digital", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D5839", "prodi": "DIGICOM", "nama": "Yanuarita Kusuma Permata Sari, S.Sosio., M.Med.Kom.", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 3, "k25": 0, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "KANDIDAT MENTOR", "ketua": [1, 0, 0, 0], "totKetua": 1, "anggota": [1, 0, 0, 0], "totAnggota": 1, "totHibah": 2, "tahunAktif": 1, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 4", "SDG 8"], "topik": "Etika, Literasi, dan Kemanusiaan dalam Budaya Media Digital", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6384", "prodi": "CBDC", "nama": "Dika Sri Pandanari, S.Fil., M.Sos.", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 3, "k25": 5, "cluster": "C", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTEE", "ketua": [0, 1, 1, 0], "totKetua": 2, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 2, "tahunAktif": 2, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 11", "SDG 16"], "topik": "Belum dirumuskan sebagai topik substantif. Dokumen hanya menyatakan tahap: \"fokus pengujian, pengembangan model/prototype, validasi\", sebagai kelanjutan topik 2026 (pemetaan permasalahan bidang teknologi, budaya, dan kajian kebijakan terkini).", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6266", "prodi": "CBDC", "nama": "Faishal Hilmy Maulida, S.Hum., M.Hum.", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 5, "k24": 5, "k25": 6, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [0, 1, 1, 0], "totKetua": 2, "anggota": [2, 0, 0, 0], "totAnggota": 2, "totHibah": 4, "tahunAktif": 3, "statusKeterlibatan": "Pernah menjadi ketua", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0, "sdg": [], "topik": null}, {"kode": "D6162", "prodi": "CBDC", "nama": "Gamal Kusuma Zamahsari, S.Pd., M.Pd.", "tipe": "Professional Faculty(A)", "kolom": "L S2", "ambang4": "0.50", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 0,50", "kpiSumber": "Tabel Score KPI", "k23": 4, "k24": 6, "k25": 0, "cluster": "B", "statusHibah": "Hanya sebagai anggota", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 1, 0], "totAnggota": 1, "totHibah": 1, "tahunAktif": 1, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": ["SDG 4", "SDG 11"], "topik": "Fokus 1 -AI dalam pembelajaran dan asesmen: rancang bangun modul asesmen berbantuan AI dengan rubrik MKWK dan mekanisme human-in-the-loop; uji kesepakatan penilai antara penskoran AI dan dosen (analisis reliabilitas); eksperimen dampak umpan balik berbantuan AI terhadap kualitas tulisan mahasiswa; pengembangan dan uji modul peningkatan literasi AI dosen. Fokus 2 -Perkembangan bahasa di era digital: pengembangan indikator dan butir pengukuran kesantunan serta etika berbahasa digital berbasis korpus. Fokus 3 -BIPA (rintisan): studi kelayakan penerapan modul pada pemelajar BIPA (pemetaan kebutuhan dan kesenjangan konstruk).", "jalur": "Professional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 0.5, "ambang6num": 0.5}, {"kode": "D6701", "prodi": "CBDC", "nama": "Gedong Maulana Kabir, S.Ag., M.A.", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 3, "k25": 2, "cluster": "C", "statusHibah": "Belum pernah terlibat", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "sdg": ["SDG 5", "SDG 16"], "topik": "Praktek religius kontemporer generasi muda. Riset multidisiplin: model beragama generasi muda dalam konteks media (ilmu komunikasi).", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6337", "prodi": "CBDC", "nama": "Mufidah Nur Amalia, S.Pd., M.Pd.", "tipe": "Professional Faculty(A)", "kolom": "L S2", "ambang4": "0.50", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 0,50", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 5, "k25": 4, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [0, 1, 0, 0], "totKetua": 1, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 1, "tahunAktif": 1, "statusKeterlibatan": "Pernah menjadi ketua", "jalur": "Professional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 0.5, "ambang6num": 0.5, "sdg": [], "topik": null}, {"kode": "D6923", "prodi": "CBDC", "nama": "Muhammad Reza Alfasina, S.Ag., M.Phil.", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": 5, "k25": 5, "cluster": "C", "statusHibah": "Hanya sebagai anggota", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 1, 0], "totAnggota": 1, "totHibah": 1, "tahunAktif": 1, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": ["SDG 4", "SDG 16"], "topik": "Pengembangan Model Pembelajaran Karakter dan Bahasa Berbasis Etika dan Teknologi Berkelanjutan, melalui studi kasus kearifan lokal termediasi budaya digital yang dikaitkan dengan nilai Pancasila dan kerukunan beragama. Kerja riset: penyusunan Systematic Literature Review lintas prodi dan penetapan objek studi kasus.", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6112", "prodi": "CBDC", "nama": "Nina Amalia Nurichsania, S.Pd., M.Pd.", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 5, "k25": 0, "cluster": "C", "statusHibah": "Belum pernah terlibat", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0, "sdg": [], "topik": null}, {"kode": "D6335", "prodi": "CBDC", "nama": "Pandu Meidian Pratama, S.Pd., M.Pd.", "tipe": "Professional Faculty(A)", "kolom": "L S2", "ambang4": "0.50", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 0,50", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 4, "k25": 0, "cluster": "B", "statusHibah": "Hanya sebagai anggota", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 1, 0], "totAnggota": 1, "totHibah": 1, "tahunAktif": 1, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": ["SDG 4", "SDG 8"], "topik": "Pengembangan dan validasi model/media pembelajaran Bahasa Indonesia berbasis teknologi digital, melalui kolaborasi Bahasa Indonesia, pendidikan, desain, dan TI.", "jalur": "Professional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 0.5, "ambang6num": 0.5}, {"kode": "D6071", "prodi": "CBDC", "nama": "Priskardus Hermanto Candra, S.S., M.Hum.", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 4, "k24": 4, "k25": 4, "cluster": "B", "statusHibah": "Belum pernah terlibat", "labelMentor": "KANDIDAT MENTOR", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "sdg": ["SDG 10", "SDG 11"], "topik": "Pengembangan model pendidikan dan pemberdayaan komunitas berbasis integrasi budaya, agama, dan teknologi digital untuk meningkatkan kapasitas masyarakat dan kohesi sosial. Roadmap pengabdian 2027: dialog budaya dan agama sebagai jembatan.", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D7051", "prodi": "CBDC", "nama": "Romanus Piter, S.Fil., M.Fil.", "tipe": "Professional Faculty(A)", "kolom": "TP S1 / TP S2", "ambang4": "SINTA", "skor5": "Skor 4 + paper Scopus >= 0,25", "skor6": "Skor 4 + paper Scopus >= 0,5", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": 3, "k25": 5, "cluster": "C", "statusHibah": "Belum pernah terlibat", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "sdg": ["SDG 4", "SDG 11"], "topik": "DigitalisasikearifanlokalmelaluiDigital Storytelling dan Digital Humanities. Riset multidisiplinHumaniora+ IlmuKomputer: pengembanganarsipdigital, digital storytelling, dan visualisasibudaya.", "jalur": "Professional", "jenjang": "S1/S2", "jabatan": "Tenaga Pengajar", "ambang4num": null, "ambang6num": 0.5}, {"kode": "D5943", "prodi": "DLLC", "nama": "Asih Zunaidah, S.S., M.Li.", "tipe": "Functional Faculty(A)", "kolom": "L S2", "ambang4": "1.00", "skor5": "Skor 4 + ada paper jurnal Scopus", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 3, "k24": 4, "k25": 4, "cluster": "B", "statusHibah": "Pernah menjadi ketua", "labelMentor": "MENTOR", "ketua": [0, 1, 0, 0], "totKetua": 1, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 1, "tahunAktif": 1, "statusKeterlibatan": "Pernah menjadi ketua", "sdg": ["SDG 4"], "topik": "Pengembangan dan evaluasi model pembelajaran bahasa Inggris berbasis teknologi yang mendukung English for Specific Purposes (ESP), komunikasi profesional, dan peningkatan kompetensi bahasa mahasiswa melalui penerapan berbagai media dan platform pembelajaran digital.", "jalur": "Functional", "jenjang": "S2", "jabatan": "Lektor", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D6336", "prodi": "DLLC", "nama": "Miftahul Hamim, S.Pd., M.Pd.", "tipe": "Functional Faculty(A)", "kolom": "AA S2", "ambang4": "1.00", "skor5": "bobot >= 1,50", "skor6": "Skor 4 + paper jurnal Scopus >= 1,00", "kpiSumber": "Tabel Score KPI", "k23": 0, "k24": 5, "k25": 2, "cluster": "C", "statusHibah": "Hanya sebagai anggota", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 1], "totAnggota": 1, "totHibah": 1, "tahunAktif": 1, "statusKeterlibatan": "Hanya sebagai anggota", "sdg": ["SDG 4"], "topik": "Configuring Student Mastery on AI-Assisted Writing Descriptive Essay: pengembangandan evaluasistrategi pembelajaranmenulisberbasisAI untukmeningkatkankualitasdescriptive essay mahasiswa.", "jalur": "Functional", "jenjang": "S2", "jabatan": "Asisten Ahli", "ambang4num": 1.0, "ambang6num": 1.0}, {"kode": "D7191", "prodi": "DIGIPHY", "nama": "Natasha Gandhi, S.Psi., M.Psi.", "tipe": "Professional Faculty(A)", "kolom": "TP S1 / TP S2", "ambang4": "SINTA", "skor5": "Skor 4 + paper Scopus >= 0,25", "skor6": "Skor 4 + paper Scopus >= 0,5", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": null, "k25": 0, "cluster": "C", "statusHibah": "Belum pernah terlibat", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "sdg": ["SDG 3", "SDG 4"], "topik": "Pengembangandan Uji KelayakanIntervensiDigital Social Well-Being untukMengurangiLoneliness serta MeningkatkanSocial Connectedness pada Mahasiswa.", "jalur": "Professional", "jenjang": "S1/S2", "jabatan": "Tenaga Pengajar", "ambang4num": null, "ambang6num": 0.5}, {"kode": "D7192", "prodi": "DIGIPHY", "nama": "Pranedia Nilamsari, S.Psi., M.Psi.", "tipe": "Professional Faculty(A)", "kolom": "TP S1 / TP S2", "ambang4": "SINTA", "skor5": "Skor 4 + paper Scopus >= 0,25", "skor6": "Skor 4 + paper Scopus >= 0,5", "kpiSumber": "Tabel Score KPI", "k23": null, "k24": null, "k25": 0, "cluster": "C", "statusHibah": "Belum pernah terlibat", "labelMentor": "MENTEE", "ketua": [0, 0, 0, 0], "totKetua": 0, "anggota": [0, 0, 0, 0], "totAnggota": 0, "totHibah": 0, "tahunAktif": 0, "statusKeterlibatan": "Belum pernah terlibat", "sdg": ["SDG 3", "SDG 11"], "topik": "Validasidan pengujianmodel algorithm self-doubt pada penggunaAI generatif, denganmengidentifikasifaktor psikologisdan polapenggunaanAI yang berkontribusiterhadapmunculnyakeraguanterhadappenilaiandiri.", "jalur": "Professional", "jenjang": "S1/S2", "jabatan": "Tenaga Pengajar", "ambang4num": null, "ambang6num": 0.5}], "prodiNama": {"EBC": "Entrepreneurship & Business Creation", "CS": "Computer Science", "DKV": "Desain Komunikasi Visual", "DI": "Desain Interior", "PR": "Public Relations", "DIGICOM": "Digital Communication", "CBDC": "Character Building Development Center", "DLLC": "Language Center", "DIGIPHY": "Psychology"}, "cluster": {"A": {"kriteria": ["Pendidikan S3 atau JJA Lektor/LK/GB", "Memiliki publikasi Scopus", "Pernah menjadi ketua riset eksternal"], "hibah": ["PIB-TERAPAN", "PIB-DASAR", "BBD-UN", "BPL-TTG"]}, "B": {"kriteria": ["Pendidikan S3 atau JJA Lektor/LK/GB", "Memiliki publikasi Scopus", "Belum pernah menjadi ketua riset eksternal"], "hibah": ["PIB-TERAPAN", "PIB-DASAR", "BBD-UN", "BPL-TTG"]}, "C": {"kriteria": ["Belum memenuhi kriteria Cluster A & B", "Menjadi member RIG / Research Center"], "hibah": ["PPB", "BBD-UN", "BPL-TTG"]}}, "matriks": [{"kolom": "AA S2", "f3": 0.5, "f4": 1.0, "f5": "Skor 4 + bobot ≥ 1,5", "f6": 1.0, "p3": 0.25, "p4": 0.5, "p5": "Skor 4 + paper jurnal Scopus", "p6": 0.25}, {"kolom": "L S2", "f3": 0.5, "f4": 1.0, "f5": "Skor 4 + paper jurnal Scopus", "f6": 1.0, "p3": 0.25, "p4": 0.5, "p5": "Skor 4 + paper jurnal Scopus", "p6": 0.5}, {"kolom": "AA S3 / TP S3 / LK S2", "f3": 1.0, "f4": 2.0, "f5": "Skor 4 + paper jurnal Scopus", "f6": 1.5, "p3": 0.75, "p4": 1.0, "p5": "Skor 4 + paper jurnal Scopus", "p6": 1.0}, {"kolom": "L S3 / LK S3 (F) · L S3 (P)", "f3": 3.0, "f4": 4.0, "f5": "Skor 4 + paper jurnal Scopus", "f6": 2.0, "p3": 1.0, "p4": 2.0, "p5": "Skor 4 + paper jurnal Scopus", "p6": 1.0}, {"kolom": "GB", "f3": 5.0, "f4": 6.0, "f5": "Skor 4 + paper jurnal Scopus", "f6": 2.0, "p3": null, "p4": null, "p5": null, "p6": null}]};
+const DOSEN = D.dosen, PRODI = D.prodiNama;
+
+/* ---------- helper ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const n1 = x => (x==null||isNaN(x))?"–":(Math.round(x*10)/10).toLocaleString("id-ID",{minimumFractionDigits:1,maximumFractionDigits:1});
+const n0 = x => (x==null||isNaN(x))?"–":Math.round(x).toLocaleString("id-ID");
+const n2 = x => (x==null||isNaN(x))?"–":(Math.round(x*100)/100).toLocaleString("id-ID",{minimumFractionDigits:2,maximumFractionDigits:2});
+const MAXSCORE = 6, STANDAR = 4;
+const pct = s => s==null?null:(s/MAXSCORE)*100;
+const shortName = s => String(s).split(",")[0].replace(/^(Dr\.|Ir\.|Prof\.)\s*/,"").trim();
+const HALO = 'style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round"';
+
+const CAT = [
+  {k:"Excellent",        c:"#12764C", min:100, desc:"skor 6 dari 6"},
+  {k:"Good",             c:"#2E77C4", min:75,  desc:"skor 5"},
+  {k:"Moderate",         c:"#C89A20", min:50,  desc:"skor 3–4"},
+  {k:"Need Improvement", c:"#A93226", min:0,   desc:"skor 0–2"}
+];
+const catOf = s => s==null?null:(CAT.find(c=>pct(s)>=c.min)||CAT[3]);
+const catColor = k => (CAT.find(c=>c.k===k)||{}).c || "#93A3B5";
+const tone = p => p>=100?"ok":p>=70?"warn":"bad";
+const TONEC = {ok:"#12764C",warn:"#B5790C",bad:"#A93226"};
+const LABC = {"MENTOR":"#12764C","KANDIDAT MENTOR":"#C89A20","MENTEE":"#A93226","Tidak tercatat":"#93A3B5"};
+const HIBC = {"Pernah menjadi ketua":"#12764C","Hanya sebagai anggota":"#2E77C4","Belum pernah terlibat":"#A93226","Tidak tercatat":"#93A3B5"};
+const YEARS = ["2023","2024","2025"], HYEARS = ["2023","2024","2025","2026"];
+
+/* ---------- state ---------- */
+const S = {year:"2025", prodi:"", type:"", pend:"", jja:"", clu:"", lab:"", dosen:"", topN:10, q:""};
+const scoreOf = (d,y) => d["k"+y.slice(2)];
+const passFilters = d =>
+     (!S.prodi || d.prodi===S.prodi) && (!S.type || d.tipe===S.type)
+  && (!S.pend  || d.jenjang===S.pend) && (!S.jja || d.jabatan===S.jja)
+  && (!S.clu   || d.cluster===S.clu)  && (!S.lab || d.labelMentor===S.lab)
+  && (!S.dosen || d.nama===S.dosen);
+const scope = () => DOSEN.filter(passFilters);
+const avgOf = (list,y) => { const v=list.map(d=>scoreOf(d,y)).filter(x=>x!=null); return v.length? v.reduce((a,b)=>a+b,0)/v.length : null; };
+
+/* ---------- tooltip ---------- */
+const tipEl = $("tip");
+function bindTip(el, html){
+  const move = e => {
+    const r = tipEl.getBoundingClientRect();
+    let x = e.clientX+14, y = e.clientY-10;
+    if(x+r.width > innerWidth-8) x = e.clientX-r.width-14;
+    if(y+r.height > innerHeight-8) y = innerHeight-r.height-8;
+    tipEl.style.left = x+"px"; tipEl.style.top = Math.max(8,y)+"px";
+  };
+  el.addEventListener("mouseenter", e=>{ tipEl.innerHTML=html; tipEl.style.opacity=1; move(e); });
+  el.addEventListener("mousemove", move);
+  el.addEventListener("mouseleave", ()=>{ tipEl.style.opacity=0; });
+}
+const tips = root => root.querySelectorAll("[data-tip]").forEach(el=>bindTip(el, el.getAttribute("data-tip")));
+
+/* ---------- filters ---------- */
+const uniq = fn => [...new Set(DOSEN.map(fn).filter(Boolean))];
+const fill = (sel, items, allLabel) =>
+  sel.innerHTML = `<option value="">${allLabel}</option>` + items.map(v=>`<option value="${esc(v.v)}">${esc(v.t)}</option>`).join("");
+
+function buildFilters(){
+  $("fYear").innerHTML = YEARS.slice().reverse().map(y=>`<option value="${y}"${y===S.year?" selected":""}>${y}</option>`).join("");
+  fill($("fProdi"), Object.keys(PRODI).filter(k=>DOSEN.some(d=>d.prodi===k)).map(k=>({v:k,t:`${k} — ${PRODI[k]}`})), "Semua prodi");
+  fill($("fType"),  uniq(d=>d.tipe).sort().map(v=>({v,t:v})), "Semua tipe");
+  fill($("fPend"),  ["S2","S3","S3 (atau LK S2)","S1/S2","—","Tidak terpetakan"].filter(j=>DOSEN.some(d=>d.jenjang===j)).map(v=>({v,t:v})), "Semua jenjang");
+  fill($("fJJA"),   uniq(d=>d.jabatan).sort().map(v=>({v,t:v})), "Semua jabatan");
+  fill($("fClu"),   ["A","B","C","Tidak tercatat"].filter(c=>DOSEN.some(d=>d.cluster===c)).map(v=>({v,t:`Cluster ${v}`.replace("Cluster Tidak tercatat","Tidak tercatat")})), "Semua cluster");
+  fill($("fLab"),   ["MENTOR","KANDIDAT MENTOR","MENTEE","Tidak tercatat"].filter(l=>DOSEN.some(d=>d.labelMentor===l)).map(v=>({v,t:v})), "Semua label");
+  refreshDosenList();
+  const on = (id,k)=>$(id).addEventListener("change",e=>{ S[k]=e.target.value; if(k!=="dosen") refreshDosenList(); render(); });
+  ["fYear|year","fProdi|prodi","fType|type","fPend|pend","fJJA|jja","fClu|clu","fLab|lab","fDosen|dosen"]
+    .forEach(s=>{ const [id,k]=s.split("|"); on(id,k); });
+  $("fReset").addEventListener("click",()=>{
+    ["prodi","type","pend","jja","clu","lab","dosen"].forEach(k=>S[k]="");
+    ["fProdi","fType","fPend","fJJA","fClu","fLab"].forEach(i=>$(i).value="");
+    refreshDosenList(); render();
+  });
+  $("topToggle").addEventListener("click",e=>{
+    const b=e.target.closest("button"); if(!b) return;
+    S.topN=+b.dataset.n;
+    [...$("topToggle").children].forEach(x=>x.setAttribute("aria-pressed", x===b));
+    renderTop();
+  });
+  $("fTopik").addEventListener("input",e=>{ S.q=e.target.value.trim().toLowerCase(); renderTopik(); });
+}
+function refreshDosenList(){
+  const keep=S.dosen;
+  const list = DOSEN.filter(d=>(!S.prodi||d.prodi===S.prodi)&&(!S.type||d.tipe===S.type)&&(!S.pend||d.jenjang===S.pend)
+      &&(!S.jja||d.jabatan===S.jja)&&(!S.clu||d.cluster===S.clu)&&(!S.lab||d.labelMentor===S.lab))
+    .map(d=>d.nama).sort((a,b)=>a.localeCompare(b,"id"));
+  fill($("fDosen"), list.map(v=>({v,t:v.length>38?v.slice(0,36)+"…":v})), "Semua dosen");
+  if(list.includes(keep)) $("fDosen").value=keep; else S.dosen="";
+}
+
+/* ---------- 01 KPI cards ---------- */
+function renderKPI(){
+  const rows = scope(), y = S.year;
+  const scored = rows.map(d=>scoreOf(d,y)).filter(v=>v!=null);
+  const avg = scored.length ? scored.reduce((a,b)=>a+b,0)/scored.length : null;
+  const avgPct = avg==null?null:pct(avg);
+  const memenuhi = rows.filter(d=>{const s=scoreOf(d,y); return s!=null && s>=STANDAR;}).length;
+  const achPct = scored.length ? memenuhi/scored.length*100 : null;
+  const risk = rows.filter(d=>{const s=scoreOf(d,y); return s!=null && pct(s)<50;}).length;
+  const hibah = rows.reduce((a,d)=>a+d.totHibah,0);
+  const ketua = rows.reduce((a,d)=>a+d.totKetua,0);
+  const noData = rows.length - scored.length;
+  const avgT = avgPct==null?"warn":tone(avgPct), achT = achPct==null?"warn":tone(achPct);
+
+  const card = o => `<div class="kpi ${o.tone||''}">
+      <div class="lab">${o.lab}</div>
+      <div class="val num">${o.val}${o.unit?`<small> ${o.unit}</small>`:""}</div>
+      ${o.bar!=null?`<div class="bar"><i style="width:${Math.min(100,o.bar)}%;background:${TONEC[o.tone]||'#5B98D8'}"></i></div>`:""}
+      <div class="foot">${o.dotc?`<span class="dot" style="background:${o.dotc}"></span>`:""}${o.foot}</div></div>`;
+
+  $("kpiRow").innerHTML = [
+    card({lab:"Total dosen", val:n0(rows.length), foot:`${n0(scored.length)} punya skor ${y}${noData?` · ${n0(noData)} tanpa data`:""}`}),
+    card({lab:"Program studi", val:n0(new Set(rows.map(d=>d.prodi)).size),
+          foot: S.prodi?esc(PRODI[S.prodi]||S.prodi):"Seluruh prodi dalam cakupan"}),
+    card({lab:`Rata-rata KPI ${y}`, val:n1(avg), unit:`/ ${MAXSCORE}`, tone:avgT, bar:avgPct, dotc:TONEC[avgT],
+          foot:`${avgPct==null?"–":n1(avgPct)+"% dari skor penuh"}`}),
+    card({lab:"Memenuhi standar matriks", val:achPct==null?"–":n1(achPct), unit:"%", tone:achT, bar:achPct, dotc:TONEC[achT],
+          foot:`${n0(memenuhi)} dosen berskor ≥ ${STANDAR} pada ${y}`}),
+    card({lab:"Keterlibatan hibah 2023–2026", val:n0(hibah),
+          foot:`${n0(ketua)} peran ketua · ${n1(rows.length?hibah/rows.length:0)} per dosen`}),
+    card({lab:"Dosen di bawah 50%", val:n0(risk), tone: risk===0?"ok":(scored.length&&risk/scored.length>0.2?"bad":"warn"),
+          bar: scored.length?risk/scored.length*100:0,
+          foot:`${scored.length?n1(risk/scored.length*100):"0"}% dari dosen berskor ${y}`})
+  ].join("");
+
+  $("kpiSub").textContent = "Ambang warna: hijau ≥100%, kuning 70–99%, merah <70% terhadap target.";
+  const flag = rows.filter(d=>d.kpiSumber==="Tabel Mentor").length;
+  $("scope").innerHTML = `Cakupan aktif: <b class="num">${n0(rows.length)}</b> dosen · tahun <b>${y}</b>`
+    + (noData?` · <b class="num">${n0(noData)}</b> tanpa skor`:"")
+    + (flag?` · <b class="num">${n0(flag)}</b> skor dari tabel mentor`:"");
+}
+
+/* ---------- 02 line ---------- */
+function renderTrend(){
+  const W=660,H=300,mL=44,mR=124,mT=26,mB=36;
+  const px = i => mL + i*((W-mL-mR)/(YEARS.length-1));
+  const py = v => mT + (1 - v/MAXSCORE)*(H-mT-mB);
+  const rows = scope();
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Tren rata-rata skor KPI 2023 sampai 2025">`;
+  for(let g=0; g<=6; g++){
+    const yy=py(g);
+    s += `<line class="gridline" x1="${mL}" y1="${yy}" x2="${W-mR}" y2="${yy}"/><text class="tick" x="${mL-9}" y="${yy+4}" text-anchor="end">${g}</text>`;
+  }
+  s += `<line x1="${mL}" y1="${py(STANDAR)}" x2="${W-mR}" y2="${py(STANDAR)}" stroke="#12764C" stroke-width="1.3" stroke-dasharray="6 4" opacity=".55"/>`;
+  s += `<text class="tick" x="${W-mR-4}" y="${py(STANDAR)-6}" text-anchor="end" fill="#12764C" ${HALO}>standar matriks (4)</text>`;
+  YEARS.forEach((yr,i)=> s+=`<text class="tick b" x="${px(i)}" y="${H-mB+20}" text-anchor="middle">${yr}</text>`);
+  s += `<text class="alab" transform="translate(11,${(H-mB+mT)/2}) rotate(-90)" text-anchor="middle">Rata-rata skor KPI</text>`;
+
+  if(!S.dosen){
+    Object.keys(PRODI).filter(k=>DOSEN.some(d=>d.prodi===k)).forEach(k=>{
+      if(S.prodi && S.prodi!==k) return;
+      const list = DOSEN.filter(d=>d.prodi===k && passFiltersExceptProdi(d));
+      const pts = YEARS.map((y,i)=>({i,y,v:avgOf(list,y)})).filter(p=>p.v!=null);
+      if(pts.length<2) return;
+      const dd = pts.map((p,j)=>`${j?"L":"M"}${px(p.i)},${py(p.v)}`).join(" ");
+      const tip = `<b>${esc(PRODI[k]||k)}</b>` + pts.map(p=>`<s>${p.y}: rata-rata ${n1(p.v)}</s>`).join("");
+      s += `<g data-tip="${tip}"><path d="${dd}" fill="none" stroke="transparent" stroke-width="12"/>`
+         + `<path d="${dd}" fill="none" stroke="#9CBFE3" stroke-width="1.5" opacity=".9"/></g>`;
+      const last = pts[pts.length-1];
+      if(S.prodi) s += `<text class="tick" x="${px(last.i)+10}" y="${py(last.v)+4}" ${HALO}>${k}</text>`;
+    });
+  }
+  const solid = YEARS.map((y,i)=>({i,y,v:avgOf(rows,y),n:rows.filter(d=>scoreOf(d,y)!=null).length})).filter(p=>p.v!=null);
+  if(solid.length){
+    const dd = solid.map((p,j)=>`${j?"L":"M"}${px(p.i)},${py(p.v)}`).join(" ");
+    const area = `M${px(solid[0].i)},${py(0)} ` + solid.map(p=>`L${px(p.i)},${py(p.v)}`).join(" ") + ` L${px(solid[solid.length-1].i)},${py(0)} Z`;
+    s += `<path d="${area}" fill="#2E77C4" opacity=".09"/><path d="${dd}" fill="none" stroke="#0E2E56" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"/>`;
+    solid.forEach((p,j)=>{
+      const t=tone(pct(p.v)), first=j===0, last=j===solid.length-1;
+      const lx = px(p.i) + (first?11:(last?-11:0));
+      const ly = py(p.v) + (first||last?-9:(solid[j-1].v>p.v?20:-15));
+      s += `<g data-tip="<b>${p.y}</b><s>Rata-rata skor ${n1(p.v)} dari 6 (${n1(pct(p.v))}%)</s><s>${n0(p.n)} dosen berskor</s>">
+        <circle cx="${px(p.i)}" cy="${py(p.v)}" r="15" fill="transparent"/>
+        <circle cx="${px(p.i)}" cy="${py(p.v)}" r="5.4" fill="#fff" stroke="${TONEC[t]}" stroke-width="2.8"/>
+        <text class="tick b" x="${lx}" y="${ly}" text-anchor="${first?"start":(last?"end":"middle")}" ${HALO}>${n1(p.v)}</text></g>`;
+    });
+    const l=solid[solid.length-1];
+    s += `<text class="tick b" x="${px(l.i)+15}" y="${py(l.v)+4}" fill="#0E2E56" ${HALO}>Cakupan aktif</text>`;
+  }
+  const filtered = rows.length!==DOSEN.length;
+  if(filtered){
+    const ip = YEARS.map((y,i)=>({i,v:avgOf(DOSEN,y)})).filter(p=>p.v!=null);
+    s += `<path d="${ip.map((p,j)=>`${j?"L":"M"}${px(p.i)},${py(p.v)}`).join(" ")}" fill="none" stroke="#5E7288" stroke-width="1.9" stroke-dasharray="5 4"/>`;
+    const l=ip[ip.length-1];
+    s += `<text class="tick" x="${px(l.i)+15}" y="${py(l.v)+20}" fill="#5E7288" ${HALO}>Institusi</text>`;
+  }
+  s += `</svg>`;
+  $("trend").innerHTML = s; tips($("trend"));
+
+  const a25=avgOf(rows,"2025"), a24=avgOf(rows,"2024");
+  const delta = (a25!=null&&a24!=null)? a25-a24 : null;
+  $("trendHint").innerHTML = delta==null ? "Rata-rata skor KPI untuk cakupan yang sedang dipilih."
+    : `Rata-rata skor cakupan aktif ${delta>=0?"naik":"turun"} <b>${n1(Math.abs(delta))}</b> poin dari 2024 ke 2025.`;
+  $("trendLeg").innerHTML = `<span><i style="background:#0E2E56"></i>Rata-rata cakupan aktif</span>`
+    + (filtered?`<span><i style="background:#5E7288"></i>Rata-rata seluruh institusi</span>`:"")
+    + (!S.dosen?`<span><i style="background:#9CBFE3"></i>Rata-rata tiap program studi</span>`:"")
+    + `<span><i style="background:#12764C"></i>Standar matriks skor 4</span>`;
+}
+const passFiltersExceptProdi = d => (!S.type||d.tipe===S.type)&&(!S.pend||d.jenjang===S.pend)&&(!S.jja||d.jabatan===S.jja)
+  &&(!S.clu||d.cluster===S.clu)&&(!S.lab||d.labelMentor===S.lab);
+
+/* ---------- 03 donut ---------- */
+function renderDonut(){
+  const rows=scope(), y=S.year;
+  const counts = CAT.map(c=>({...c, n: rows.filter(d=>{const s=scoreOf(d,y); return s!=null && catOf(s).k===c.k;}).length}));
+  const total = counts.reduce((a,c)=>a+c.n,0), noData = rows.length-total;
+  const W=340,H=250,cx=W/2,cy=H/2+4,R=88,r=56;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Sebaran status produktivitas dosen">`;
+  if(!total){
+    $("donut").innerHTML = s+`<text class="tick" x="${cx}" y="${cy}" text-anchor="middle">Tidak ada dosen berskor pada cakupan ini</text></svg>`;
+    $("donutLeg").innerHTML=""; $("donutHint").textContent=""; return;
+  }
+  let a0=-Math.PI/2;
+  counts.forEach(c=>{
+    if(!c.n) return;
+    const sweep=c.n/total*Math.PI*2, a1=a0+sweep, big=sweep>Math.PI?1:0;
+    const p=(a,rad)=>[cx+Math.cos(a)*rad, cy+Math.sin(a)*rad];
+    const [x1,y1]=p(a0,R),[x2,y2]=p(a1,R),[x3,y3]=p(a1,r),[x4,y4]=p(a0,r);
+    s+=`<path d="M${x1},${y1} A${R},${R} 0 ${big} 1 ${x2},${y2} L${x3},${y3} A${r},${r} 0 ${big} 0 ${x4},${y4} Z"
+        fill="${c.c}" stroke="#fff" stroke-width="2"
+        data-tip="<b>${c.k}</b><s>${c.desc}</s><s>${n0(c.n)} dosen · ${n1(c.n/total*100)}% dari yang berskor</s>"/>`;
+    if(c.n/total>0.07){ const [lx,ly]=p((a0+a1)/2,(R+r)/2);
+      s+=`<text x="${lx}" y="${ly+4}" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="640" style="pointer-events:none">${c.n}</text>`; }
+    a0=a1;
+  });
+  s+=`<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="26" font-weight="670" fill="#0C1A2B">${n0(total)}</text>`
+   + `<text x="${cx}" y="${cy+15}" text-anchor="middle" font-size="11.5" fill="#6C7E93">dosen berskor ${y}</text></svg>`;
+  $("donut").innerHTML=s; tips($("donut"));
+  $("donutLeg").innerHTML = counts.map(c=>`<span><i style="background:${c.c}"></i>${c.k} <b class="num">${c.n}</b></span>`).join("")
+    + (noData?`<span><i style="background:#D6DFEA"></i>Tanpa data <b class="num">${noData}</b></span>`:"");
+  $("donutHint").innerHTML = `<b>${n1((counts[0].n+counts[1].n)/total*100)}%</b> dosen berada di kategori Good atau Excellent pada ${y}.`;
+}
+
+/* ---------- bar helpers ---------- */
+function hbar(el, items, opt){
+  opt=opt||{};
+  const rowH=31, W=560, mL=opt.mL||112, mR=opt.mR||46, H=items.length*rowH+20;
+  const max = Math.max(...items.map(i=>i.v), opt.min||0) || 1;
+  const w = v => Math.max(2,(v/max)*(W-mL-mR));
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opt.aria||'')}">`;
+  items.forEach((it,i)=>{
+    const y=i*rowH+10;
+    s+=`<g data-tip="${it.tip}"><rect x="0" y="${y-8}" width="${W}" height="${rowH-3}" fill="transparent"/>
+      <text class="tick b" x="${mL-9}" y="${y+13}" text-anchor="end">${esc(it.label)}</text>
+      <rect x="${mL}" y="${y+2}" width="${W-mL-mR}" height="15" rx="4" fill="#F0F6FC"/>
+      <rect x="${mL}" y="${y+2}" width="${w(it.v)}" height="15" rx="4" fill="${it.c}"/>
+      ${it.ref!=null?`<line x1="${mL+w(it.ref)}" y1="${y-1}" x2="${mL+w(it.ref)}" y2="${y+20}" stroke="#0C1A2B" stroke-width="1.6" stroke-dasharray="3 2" opacity=".7"/>`:""}
+      <text class="tick b" x="${W-6}" y="${y+14}" text-anchor="end">${it.vlab}</text></g>`;
+  });
+  el.innerHTML = s+`</svg>`; tips(el);
+}
+function sbar(el, items, keys, colors, aria){
+  const rowH=30, W=560, mL=110, mR=44, H=items.length*rowH+20;
+  const max = Math.max(...items.map(i=>keys.reduce((a,k)=>a+(i.v[k]||0),0)),1);
+  const w = v => (v/max)*(W-mL-mR);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(aria)}">`;
+  items.forEach((it,i)=>{
+    const y=i*rowH+10; let x=mL, tot=0;
+    s+=`<text class="tick b" x="${mL-9}" y="${y+14}" text-anchor="end">${esc(it.label)}</text>`;
+    keys.forEach(k=>{
+      const v=it.v[k]||0; if(!v) return; tot+=v;
+      const ww=w(v);
+      s+=`<g data-tip="<b>${esc(it.full||it.label)}</b><s>${esc(k)}: ${n0(v)} dosen</s>">
+        <rect x="${x}" y="${y+2}" width="${ww}" height="16" fill="${colors[k]}" stroke="#fff" stroke-width="1"/>
+        ${ww>17?`<text x="${x+ww/2}" y="${y+14}" text-anchor="middle" fill="#fff" font-size="11" font-weight="620" style="pointer-events:none">${v}</text>`:""}</g>`;
+      x+=ww;
+    });
+    s+=`<text class="tick b" x="${W-6}" y="${y+14}" text-anchor="end">${n0(tot)}</text>`;
+  });
+  el.innerHTML = s+`</svg>`; tips(el);
+}
+function gbar(el, groups, keys, colors, aria){
+  const W=640,H=215,mL=44,mR=16,mT=20,mB=32;
+  const max = Math.max(...groups.flatMap(g=>keys.map(k=>g.v[k]||0)),1);
+  const gw = (W-mL-mR)/groups.length, bw = Math.min(26,(gw-24)/keys.length);
+  const py = v => mT + (1-v/max)*(H-mT-mB);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(aria)}">`;
+  for(let t=0;t<=4;t++){ const v=max*t/4, yy=py(v);
+    s+=`<line class="gridline" x1="${mL}" y1="${yy}" x2="${W-mR}" y2="${yy}"/><text class="tick" x="${mL-8}" y="${yy+4}" text-anchor="end">${n0(v)}</text>`; }
+  groups.forEach((g,i)=>{
+    const x0 = mL + i*gw + (gw - bw*keys.length)/2;
+    s+=`<text class="tick b" x="${mL+i*gw+gw/2}" y="${H-mB+19}" text-anchor="middle">${esc(g.label)}</text>`;
+    keys.forEach((k,j)=>{
+      const v=g.v[k]||0, x=x0+j*bw, hh=Math.max(1,(H-mB)-py(v));
+      s+=`<g data-tip="<b>${esc(g.label)}</b><s>${esc(k)}: ${n0(v)} peran</s>">
+        <rect x="${x}" y="${py(v)}" width="${bw-3}" height="${hh}" rx="3" fill="${colors[k]}"/>
+        ${v?`<text class="tick b" x="${x+(bw-3)/2}" y="${py(v)-5}" text-anchor="middle" ${HALO}>${v}</text>`:""}</g>`;
+    });
+  });
+  s+=`<line class="axis" x1="${mL}" y1="${H-mB}" x2="${W-mR}" y2="${H-mB}"/>`;
+  el.innerHTML = s+`</svg>`; tips(el);
+}
+
+/* ---------- 04 prodi ---------- */
+function renderProdi(){
+  const y=S.year, base = DOSEN.filter(passFiltersExceptProdi);
+  const keys=[...new Set(base.map(d=>d.prodi))];
+  const instAvg = avgOf(base,y);
+  const a = keys.map(k=>{ const Lp=base.filter(d=>d.prodi===k), v=avgOf(Lp,y);
+      return {k,v,nn:Lp.filter(d=>scoreOf(d,y)!=null).length,tot:Lp.length}; })
+    .filter(x=>x.v!=null).sort((x,z)=>z.v-x.v);
+  hbar($("prodiKPI"), a.map(x=>({label:x.k, v:x.v, ref:instAvg, c: x.v>=instAvg?"#16406F":"#5B98D8", vlab:n1(x.v),
+      tip:`<b>${esc(PRODI[x.k]||x.k)}</b><s>Rata-rata skor ${n1(x.v)} dari 6 (${n1(pct(x.v))}%)</s><s>${n0(x.nn)} dari ${n0(x.tot)} dosen punya skor ${y}</s>`})),
+    {aria:"Peringkat prodi menurut rata-rata skor KPI"});
+  $("pr1Hint").innerHTML = `Garis putus-putus adalah rata-rata institusi (<b>${n1(instAvg)}</b>) pada ${y}. Prodi navy berada di atas rata-rata.`;
+
+  const instPer = base.reduce((s,d)=>s+d.totHibah,0)/(base.length||1);
+  const b = keys.map(k=>{ const Lp=base.filter(d=>d.prodi===k);
+      const h=Lp.reduce((s,d)=>s+d.totHibah,0), kt=Lp.reduce((s,d)=>s+d.totKetua,0);
+      return {k,per:h/Lp.length,h,kt,tot:Lp.length}; }).sort((x,z)=>z.per-x.per);
+  hbar($("prodiHibah"), b.map(x=>({label:x.k, v:x.per, ref:instPer, c: x.per>=instPer?"#12764C":"#C89A20", vlab:n1(x.per),
+      tip:`<b>${esc(PRODI[x.k]||x.k)}</b><s>${n0(x.h)} keterlibatan dari ${n0(x.tot)} dosen · ${n1(x.per)} per dosen</s><s>${n0(x.kt)} peran ketua</s>`})),
+    {aria:"Keterlibatan hibah per dosen menurut prodi"});
+}
+
+/* ---------- 05 scatter ---------- */
+function renderScatter(){
+  const y=S.year, rows=scope().filter(d=>scoreOf(d,y)!=null && d.ambang4num!=null);
+  const W=620,H=380,mL=54,mR=18,mT=18,mB=48;
+  const yMax=4.6, xS=STANDAR, yS=1.5;
+  const px = v => mL + (v/MAXSCORE)*(W-mL-mR);
+  const py = v => mT + (1-v/yMax)*(H-mT-mB);
+  const QC = {"High Performer":"#12764C","Potential Contributor":"#2E77C4","Need Support":"#C89A20","Critical":"#A93226"};
+  const quad = d => { const hi=scoreOf(d,y)>=xS, big=d.ambang4num>=yS;
+    return hi ? (big?"High Performer":"Potential Contributor") : (big?"Critical":"Need Support"); };
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Matriks risiko publikasi">`;
+  s+=`<rect x="${px(xS)}" y="${mT}" width="${W-mR-px(xS)}" height="${py(yS)-mT}" fill="#12764C" opacity=".05"/>`
+   + `<rect x="${px(xS)}" y="${py(yS)}" width="${W-mR-px(xS)}" height="${H-mB-py(yS)}" fill="#2E77C4" opacity=".05"/>`
+   + `<rect x="${mL}" y="${mT}" width="${px(xS)-mL}" height="${py(yS)-mT}" fill="#A93226" opacity=".06"/>`
+   + `<rect x="${mL}" y="${py(yS)}" width="${px(xS)-mL}" height="${H-mB-py(yS)}" fill="#C89A20" opacity=".06"/>`;
+  [0,0.5,1,2,3,4].forEach(g=>{ s+=`<line class="gridline" x1="${mL}" y1="${py(g)}" x2="${W-mR}" y2="${py(g)}"/>`
+    + `<text class="tick" x="${mL-8}" y="${py(g)+4}" text-anchor="end">${n2(g)}</text>`; });
+  for(let g=0;g<=6;g++) s+=`<text class="tick" x="${px(g)}" y="${H-mB+18}" text-anchor="middle">${g}</text>`;
+  s+=`<line class="axis" x1="${mL}" y1="${H-mB}" x2="${W-mR}" y2="${H-mB}"/><line class="axis" x1="${mL}" y1="${mT}" x2="${mL}" y2="${H-mB}"/>`
+   + `<line x1="${px(xS)}" y1="${mT}" x2="${px(xS)}" y2="${H-mB}" stroke="#6C7E93" stroke-width="1.2" stroke-dasharray="4 4"/>`
+   + `<line x1="${mL}" y1="${py(yS)}" x2="${W-mR}" y2="${py(yS)}" stroke="#6C7E93" stroke-width="1.2" stroke-dasharray="4 4"/>`
+   + `<text class="alab" x="${(W+mL)/2}" y="${H-mB+38}" text-anchor="middle">Skor KPI ${y} (skala 0–6)</text>`
+   + `<text class="alab" transform="translate(14,${(H-mB+mT)/2}) rotate(-90)" text-anchor="middle">Ambang bobot Skor 4 kolom matriks</text>`;
+  const QH=`${HALO} font-weight="620" font-size="11"`;
+  s+=`<text x="${W-mR-8}" y="${mT+13}" text-anchor="end" fill="#12764C" ${QH}>High Performer</text>`
+   + `<text x="${mL+8}" y="${mT+13}" fill="#A93226" ${QH}>Critical</text>`
+   + `<text x="${mL+8}" y="${H-mB-9}" fill="#B5790C" ${QH}>Need Support</text>`
+   + `<text x="${W-mR-8}" y="${H-mB-9}" text-anchor="end" fill="#2E77C4" ${QH}>Potential Contributor</text>`;
+  const buckets={}, counts={"High Performer":0,"Potential Contributor":0,"Need Support":0,"Critical":0};
+  rows.forEach(d=>{ const k=`${scoreOf(d,y)}|${d.ambang4num}`; (buckets[k]=buckets[k]||[]).push(d); });
+  Object.values(buckets).forEach(gp=>gp.forEach((d,i)=>{
+    const q=quad(d); counts[q]++;
+    const ang=i*2.399, rad=i?4.4*Math.sqrt(i):0;
+    const cx=px(scoreOf(d,y))+Math.cos(ang)*rad, cy=py(d.ambang4num)+Math.sin(ang)*rad;
+    const r=4+Math.min(7,Math.sqrt(d.totHibah)*1.8);
+    s+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${QC[q]}" fill-opacity=".6" stroke="${QC[q]}" stroke-width="1.1"
+      data-tip="<b>${esc(shortName(d.nama))}</b><s>${esc(d.prodi)} · ${esc(d.kolom)} · Cluster ${esc(d.cluster)}</s><s>Skor KPI ${y}: ${n1(scoreOf(d,y))} · ${q}</s><s>Ambang Skor 4: ${n2(d.ambang4num)} · keterlibatan hibah: ${n0(d.totHibah)}</s>"/>`;
+  }));
+  $("scatter").innerHTML = s+`</svg>`; tips($("scatter"));
+  const sinta = scope().filter(d=>scoreOf(d,y)!=null && d.ambang4num==null).length;
+  $("scatLeg").innerHTML = Object.keys(QC).map(k=>`<span><i style="background:${QC[k]}"></i>${k} <b class="num">${counts[k]}</b></span>`).join("")
+    + `<span style="color:#6C7E93">Ukuran titik = keterlibatan hibah</span>`;
+  $("scatHint").innerHTML = `Batas kuadran: skor KPI <b>4</b> (standar matriks) dan ambang bobot Skor 4 sebesar <b>1,50</b>. Dosen di kiri-atas menanggung ambang tinggi dengan capaian rendah.`
+    + (sinta?` ${n0(sinta)} dosen kolom TP tidak dapat dipetakan karena ambangnya kualitatif (SINTA).`:"");
+}
+
+/* ---------- 06 & 07 tabel ---------- */
+function scoreCell(sv){
+  if(sv==null) return `<span class="pill p-neu">Tanpa data</span>`;
+  return `<div class="sc"><div class="track"><i style="width:${pct(sv)}%;background:${catColor(catOf(sv).k)}"></i></div><b class="num">${n1(sv)}</b></div>`;
+}
+function labPill(l){
+  const cls = l==="MENTOR"?"p-ok":l==="KANDIDAT MENTOR"?"p-warn":l==="MENTEE"?"p-bad":"p-neu";
+  return `<span class="pill ${cls}">${esc(l)}</span>`;
+}
+function renderTop(){
+  const y=S.year;
+  const rows = scope().map(d=>({d,s:scoreOf(d,y)})).filter(x=>x.s!=null)
+    .sort((a,b)=> b.s-a.s || b.d.totHibah-a.d.totHibah || a.d.nama.localeCompare(b.d.nama,"id"));
+  let rank=0, prev=null, seen=0;
+  rows.forEach(x=>{ seen++; if(x.s!==prev){ rank=seen; prev=x.s; } x.rank=rank; });
+  const list = S.topN ? rows.slice(0,S.topN) : rows;
+  if(!list.length){
+    $("topTbl").innerHTML=`<div class="empty">Tidak ada dosen dengan skor KPI ${y} pada cakupan ini. Longgarkan filter di bagian atas halaman.</div>`;
+    $("topNote").innerHTML=""; return;
+  }
+  const ties = rows.filter(x=>x.rank===1).length;
+  $("topNote").innerHTML = `Peringkat memakai RANK.EQ, sehingga skor yang sama berbagi nomor peringkat &mdash; saat ini <b class="num">${n0(ties)}</b> dosen berbagi peringkat 1 dengan skor ${n1(rows[0].s)}. Urutan di dalam peringkat yang sama ditentukan oleh keterlibatan hibah.`;
+  $("topTbl").innerHTML = `<table class="tbl"><thead><tr><th class="c">#</th><th>Nama dosen</th><th>Prodi</th>
+      <th>Kolom matriks</th><th style="min-width:130px">Skor KPI ${y}</th><th class="r">Hibah</th><th>Status</th><th>Label</th></tr></thead><tbody>`
+    + list.map(x=>{ const c=catOf(x.s);
+        const cls = c.k==="Excellent"?"p-ok":c.k==="Good"?"p-blue":c.k==="Moderate"?"p-warn":"p-bad";
+        return `<tr><td class="c"><span class="rank${x.rank<=3?" top":""}">${x.rank}</span></td>
+          <td class="nm" data-tip="<b>${esc(x.d.nama)}</b><s>${esc(x.d.kode)} · ${esc(x.d.tipe)}</s>">${esc(shortName(x.d.nama))}</td>
+          <td data-tip="<b>${esc(PRODI[x.d.prodi]||x.d.prodi)}</b>"><span class="pill p-neu">${esc(x.d.prodi)}</span></td>
+          <td style="color:var(--ink-2)">${esc(x.d.kolom)}</td>
+          <td>${scoreCell(x.s)}</td>
+          <td class="r num" data-tip="<s>${n0(x.d.totKetua)} ketua · ${n0(x.d.totAnggota)} anggota</s>">${n0(x.d.totHibah)}</td>
+          <td><span class="pill ${cls}">${c.k}</span></td>
+          <td>${labPill(x.d.labelMentor)}</td></tr>`;
+      }).join("") + `</tbody></table>`;
+  tips($("topTbl"));
+}
+function renderNeed(){
+  const y=S.year;
+  const rows = scope().map(d=>({d,s:scoreOf(d,y)})).filter(x=>x.s!=null && pct(x.s)<50)
+    .sort((a,b)=> a.s-b.s || (b.d.ambang4num||0)-(a.d.ambang4num||0));
+  const all = scope().filter(d=>scoreOf(d,y)!=null).length;
+  $("needHint").innerHTML = rows.length
+    ? `<b class="num">${n0(rows.length)}</b> dari ${n0(all)} dosen berskor di bawah 50% (skor KPI &lt; 3) pada ${y}. Gap adalah selisih poin skor menuju standar matriks 4.`
+    : `Tidak ada dosen di bawah 50% pada cakupan ini.`;
+  if(!rows.length){ $("needTbl").innerHTML=`<div class="empty">Seluruh dosen pada cakupan ini berada di atas ambang 50%.</div>`; return; }
+  $("needTbl").innerHTML = `<table class="tbl"><thead><tr><th>Nama dosen</th><th>Prodi</th>
+      <th style="min-width:118px">Skor ${y}</th><th class="r">Gap</th><th>Pendampingan</th></tr></thead><tbody>`
+    + rows.map(x=>`<tr>
+        <td class="nm" data-tip="<b>${esc(x.d.nama)}</b><s>${esc(x.d.kolom)} · ambang Skor 4: ${x.d.ambang4num==null?"kualitatif (SINTA)":n2(x.d.ambang4num)}</s><s>${esc(x.d.statusKeterlibatan)}</s>">${esc(shortName(x.d.nama))}</td>
+        <td><span class="pill p-neu">${esc(x.d.prodi)}</span></td>
+        <td>${scoreCell(x.s)}</td>
+        <td class="r"><span class="pill p-bad">+${n0(STANDAR-x.s)}</span></td>
+        <td>${labPill(x.d.labelMentor)}</td></tr>`).join("") + `</tbody></table>`;
+  tips($("needTbl"));
+}
+
+/* ---------- 08 kapasitas ---------- */
+function renderKapasitas(){
+  const base = DOSEN.filter(passFiltersExceptProdi).filter(d=>!S.prodi||d.prodi===S.prodi);
+  const keys=[...new Set(base.map(d=>d.prodi))];
+  const LK=["MENTOR","KANDIDAT MENTOR","MENTEE","Tidak tercatat"];
+  const HK=["Pernah menjadi ketua","Hanya sebagai anggota","Belum pernah terlibat","Tidak tercatat"];
+  const mk = keys.map(k=>{ const Lp=base.filter(d=>d.prodi===k), v={};
+      LK.forEach(l=>v[l]=Lp.filter(d=>d.labelMentor===l).length);
+      return {label:k, full:PRODI[k]||k, v, mentor:v["MENTOR"]}; })
+    .sort((a,b)=>b.mentor-a.mentor || (b.v.MENTEE+b.v.MENTOR)-(a.v.MENTEE+a.v.MENTOR));
+  sbar($("mentorBar"), mk, LK, LABC, "Sebaran label mentor per prodi");
+  $("mentorLeg").innerHTML = LK.filter(l=>base.some(d=>d.labelMentor===l))
+    .map(l=>`<span><i style="background:${LABC[l]}"></i>${l} <b class="num">${base.filter(d=>d.labelMentor===l).length}</b></span>`).join("");
+  const nM=base.filter(d=>d.labelMentor==="MENTOR").length, nE=base.filter(d=>d.labelMentor==="MENTEE").length;
+  $("mentorHint").innerHTML = nM ? `Rasio mentee terhadap mentor pada cakupan ini <b>${n1(nE/nM)} : 1</b>. Kandidat mentor adalah cadangan bila rasio terlalu berat.`
+    : `Tidak ada dosen berlabel mentor pada cakupan ini.`;
+
+  const hk = keys.map(k=>{ const Lp=base.filter(d=>d.prodi===k), v={};
+      HK.forEach(l=>v[l]=Lp.filter(d=>d.statusKeterlibatan===l).length);
+      return {label:k, full:PRODI[k]||k, v, lead:v["Pernah menjadi ketua"]}; })
+    .sort((a,b)=>b.lead-a.lead);
+  sbar($("hibahBar"), hk, HK, HIBC, "Status keterlibatan hibah per prodi");
+  $("hibahLeg").innerHTML = HK.filter(l=>base.some(d=>d.statusKeterlibatan===l))
+    .map(l=>`<span><i style="background:${HIBC[l]}"></i>${l} <b class="num">${base.filter(d=>d.statusKeterlibatan===l).length}</b></span>`).join("");
+  const belum=base.filter(d=>d.statusKeterlibatan==="Belum pernah terlibat").length;
+  $("hibahHint").innerHTML = `<b class="num">${n0(belum)}</b> dosen (${n1(belum/base.length*100)}%) belum pernah terlibat hibah penelitian sama sekali sepanjang 2023&ndash;2026.`;
+
+  const rows=scope();
+  const groups = HYEARS.map((yr,i)=>({label:yr, v:{
+      "Ketua": rows.reduce((a,d)=>a+(d.ketua[i]||0),0),
+      "Anggota": rows.reduce((a,d)=>a+(d.anggota[i]||0),0)}}));
+  gbar($("peranBar"), groups, ["Ketua","Anggota"], {"Ketua":"#16406F","Anggota":"#5B98D8"}, "Peran hibah per tahun");
+  $("peranLeg").innerHTML = `<span><i style="background:#16406F"></i>Ketua <b class="num">${n0(groups.reduce((a,g)=>a+g.v.Ketua,0))}</b></span>`
+    + `<span><i style="background:#5B98D8"></i>Anggota <b class="num">${n0(groups.reduce((a,g)=>a+g.v.Anggota,0))}</b></span>`
+    + `<span style="color:#6C7E93">2026 masih berjalan, jadi angkanya belum final</span>`;
+}
+
+/* ---------- 09 matriks & cluster ---------- */
+function renderMatriks(){
+  $("matriksTbl").innerHTML = `<table class="tbl"><thead><tr><th rowspan="2">Kolom matriks</th>
+      <th colspan="4" style="text-align:center;border-left:1px solid var(--line)">Functional</th>
+      <th colspan="4" style="text-align:center;border-left:1px solid var(--line)">Professional</th></tr>
+    <tr><th class="r" style="border-left:1px solid var(--line)">Skor 3</th><th class="r">Skor 4</th><th>Skor 5</th><th class="r">Skor 6</th>
+        <th class="r" style="border-left:1px solid var(--line)">Skor 3</th><th class="r">Skor 4</th><th>Skor 5</th><th class="r">Skor 6</th></tr></thead><tbody>`
+    + D.matriks.map(m=>{
+        const cell=v=>v==null?`<span style="color:var(--ink-4)">—</span>`:n2(v);
+        const rule=v=>v==null?`<span style="color:var(--ink-4)">—</span>`:`<span style="font-size:11.5px;color:var(--ink-2)">${esc(v)}</span>`;
+        return `<tr><td class="nm">${esc(m.kolom)}</td>
+          <td class="r num" style="border-left:1px solid var(--line-2)">${cell(m.f3)}</td><td class="r num">${cell(m.f4)}</td><td>${rule(m.f5)}</td><td class="r num">${cell(m.f6)}</td>
+          <td class="r num" style="border-left:1px solid var(--line-2)">${cell(m.p3)}</td><td class="r num">${cell(m.p4)}</td><td>${rule(m.p5)}</td><td class="r num">${cell(m.p6)}</td></tr>`;
+      }).join("") + `</tbody></table>`;
+
+  const rows = scope();
+  const order=["AA S2","L S2","AA S3 / TP S3 / LK S2","L S3","L S3 / LK S3","TP S1 / TP S2","Tidak terpetakan"];
+  const items = order.filter(k=>rows.some(d=>d.kolom===k)).map(k=>{
+      const Lp = rows.filter(d=>d.kolom===k);
+      const amb = Lp.map(d=>d.ambang4num).filter(v=>v!=null);
+      // warna mengikuti ambang terberat di kolom itu (jalur Functional selalu paling berat)
+      const hi = amb.length ? Math.max(...amb) : null;
+      const lo = amb.length ? Math.min(...amb) : null;
+      const rng = hi==null ? "kualitatif (SINTA)" : (hi===lo ? n2(hi) : `${n2(lo)} – ${n2(hi)}`);
+      return {label:k, v:Lp.length, c: hi==null?"#93A3B5":(hi>=2?"#A93226":hi>=1?"#C89A20":"#12764C"),
+        vlab:n0(Lp.length),
+        tip:`<b>${esc(k)}</b><s>${n0(Lp.length)} dosen</s><s>Ambang bobot Skor 4: ${rng}</s>`};
+    }).sort((a,b)=>b.v-a.v);
+  hbar($("kolomBar"), items, {aria:"Jumlah dosen per kolom matriks", mL:172, mR:52});
+  const berat = rows.filter(d=>d.ambang4num!=null && d.ambang4num>=2).length;
+  $("kolomHint").innerHTML = `Sebaran dosen per kolom pada cakupan aktif. <b class="num">${n0(berat)}</b> dosen berada di kolom berambang berat (bobot ≥ 2,00), dan warna batang mengikuti berat ambang itu.`;
+
+  $("cluBox").innerHTML = ["A","B","C"].map(c=>{
+    const n = scope().filter(d=>d.cluster===c).length;
+    const info = D.cluster[c];
+    return `<div class="clu"><h4><span class="badge">${c}</span> Cluster ${c}
+        <span class="pill p-blue num" style="margin-left:auto">${n0(n)} dosen</span></h4>
+      <ul>${info.kriteria.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${info.hibah.map(h=>`<span class="pill p-neu">${esc(h)}</span>`).join("")}</div></div>`;
+  }).join("") + (scope().some(d=>d.cluster==="Tidak tercatat")
+      ? `<p class="note">${n0(scope().filter(d=>d.cluster==="Tidak tercatat").length)} dosen belum tercantum pada tabel mentor, sehingga cluster-nya belum tercatat.</p>` : "");
+}
+
+/* ---------- 10 topik & SDG ---------- */
+function renderSDG(){
+  const rows=scope();
+  const cnt={};
+  rows.forEach(d=>d.sdg.forEach(s=>cnt[s]=(cnt[s]||0)+1));
+  const items = Object.entries(cnt).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))
+    .map(([k,v])=>({label:k, v, c:"#2E77C4", vlab:n0(v),
+      tip:`<b>${esc(k)}</b><s>${n0(v)} dosen membidik SDG ini</s>`}));
+  if(!items.length){ $("sdgBar").innerHTML=`<div class="empty">Belum ada SDG tercatat pada cakupan ini.</div>`; $("sdgHint").textContent=""; return; }
+  items[0].c="#16406F";
+  hbar($("sdgBar"), items, {aria:"Frekuensi SDG yang dibidik", mL:66});
+  const withTopic = rows.filter(d=>d.topik).length;
+  $("sdgHint").innerHTML = `<b class="num">${n0(withTopic)}</b> dari ${n0(rows.length)} dosen sudah merumuskan topik prioritas 2027.`;
+}
+function renderTopik(){
+  const rows=scope().filter(d=>d.topik);
+  const q=S.q;
+  const hit = !q ? rows : rows.filter(d=>
+    (d.nama+" "+d.prodi+" "+(d.topik||"")+" "+d.sdg.join(" ")).toLowerCase().includes(q));
+  $("topikHint").innerHTML = `Menampilkan <b class="num">${n0(hit.length)}</b> rumusan topik${q?` yang memuat “${esc(S.q)}”`:""}.`;
+  if(!hit.length){ $("topikTbl").innerHTML=`<div class="empty">Tidak ada topik yang cocok. Coba kata kunci lain atau longgarkan filter.</div>`; return; }
+  $("topikTbl").innerHTML = `<table class="tbl"><thead><tr><th style="min-width:150px">Dosen</th><th>SDG</th><th>Topik prioritas 2027</th></tr></thead><tbody>`
+    + hit.sort((a,b)=>a.prodi.localeCompare(b.prodi)||a.nama.localeCompare(b.nama,"id")).map(d=>`<tr>
+        <td><div class="nm">${esc(shortName(d.nama))}</div><span class="pill p-neu" style="margin-top:3px">${esc(d.prodi)}</span></td>
+        <td>${d.sdg.map(s=>`<span class="pill p-blue" style="margin:1px 0">${esc(s)}</span>`).join(" ")||`<span style="color:var(--ink-4)">—</span>`}</td>
+        <td class="topik">${esc(d.topik)}</td></tr>`).join("") + `</tbody></table>`;
+}
+
+/* ---------- footnote ---------- */
+function renderFoot(){
+  $("footnote").innerHTML = `Sumber data: <b>Dashboard visualisasi Analisa Publikasi FM &amp; Mahasiswa.pdf</b> — tabel Publikasi, Score KPI, Mentor, Keterlibatan Hibah, dan Topik Penelitian Prioritas 2027 untuk sembilan program studi (118 dosen).
+    Skor KPI memakai skala matriks 0–6; persentase capaian dihitung sebagai skor dibagi 6, dan skor 4 dipakai sebagai standar “memenuhi matriks”.
+    Dua puluh satu dosen Computer Science belum memiliki tabel publikasi 2025, sehingga skor 2025-nya kosong dan bukan nol — begitu pula satu dosen DKV yang tidak tercantum pada tabel Score KPI.
+    Tiga dosen (Pregnandia Ladina, Yusuf Akbar Santoso, Lailatul Rif'ah) hanya muncul pada tabel Mentor, yang menuliskan nilai 0 untuk sel kosong; angka mereka karena itu perlu dikonfirmasi ke laporan publikasi.
+    Angka keterlibatan hibah 2026 masih berjalan. Kolom TP S1/TP S2 memakai kriteria kualitatif (SINTA) sehingga tidak punya ambang bobot dan tidak muncul pada risk matrix.`;
+}
+
+/* ---------- render ---------- */
+function render(){
+  renderKPI(); renderTrend(); renderDonut(); renderProdi(); renderScatter();
+  renderTop(); renderNeed(); renderKapasitas(); renderMatriks(); renderSDG(); renderTopik();
+}
+buildFilters(); renderFoot(); render();
+</script>
+</body>
+</html>

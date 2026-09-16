@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Research Spend Analytics — RTT BINUS @Malang</title>
+<style>
+:root{
+  --navy-900:#08203F; --navy-800:#0E2E56; --navy-700:#16406F; --navy-600:#1E5391;
+  --blue-500:#2E77C4; --blue-400:#5B98D8; --blue-200:#A9C8E8; --blue-100:#DEEAF7; --blue-050:#F0F6FC;
+  --teal:#0F7A6B; --teal-2:#3FA694; --amber:#C8871A; --plum:#7A4A86;
+  --paper:#FFFFFF; --canvas:#EBEFF5;
+  --ink:#0C1A2B; --ink-2:#3E5064; --ink-3:#6C7E93; --ink-4:#93A3B5;
+  --line:#D6DFEA; --line-2:#E7EDF4;
+  --ok:#12764C; --ok-bg:#E3F3EB; --warn:#B5790C; --warn-bg:#FBF0DA;
+  --bad:#A93226; --bad-bg:#FBE6E3; --neutral:#5E7288; --neutral-bg:#EDF1F6;
+  --shadow:0 1px 2px rgba(8,32,63,.06), 0 6px 18px -8px rgba(8,32,63,.18);
+  --r:10px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--canvas);color:var(--ink);
+  font-family:"Inter","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+button,select,input{font-family:inherit;font-size:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--blue-500);outline-offset:2px}
+
+.wrap{max-width:1560px;margin:0 auto;padding:0 22px 56px}
+header{background:linear-gradient(103deg,var(--navy-900) 0%,var(--navy-700) 60%,#125A63 100%);color:#fff}
+.hd{max-width:1560px;margin:0 auto;padding:20px 22px 18px;display:flex;flex-wrap:wrap;gap:22px;align-items:flex-end;justify-content:space-between}
+.hd h1{margin:0;font-size:25px;line-height:1.15;font-weight:650;letter-spacing:-.015em}
+.hd .sub{margin:5px 0 0;color:#B9D2EC;font-size:14px}
+.stamps{display:flex;gap:10px;flex-wrap:wrap}
+.stamp{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.20);border-radius:7px;padding:7px 11px;min-width:92px}
+.stamp b{display:block;font-size:15px;font-weight:640;line-height:1.2}
+.stamp span{display:block;font-size:11.5px;color:#A9C6E5;margin-top:1px}
+
+.filters{position:sticky;top:0;z-index:40;background:var(--paper);border-bottom:1px solid var(--line);box-shadow:0 2px 10px -6px rgba(8,32,63,.30)}
+.fin{max-width:1560px;margin:0 auto;padding:11px 22px;display:flex;gap:13px;align-items:flex-end;flex-wrap:wrap}
+.fg{display:flex;flex-direction:column;gap:4px;min-width:126px}
+.fg label{font-size:11.5px;color:var(--ink-3);font-weight:520}
+.fg select{appearance:none;background:var(--blue-050) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='11' height='7'><path d='M1 1l4.5 4.5L10 1' fill='none' stroke='%2316406F' stroke-width='1.6'/></svg>") no-repeat right 9px center;
+  border:1px solid var(--line);border-radius:7px;padding:7px 28px 7px 10px;font-size:13px;font-weight:500;cursor:pointer;max-width:220px}
+.fg select:hover{border-color:var(--blue-400)}
+.fspacer{flex:1}
+.btn{border:1px solid var(--line);background:var(--paper);border-radius:7px;padding:8px 13px;font-size:12.5px;font-weight:540;cursor:pointer;color:var(--ink-2)}
+.btn:hover{background:var(--blue-050);border-color:var(--blue-400)}
+.btn.solid{background:var(--navy-700);border-color:var(--navy-700);color:#fff}
+.btn.solid:hover{background:var(--navy-600)}
+.scope{font-size:12px;color:var(--ink-3);padding-bottom:8px}
+.scope b{color:var(--navy-700)}
+
+.sec{margin-top:22px}
+.sech{display:flex;align-items:baseline;gap:10px;margin:0 0 10px;flex-wrap:wrap}
+.sech .n{font-size:11.5px;font-weight:660;color:var(--blue-400);min-width:16px}
+.sech h2{margin:0;font-size:16.5px;font-weight:620;letter-spacing:-.01em}
+.sech p{margin:0;font-size:12.5px;color:var(--ink-3)}
+.grid{display:grid;gap:16px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:16px 18px 18px}
+.card h3{margin:0 0 2px;font-size:14.5px;font-weight:620}
+.card .hint{margin:0 0 12px;font-size:12px;color:var(--ink-3)}
+
+.kpis{grid-template-columns:repeat(6,1fr)}
+.kpi{background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--blue-400);border-radius:var(--r);padding:13px 15px 14px;box-shadow:var(--shadow)}
+.kpi.money{border-left-color:var(--teal)} .kpi.warn{border-left-color:var(--warn)} .kpi.navy{border-left-color:var(--navy-700)}
+.kpi .lab{font-size:12px;color:var(--ink-3);font-weight:520}
+.kpi .val{font-size:26px;font-weight:660;letter-spacing:-.028em;line-height:1.15;margin-top:5px}
+.kpi .val small{font-size:13px;font-weight:540;color:var(--ink-3);letter-spacing:0}
+.kpi .foot{margin-top:6px;font-size:11.5px;color:var(--ink-3)}
+.bar{height:5px;border-radius:3px;background:var(--line-2);margin-top:9px;overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:3px}
+
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:20px;font-size:11.5px;font-weight:560;white-space:nowrap}
+.p-ok{background:var(--ok-bg);color:var(--ok)} .p-warn{background:var(--warn-bg);color:var(--warn)}
+.p-bad{background:var(--bad-bg);color:var(--bad)} .p-neu{background:var(--neutral-bg);color:var(--neutral)}
+.p-blue{background:var(--blue-100);color:var(--navy-700)}
+.p-teal{background:#E1F1EE;color:var(--teal)}
+
+svg{display:block;width:100%;height:auto;overflow:visible}
+.gridline{stroke:var(--line-2);stroke-width:1}
+.axis{stroke:var(--line);stroke-width:1}
+.tick{fill:var(--ink-3);font-size:11px}
+.tick.b{fill:var(--ink-2);font-weight:560}
+.alab{fill:var(--ink-4);font-size:10.5px}
+.legend{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:12px;font-size:12px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+.mini{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.mini button{border:1px solid var(--line);background:var(--paper);border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--ink-2)}
+.mini button[aria-pressed="true"]{background:var(--navy-700);border-color:var(--navy-700);color:#fff;font-weight:540}
+
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-size:11.5px;font-weight:600;color:var(--ink-3);border-bottom:1px solid var(--line);padding:7px 9px;position:sticky;top:0;background:var(--paper);white-space:nowrap;z-index:2}
+.tbl th.s{cursor:pointer;user-select:none}
+.tbl th.s:hover{color:var(--navy-700)}
+.tbl th .ar{color:var(--blue-400);font-size:10px;margin-left:3px}
+.tbl td{padding:8px 9px;border-bottom:1px solid var(--line-2);vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tbody tr:hover{background:var(--blue-050)}
+.tbl .r{text-align:right} .tbl .c{text-align:center}
+.nm{font-weight:540;color:var(--ink)}
+.scroll{max-height:420px;overflow:auto;margin:0 -6px;padding:0 6px}
+.empty{padding:26px;text-align:center;color:var(--ink-3);font-size:13px;background:var(--blue-050);border-radius:8px;border:1px dashed var(--line)}
+.srch{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 11px;background:var(--blue-050)}
+.tools{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.tools .srch{flex:1;min-width:200px}
+.stat{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 14px;margin-top:14px}
+.stat div{background:var(--blue-050);border:1px solid var(--line-2);border-radius:8px;padding:8px 11px}
+.stat span{display:block;font-size:11.5px;color:var(--ink-3)}
+.stat b{display:block;font-size:15px;font-weight:640;margin-top:1px}
+.note{font-size:12px;color:var(--ink-3);line-height:1.55;margin-top:12px;padding-left:11px;border-left:2px solid var(--blue-200)}
+.foothr{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-3);line-height:1.6}
+
+#tip{position:fixed;z-index:99;pointer-events:none;opacity:0;transition:opacity .1s;background:var(--navy-900);color:#fff;border-radius:8px;padding:8px 11px;font-size:12px;line-height:1.5;box-shadow:0 8px 24px -8px rgba(8,32,63,.55);max-width:300px}
+#tip b{color:#fff;font-weight:620} #tip s{display:block;text-decoration:none;color:#A9C6E5;font-size:11.5px}
+
+@media (max-width:1240px){.kpis{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:900px){.grid[style]{grid-template-columns:1fr!important}}
+@media (max-width:820px){.kpis{grid-template-columns:repeat(2,1fr)}.hd h1{font-size:21px}.fg{min-width:112px}}
+@media (max-width:560px){.kpis{grid-template-columns:1fr}.wrap{padding:0 12px 40px}.hd{padding:16px 12px}.fin{padding:10px 12px}}
+@media print{.filters{position:static}body{background:#fff}.card{box-shadow:none;break-inside:avoid}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="tip"></div>
+
+<header>
+  <div class="hd">
+    <div>
+      <h1>Research Spend Analytics</h1>
+      <p class="sub">Belanja VR Research and Technology Transfer BINUS @Malang &middot; Aktivitas Research Conference and Journal, tahun anggaran 2026</p>
+    </div>
+    <div class="stamps" id="stamps"></div>
+  </div>
+</header>
+
+<div class="filters">
+  <div class="fin">
+    <div class="fg"><label for="fBulan">Bulan</label><select id="fBulan"></select></div>
+    <div class="fg"><label for="fKat">Kategori belanja</label><select id="fKat"></select></div>
+    <div class="fg"><label for="fJenis">Jenis luaran</label><select id="fJenis"></select></div>
+    <div class="fg"><label for="fSumber">Sumber jurnal</label><select id="fSumber"></select></div>
+    <div class="fg"><label for="fPen">Penerima dana</label><select id="fPen"></select></div>
+    <div class="fg"><label for="fMin">Nilai minimum</label><select id="fMin"></select></div>
+    <button class="btn" id="fReset">Kosongkan filter</button>
+    <div class="fspacer"></div>
+    <div class="scope" id="scope"></div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <section class="sec">
+    <div class="sech"><span class="n">01</span><h2>Ringkasan belanja</h2><p id="kpiSub"></p></div>
+    <div class="grid kpis" id="kpiRow"></div>
+  </section>
+
+  <section class="sec">
+    <div class="grid" style="grid-template-columns:1.5fr 1fr">
+      <div class="card">
+        <div class="sech" style="margin-bottom:2px"><span class="n">02</span><h2>Tren belanja bulanan</h2></div>
+        <p class="hint" id="trenHint"></p>
+        <div class="mini" id="trenToggle">
+          <button data-m="stack" aria-pressed="true">Per kategori</button>
+          <button data-m="jenis" aria-pressed="false">Per jenis luaran</button>
+        </div>
+        <div id="tren"></div>
+        <div class="legend" id="trenLeg"></div>
+      </div>
+      <div class="card">
+        <div class="sech" style="margin-bottom:2px"><span class="n">03</span><h2>Komposisi belanja</h2></div>
+        <p class="hint" id="donutHint"></p>
+        <div id="donut"></div>
+        <div class="legend" id="donutLeg"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="grid" style="grid-template-columns:1fr 1fr">
+      <div class="card">
+        <div class="sech" style="margin-bottom:2px"><span class="n">04</span><h2>Penerima dana terbesar</h2></div>
+        <p class="hint" id="penHint"></p>
+        <div id="penBar"></div>
+      </div>
+      <div class="card">
+        <div class="sech" style="margin-bottom:2px"><span class="n">05</span><h2>Konsentrasi belanja</h2></div>
+        <p class="hint" id="paretoHint"></p>
+        <div id="pareto"></div>
+        <div class="legend" id="paretoLeg"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="grid" style="grid-template-columns:1fr 1fr">
+      <div class="card">
+        <div class="sech" style="margin-bottom:2px"><span class="n">06</span><h2>Sebaran nilai transaksi</h2></div>
+        <p class="hint" id="histHint"></p>
+        <div id="hist"></div>
+        <div class="stat" id="statBox"></div>
+      </div>
+      <div class="card">
+        <div class="sech" style="margin-bottom:2px"><span class="n">07</span><h2>Luaran yang dibiayai</h2></div>
+        <p class="hint" id="eventHint"></p>
+        <div class="mini" id="evToggle">
+          <button data-m="nilai" aria-pressed="true">Menurut nilai</button>
+          <button data-m="jumlah" aria-pressed="false">Menurut jumlah transaksi</button>
+        </div>
+        <div id="eventBar"></div>
+        <div id="jurnalBox" style="margin-top:14px"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sech"><span class="n">08</span><h2>Detail transaksi</h2><p>Klik judul kolom untuk mengurutkan. Hasil mengikuti filter dan pencarian di bawah.</p></div>
+    <div class="card">
+      <div class="tools">
+        <input class="srch" id="fQ" type="search" placeholder="Cari memo, penerima, event, nomor dokumen&hellip;" aria-label="Cari transaksi">
+        <button class="btn solid" id="btnCsv">Unduh CSV</button>
+      </div>
+      <div class="scroll" style="max-height:560px"><div id="trxTbl"></div></div>
+      <p class="note" id="trxNote"></p>
+    </div>
+  </section>
+
+  <div class="foothr" id="footnote"></div>
+</div>
+<script>
+"use strict";
+const D = {"trx": [{"tanggal": "2026-01-28", "bulan": "2026-01", "jurnal": "JE26001837 - YBN - Binus University Malang - 28/01/2026", "noJurnal": "JE26001837", "sumber": "Manual Journal", "akun": "5112101", "akunNama": "Salary, Honorarium, Walfare Expense", "kategori": "Lecturer Honorarium", "nilai": 20500000, "memo": null, "penerima": null, "event": null, "eventGrup": null, "jenis": "Honorarium", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": null, "itemBiaya": null, "lokasi": null, "dokumen": null, "jenisDokumen": null}, {"tanggal": "2026-02-28", "bulan": "2026-02", "jurnal": "JE26003121 - YBN - Binus University Malang - 28/02/2026", "noJurnal": "JE26003121", "sumber": "Manual Journal", "akun": "5112101", "akunNama": "Salary, Honorarium, Walfare Expense", "kategori": "Lecturer Honorarium", "nilai": 35000000, "memo": null, "penerima": null, "event": null, "eventGrup": null, "jenis": "Honorarium", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": null, "itemBiaya": null, "lokasi": null, "dokumen": null, "jenisDokumen": null}, {"tanggal": "2026-03-28", "bulan": "2026-03", "jurnal": "JE26004783 - YBN - Binus University Malang - 28/03/2026", "noJurnal": "JE26004783", "sumber": "Manual Journal", "akun": "5112101", "akunNama": "Salary, Honorarium, Walfare Expense", "kategori": "Lecturer Honorarium", "nilai": 128000000, "memo": null, "penerima": null, "event": null, "eventGrup": null, "jenis": "Honorarium", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": null, "itemBiaya": null, "lokasi": null, "dokumen": null, "jenisDokumen": null}, {"tanggal": "2026-04-28", "bulan": "2026-04", "jurnal": "JE26006363 - YBN - Binus University Malang - 28/04/2026", "noJurnal": "JE26006363", "sumber": "Manual Journal", "akun": "5112101", "akunNama": "Salary, Honorarium, Walfare Expense", "kategori": "Lecturer Honorarium", "nilai": 24150000, "memo": null, "penerima": null, "event": null, "eventGrup": null, "jenis": "Honorarium", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": null, "itemBiaya": null, "lokasi": null, "dokumen": null, "jenisDokumen": null}, {"tanggal": "2026-05-28", "bulan": "2026-05", "jurnal": "JE26007539 - YBN - Binus University Malang - 28/05/2026", "noJurnal": "JE26007539", "sumber": "Manual Journal", "akun": "5112101", "akunNama": "Salary, Honorarium, Walfare Expense", "kategori": "Lecturer Honorarium", "nilai": 106500000, "memo": null, "penerima": null, "event": null, "eventGrup": null, "jenis": "Honorarium", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": null, "itemBiaya": null, "lokasi": null, "dokumen": null, "jenisDokumen": null}, {"tanggal": "2026-06-28", "bulan": "2026-06", "jurnal": "JE26008910 - YBN - Binus University Malang - 28/06/2026", "noJurnal": "JE26008910", "sumber": "Manual Journal", "akun": "5112101", "akunNama": "Salary, Honorarium, Walfare Expense", "kategori": "Lecturer Honorarium", "nilai": 74000000, "memo": null, "penerima": null, "event": null, "eventGrup": null, "jenis": "Honorarium", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": null, "itemBiaya": null, "lokasi": null, "dokumen": null, "jenisDokumen": null}, {"tanggal": "2026-07-28", "bulan": "2026-07", "jurnal": "JE26010795 - YBN - Binus University Malang - 28/07/2026", "noJurnal": "JE26010795", "sumber": "Manual Journal", "akun": "5112101", "akunNama": "Salary, Honorarium, Walfare Expense", "kategori": "Lecturer Honorarium", "nilai": 22000000, "memo": null, "penerima": null, "event": null, "eventGrup": null, "jenis": "Honorarium", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": null, "itemBiaya": null, "lokasi": null, "dokumen": null, "jenisDokumen": null}, {"tanggal": "2026-01-01", "bulan": "2026-01", "jurnal": "Operational Journal: YBN - Binus University Malang - 01/01/2026", "noJurnal": null, "sumber": "Expense Report", "akun": "5112108", "akunNama": "Membership & Subscription Expense", "kategori": "Membership & Subscription", "nilai": 200000, "memo": "Permohonan KI/5 Nov/Batch 23/Malang", "penerima": null, "event": "Permohonan KI/5 Nov/Batch 23/Malang", "eventGrup": "Batch 23", "jenis": "HKI / Kekayaan Intelektual", "quartile": null, "proporsional": false, "batch": "Batch 23", "pegawai": "Yohanes Albert Kembarenta", "supplier": null, "itemBiaya": "Biaya Keanggotaan", "lokasi": "BINUS Anggrek Campus Higher Edu", "dokumen": "PRF2512084870", "jenisDokumen": "Expense Report"}, {"tanggal": "2026-01-01", "bulan": "2026-01", "jurnal": "Operational Journal: YBN - Binus University Malang - 01/01/2026", "noJurnal": null, "sumber": "Expense Report", "akun": "5112108", "akunNama": "Membership & Subscription Expense", "kategori": "Membership & Subscription", "nilai": 600000, "memo": "Permohonan KI 14 Okt-Batch 20-Malang", "penerima": null, "event": "Permohonan KI 14 Okt-Batch 20-Malang", "eventGrup": "Batch 20", "jenis": "HKI / Kekayaan Intelektual", "quartile": null, "proporsional": false, "batch": "Batch 20", "pegawai": "Elioenai Sitepu", "supplier": null, "itemBiaya": "Biaya Keanggotaan", "lokasi": "BINUS Anggrek Campus Higher Edu", "dokumen": "PRF2512084883", "jenisDokumen": "Expense Report"}, {"tanggal": "2026-01-01", "bulan": "2026-01", "jurnal": "Operational Journal: YBN - Binus University Malang - 01/01/2026", "noJurnal": null, "sumber": "Expense Report", "akun": "5112108", "akunNama": "Membership & Subscription Expense", "kategori": "Membership & Subscription", "nilai": 800000, "memo": "Permohonan KI/28 Okt/Batch 22/Malang", "penerima": null, "event": "Permohonan KI/28 Okt/Batch 22/Malang", "eventGrup": "Batch 22", "jenis": "HKI / Kekayaan Intelektual", "quartile": null, "proporsional": false, "batch": "Batch 22", "pegawai": "Elioenai Sitepu", "supplier": null, "itemBiaya": "Biaya Keanggotaan", "lokasi": "BINUS Anggrek Campus Higher Edu", "dokumen": "PRF2512082726", "jenisDokumen": "Expense Report"}, {"tanggal": "2026-03-01", "bulan": "2026-03", "jurnal": "Operational Journal: YBN - Binus University Malang - 01/03/2026", "noJurnal": null, "sumber": "Expense Report", "akun": "5112108", "akunNama": "Membership & Subscription Expense", "kategori": "Membership & Subscription", "nilai": 400000, "memo": "Permohonan KI/9 Desember/B-25/Malang", "penerima": null, "event": "Permohonan KI/9 Desember/B-25/Malang", "eventGrup": "HKI lainnya", "jenis": "HKI / Kekayaan Intelektual", "quartile": null, "proporsional": false, "batch": null, "pegawai": "Ria Damayanti", "supplier": null, "itemBiaya": "Biaya Keanggotaan", "lokasi": "BINUS Anggrek Campus Higher Edu", "dokumen": "PRF2602088614", "jenisDokumen": "Expense Report"}, {"tanggal": "2026-05-01", "bulan": "2026-05", "jurnal": "Operational Journal: YBN - Binus University Malang - 01/05/2026", "noJurnal": null, "sumber": "Expense Report", "akun": "5112108", "akunNama": "Membership & Subscription Expense", "kategori": "Membership & Subscription", "nilai": 600000, "memo": "HKI Batch 2/1 Mar 2026/BINUS Malang", "penerima": null, "event": "HKI Batch 2/1 Mar 2026/BINUS Malang", "eventGrup": "Batch 2", "jenis": "HKI / Kekayaan Intelektual", "quartile": null, "proporsional": false, "batch": "Batch 2", "pegawai": "Iga Dinaris Masitoh", "supplier": null, "itemBiaya": "Biaya Keanggotaan", "lokasi": "BINUS Anggrek Campus Higher Edu", "dokumen": "PRF2603091103", "jenisDokumen": "Expense Report"}, {"tanggal": "2026-05-01", "bulan": "2026-05", "jurnal": "Operational Journal: YBN - Binus University Malang - 01/05/2026", "noJurnal": null, "sumber": "Expense Report", "akun": "5112108", "akunNama": "Membership & Subscription Expense", "kategori": "Membership & Subscription", "nilai": 200000, "memo": "Realisasi HKI Batch 3 th 2026 - BINUS Malang", "penerima": null, "event": "Realisasi HKI Batch 3 th 2026 - BINUS Malang", "eventGrup": "Batch 3", "jenis": "HKI / Kekayaan Intelektual", "quartile": null, "proporsional": false, "batch": "Batch 3", "pegawai": "Iga Dinaris Masitoh", "supplier": null, "itemBiaya": "Biaya Keanggotaan", "lokasi": "BINUS Anggrek Campus Higher Edu", "dokumen": "PRF2604092490", "jenisDokumen": "Expense Report"}, {"tanggal": "2026-06-01", "bulan": "2026-06", "jurnal": "Operational Journal: YBN - Binus University Malang - 01/06/2026", "noJurnal": null, "sumber": "Expense Report", "akun": "5112108", "akunNama": "Membership & Subscription Expense", "kategori": "Membership & Subscription", "nilai": 1200000, "memo": "Pendaftaran HKI Batch 7 - BINUS Malang", "penerima": null, "event": "Pendaftaran HKI Batch 7 - BINUS Malang", "eventGrup": "Batch 7", "jenis": "HKI / Kekayaan Intelektual", "quartile": null, "proporsional": false, "batch": "Batch 7", "pegawai": "Iga Dinaris Masitoh", "supplier": null, "itemBiaya": "Biaya Keanggotaan", "lokasi": "BINUS Anggrek Campus Higher Edu", "dokumen": "PRF2605094382", "jenisDokumen": "Expense Report"}, {"tanggal": "2026-06-01", "bulan": "2026-06", "jurnal": "Operational Journal: YBN - Binus University Malang - 01/06/2026", "noJurnal": null, "sumber": "Expense Report", "akun": "5112108", "akunNama": "Membership & Subscription Expense", "kategori": "Membership & Subscription", "nilai": 600000, "memo": "Pendaftaran HKI Batch 9 th 2026 - BINUS Malang", "penerima": null, "event": "Pendaftaran HKI Batch 9 th 2026 - BINUS Malang", "eventGrup": "Batch 9", "jenis": "HKI / Kekayaan Intelektual", "quartile": null, "proporsional": false, "batch": "Batch 9", "pegawai": "Iga Dinaris Masitoh", "supplier": null, "itemBiaya": "Biaya Keanggotaan", "lokasi": "BINUS Anggrek Campus Higher Edu", "dokumen": "PRF2605094786", "jenisDokumen": "Expense Report"}, {"tanggal": "2026-06-09", "bulan": "2026-06", "jurnal": "Operational Journal: YBN - Binus University Malang - 09/06/2026", "noJurnal": null, "sumber": "Expense Report", "akun": "5112108", "akunNama": "Membership & Subscription Expense", "kategori": "Membership & Subscription", "nilai": 800000, "memo": "Pendaftaran HKI Batch 8 th 2026 - BINUS Malang", "penerima": null, "event": "Pendaftaran HKI Batch 8 th 2026 - BINUS Malang", "eventGrup": "Batch 8", "jenis": "HKI / Kekayaan Intelektual", "quartile": null, "proporsional": false, "batch": "Batch 8", "pegawai": "Yohanes Albert Kembarenta", "supplier": null, "itemBiaya": "Biaya Keanggotaan", "lokasi": "BINUS Anggrek Campus Higher Edu", "dokumen": "PRF2606095991", "jenisDokumen": "Expense Report"}, {"tanggal": "2026-06-03", "bulan": "2026-06", "jurnal": "Operational Journal: YBN - Binus University Malang - 03/06/2026", "noJurnal": null, "sumber": "Expense Report", "akun": "5112108", "akunNama": "Membership & Subscription Expense", "kategori": "Membership & Subscription", "nilai": 800000, "memo": "Pendaftaran Pengalihan Hak Desain Industri - Rak Hijau Pintar", "penerima": null, "event": "Pendaftaran Pengalihan Hak Desain Industri - Rak Hijau Pintar", "eventGrup": "HKI lainnya", "jenis": "HKI / Kekayaan Intelektual", "quartile": null, "proporsional": false, "batch": null, "pegawai": "Yohanes Albert Kembarenta", "supplier": null, "itemBiaya": "Biaya Keanggotaan", "lokasi": "BINUS Anggrek Campus Higher Edu", "dokumen": "PRF2606095432", "jenisDokumen": "Expense Report"}, {"tanggal": "2026-07-05", "bulan": "2026-07", "jurnal": "Operational Journal: YBN - Binus University Malang - 05/07/2026", "noJurnal": null, "sumber": "Expense Report", "akun": "5112108", "akunNama": "Membership & Subscription Expense", "kategori": "Membership & Subscription", "nilai": 800000, "memo": "Pendaftaran HKI Batch 14 th 2026 - BINUS Malang", "penerima": null, "event": "Pendaftaran HKI Batch 14 th 2026 - BINUS Malang", "eventGrup": "Batch 14", "jenis": "HKI / Kekayaan Intelektual", "quartile": null, "proporsional": false, "batch": "Batch 14", "pegawai": "Iga Dinaris Masitoh", "supplier": null, "itemBiaya": "Biaya Keanggotaan", "lokasi": "BINUS Anggrek Campus Higher Edu", "dokumen": "PRF2607097955", "jenisDokumen": "Expense Report"}, {"tanggal": "2026-07-01", "bulan": "2026-07", "jurnal": "Operational Journal: YBN - Binus University Malang - 01/07/2026", "noJurnal": null, "sumber": "Expense Report", "akun": "5112108", "akunNama": "Membership & Subscription Expense", "kategori": "Membership & Subscription", "nilai": 600000, "memo": "Pendaftaran HKI Batch 11 th 2026 - BINUS Malang", "penerima": null, "event": "Pendaftaran HKI Batch 11 th 2026 - BINUS Malang", "eventGrup": "Batch 11", "jenis": "HKI / Kekayaan Intelektual", "quartile": null, "proporsional": false, "batch": "Batch 11", "pegawai": "Iga Dinaris Masitoh", "supplier": null, "itemBiaya": "Biaya Keanggotaan", "lokasi": "BINUS Anggrek Campus Higher Edu", "dokumen": "PRF2606096853", "jenisDokumen": "Expense Report"}, {"tanggal": "2026-07-01", "bulan": "2026-07", "jurnal": "Operational Journal: YBN - Binus University Malang - 01/07/2026", "noJurnal": null, "sumber": "Expense Report", "akun": "5112108", "akunNama": "Membership & Subscription Expense", "kategori": "Membership & Subscription", "nilai": 800000, "memo": "Pendaftaran HKI Batch 10 th 2026 - BINUS Malang", "penerima": null, "event": "Pendaftaran HKI Batch 10 th 2026 - BINUS Malang", "eventGrup": "Batch 10", "jenis": "HKI / Kekayaan Intelektual", "quartile": null, "proporsional": false, "batch": "Batch 10", "pegawai": "Iga Dinaris Masitoh", "supplier": null, "itemBiaya": "Biaya Keanggotaan", "lokasi": "BINUS Anggrek Campus Higher Edu", "dokumen": "PRF2606096753", "jenisDokumen": "Expense Report"}, {"tanggal": "2026-08-03", "bulan": "2026-08", "jurnal": "Operational Journal: YBN - Binus University Malang - 03/08/2026", "noJurnal": null, "sumber": "Expense Report", "akun": "5112108", "akunNama": "Membership & Subscription Expense", "kategori": "Membership & Subscription", "nilai": 400000, "memo": "Pendaftaran HKI Batch 18 th 2026 - BINUS Malang", "penerima": null, "event": "Pendaftaran HKI Batch 18 th 2026 - BINUS Malang", "eventGrup": "Batch 18", "jenis": "HKI / Kekayaan Intelektual", "quartile": null, "proporsional": false, "batch": "Batch 18", "pegawai": "Iga Dinaris Masitoh", "supplier": null, "itemBiaya": "Biaya Keanggotaan", "lokasi": "BINUS Anggrek Campus Higher Edu", "dokumen": "PRF2608100128", "jenisDokumen": "Expense Report"}, {"tanggal": "2026-08-01", "bulan": "2026-08", "jurnal": "Operational Journal: YBN - Binus University Malang - 01/08/2026", "noJurnal": null, "sumber": "Expense Report", "akun": "5112108", "akunNama": "Membership & Subscription Expense", "kategori": "Membership & Subscription", "nilai": 200000, "memo": "Pendaftaran HKI Batch 17 th 2026 - BINUS Malang", "penerima": null, "event": "Pendaftaran HKI Batch 17 th 2026 - BINUS Malang", "eventGrup": "Batch 17", "jenis": "HKI / Kekayaan Intelektual", "quartile": null, "proporsional": false, "batch": "Batch 17", "pegawai": "Iga Dinaris Masitoh", "supplier": null, "itemBiaya": "Biaya Keanggotaan", "lokasi": "BINUS Anggrek Campus Higher Edu", "dokumen": "PRF2607099277", "jenisDokumen": "Expense Report"}, {"tanggal": "2026-08-01", "bulan": "2026-08", "jurnal": "Operational Journal: YBN - Binus University Malang - 01/08/2026", "noJurnal": null, "sumber": "Expense Report", "akun": "5112108", "akunNama": "Membership & Subscription Expense", "kategori": "Membership & Subscription", "nilai": 200000, "memo": "Pendaftaran HKI Batch 15 th 2026 - BINUS Malang", "penerima": null, "event": "Pendaftaran HKI Batch 15 th 2026 - BINUS Malang", "eventGrup": "Batch 15", "jenis": "HKI / Kekayaan Intelektual", "quartile": null, "proporsional": false, "batch": "Batch 15", "pegawai": "Iga Dinaris Masitoh", "supplier": null, "itemBiaya": "Biaya Keanggotaan", "lokasi": "BINUS Anggrek Campus Higher Edu", "dokumen": "PRF2607098719", "jenisDokumen": "Expense Report"}, {"tanggal": "2026-01-08", "bulan": "2026-01", "jurnal": "Operational Journal: YBN - Binus University Malang - 08/01/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 1550000, "memo": "Reimburse Conf - IFIP WG8.6 25 - Agung Purnomo", "penerima": "Agung Purnomo", "event": "IFIP WG8.6 25", "eventGrup": "IFIP WG8.6", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260101096", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-01-08", "bulan": "2026-01", "jurnal": "Operational Journal: YBN - Binus University Malang - 08/01/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 1556500, "memo": "Reimburse Conf - IFIP WG8.6 25 - Agung Purnomo", "penerima": "Agung Purnomo", "event": "IFIP WG8.6 25", "eventGrup": "IFIP WG8.6", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260101086", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-01-09", "bulan": "2026-01", "jurnal": "Operational Journal: YBN - Binus University Malang - 09/01/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 2756500, "memo": "Reimb Conf ICAIDES 2025 - PRISKARDUS HERMANTO CANDRA", "penerima": "Priskardus Hermanto Candra", "event": "ICAIDES 2025", "eventGrup": "ICAIDES", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260101453", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-01-10", "bulan": "2026-01", "jurnal": "Operational Journal: YBN - Binus University Malang - 10/01/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 3005000, "memo": "Reimb Conf ICAICTA 2025 - GUSTI PANGESTU", "penerima": "Gusti Pangestu", "event": "ICAICTA 2025", "eventGrup": "ICAICTA", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260101471", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-01-10", "bulan": "2026-01", "jurnal": "Operational Journal: YBN - Binus University Malang - 10/01/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 2306500, "memo": "Reimb Conf iSEMANTIC 2025 - ID 1571170315 - GUSTI PANGESTU", "penerima": "Gusti Pangestu", "event": "iSEMANTIC 2025", "eventGrup": "iSEMANTIC", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260101472", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-01-11", "bulan": "2026-01", "jurnal": "Operational Journal: YBN - Binus University Malang - 11/01/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 2500000, "memo": "Reimb Conf ICCC- 2025 - PRISKARDUS HERMANTO CANDRA", "penerima": "Priskardus Hermanto Candra", "event": "ICCC 2025", "eventGrup": "ICCC", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260101525", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-02-12", "bulan": "2026-02", "jurnal": "Operational Journal: YBN - Binus University Malang - 12/02/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 3716500, "memo": "Reimb Conf ICDXA 2025 - ROBERTUS TANG HERMAN", "penerima": "Robertus Tang Herman", "event": "ICDXA 2025", "eventGrup": "ICDXA", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260202057", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-03-01", "bulan": "2026-03", "jurnal": "Operational Journal: YBN - Binus University Malang - 01/03/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 2068750, "memo": "Reimburse International Journal of Advances in Applied Sciences - HANY AZZA UMAMA - Q4 (Proporsional)", "penerima": "Hany Azza Umama", "event": "International Journal of Advances in Applied Sciences", "eventGrup": "International Journal of Advances in Applied Sciences", "jenis": "Jurnal", "quartile": "Q4", "proporsional": true, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260203492", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-03-01", "bulan": "2026-03", "jurnal": "Operational Journal: YBN - Binus University Malang - 01/03/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 3428870, "memo": "Reimburse Conf - IMCOM 2025 - R. ADITYA KRISTAMTOMO PUTRA", "penerima": "R. Aditya Kristamtomo Putra", "event": "IMCOM 2025", "eventGrup": "IMCOM", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260203501", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-03-01", "bulan": "2026-03", "jurnal": "Operational Journal: YBN - Binus University Malang - 01/03/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 3506500, "memo": "Reimb Conf CITSM 2025 - RIZA RIZQIYAH", "penerima": "Riza Rizqiyah", "event": "CITSM 2025", "eventGrup": "CITSM", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260203545", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-03-01", "bulan": "2026-03", "jurnal": "Operational Journal: YBN - Binus University Malang - 01/03/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 3679999, "memo": "Reimb Conf ICDXA 2025 - SAHNAZ UBUD", "penerima": "Sahnaz Ubud", "event": "ICDXA 2025", "eventGrup": "ICDXA", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260203792", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-03-16", "bulan": "2026-03", "jurnal": "Operational Journal: YBN - Binus University Malang - 16/03/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 3046075, "memo": "Reimb Conf ICSADL 2025 - RIEFKY PRABOWO", "penerima": "Riefky Prabowo", "event": "ICSADL 2025", "eventGrup": "ICSADL", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260302509", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-03-26", "bulan": "2026-03", "jurnal": "Operational Journal: YBN - Binus University Malang - 26/03/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 3002500, "memo": "Reimb Conf ICAMIMIA 2025 - FAIRUZ IQBAL MAULANA", "penerima": "Fairuz Iqbal Maulana", "event": "ICAMIMIA 2025", "eventGrup": "ICAMIMIA", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260303064", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-03-27", "bulan": "2026-03", "jurnal": "Operational Journal: YBN - Binus University Malang - 27/03/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 7059601, "memo": "Reimb Conf FAIRUZ IQBAL MAULANA [IMCOM 2026] - SEBANYAK 2 PAPER", "penerima": "Fairuz Iqbal Maulana", "event": "IMCOM 2026", "eventGrup": "IMCOM", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260303140", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-04-02", "bulan": "2026-04", "jurnal": "Operational Journal: YBN - Binus University Malang - 02/04/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 3425870, "memo": "Reimb Conf IMCOM 2026 - R. ADITYA KRISTAMTOMO PUTRA", "penerima": "R. Aditya Kristamtomo Putra", "event": "IMCOM 2026", "eventGrup": "IMCOM", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260400147", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-04-07", "bulan": "2026-04", "jurnal": "Operational Journal: YBN - Binus University Malang - 07/04/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 3712500, "memo": "Reimb Conf ICDXA 2025 ID 122 - SIDHARTA", "penerima": "Sidharta", "event": "ICDXA 2025", "eventGrup": "ICDXA", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260400503", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-04-08", "bulan": "2026-04", "jurnal": "Operational Journal: YBN - Binus University Malang - 08/04/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 3914155, "memo": "Reimb Conf ICDTDE 2025 - AGUNG PURNOMO", "penerima": "Agung Purnomo", "event": "ICDTDE 2025", "eventGrup": "ICDTDE", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260400613", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-04-07", "bulan": "2026-04", "jurnal": "Operational Journal: YBN - Binus University Malang - 07/04/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 3712500, "memo": "Reimb Conf ICDXA 2025 - SATRIA FADIL PERSADA", "penerima": "Satria Fadil Persada", "event": "ICDXA 2025", "eventGrup": "ICDXA", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260400523", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-04-08", "bulan": "2026-04", "jurnal": "Operational Journal: YBN - Binus University Malang - 08/04/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 3909298, "memo": "Reimb Conf ICDTDE 2025 ID 1027 - AGUNG PURNOMO", "penerima": "Agung Purnomo", "event": "ICDTDE 2025", "eventGrup": "ICDTDE", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260400673", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-04-16", "bulan": "2026-04", "jurnal": "Operational Journal: YBN - Binus University Malang - 16/04/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 4789375, "memo": "Reimb Conf ISCBI 2026 ID CB0132 - MURNIATI", "penerima": "Murniati", "event": "ISCBI 2026", "eventGrup": "ISCBI", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260401820", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-04-16", "bulan": "2026-04", "jurnal": "Operational Journal: YBN - Binus University Malang - 16/04/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 4793875, "memo": "Reimb Conf ISCBI 2026 PAPER ID CB0133 - MURNIATI", "penerima": "Murniati", "event": "ISCBI 2026", "eventGrup": "ISCBI", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260401838", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-05-11", "bulan": "2026-05", "jurnal": "Operational Journal: YBN - Binus University Malang - 11/05/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 4800000, "memo": "Reimb Conf ISTES 2026 - FREDERIK MASRI GASA", "penerima": "Frederik Masri Gasa", "event": "ISTES 2026", "eventGrup": "ISTES", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260501530", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-05-01", "bulan": "2026-05", "jurnal": "Operational Journal: YBN - Binus University Malang - 01/05/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 8803084, "memo": "Reimburse Journal of Asian Architecture and Building Engineering - KUKUH LUKIYANTO - Q1 (Proporsional)", "penerima": "Kukuh Lukiyanto", "event": "Journal of Asian Architecture and Building Engineering", "eventGrup": "Journal of Asian Architecture and Building Engineering", "jenis": "Jurnal", "quartile": "Q1", "proporsional": true, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260502259", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-05-01", "bulan": "2026-05", "jurnal": "Operational Journal: YBN - Binus University Malang - 01/05/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 3002500, "memo": "Reimb Conf ICIMCIS 2025 ID 1447 - CHOIRUL HUDA", "penerima": "Choirul Huda", "event": "ICIMCIS 2025", "eventGrup": "ICIMCIS", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260502339", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-06-02", "bulan": "2026-06", "jurnal": "Operational Journal: YBN - Binus University Malang - 02/06/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 3500000, "memo": "Reimb Conf ICCIT 2025 - MUFIDAH NUR AMALIA", "penerima": "Mufidah Nur Amalia", "event": "ICCIT 2025", "eventGrup": "ICCIT", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260600102", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-06-04", "bulan": "2026-06", "jurnal": "Operational Journal: YBN - Binus University Malang - 04/06/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 3934845, "memo": "Reimb Conf ICDTDE 2025-ID460 - AGUNG PURNOMO", "penerima": "Agung Purnomo", "event": "ICDTDE 2025", "eventGrup": "ICDTDE", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260600462", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-06-10", "bulan": "2026-06", "jurnal": "Operational Journal: YBN - Binus University Malang - 10/06/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 2752500, "memo": "Reimb Conf CODHES 2025 - ETSA ASTRIDYA SETIYATI", "penerima": "Etsa Astridya Setiyati", "event": "CODHES 2025", "eventGrup": "CODHES", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260601484", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-07-07", "bulan": "2026-07", "jurnal": "Operational Journal: YBN - Binus University Malang - 07/07/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 4800000, "memo": "Reimburse Conf - MBE 2026 - Gabriella Sagita Putri", "penerima": "Gabriella Sagita Putri", "event": "MBE 2026", "eventGrup": "MBE", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260700723", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-07-01", "bulan": "2026-07", "jurnal": "Operational Journal: YBN - Binus University Malang - 01/07/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 4800000, "memo": "Reimburse Conf - ICETT 2026 - Mirza Ramadhani", "penerima": "Mirza Ramadhani", "event": "ICETT 2026", "eventGrup": "ICETT", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260603861", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-07-07", "bulan": "2026-07", "jurnal": "Operational Journal: YBN - Binus University Malang - 07/07/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 4800000, "memo": "Reimburse Conf - IHIET-Ai 2026 - KUKUH LUKIYANTO", "penerima": "Kukuh Lukiyanto", "event": "IHIET-Ai 2026", "eventGrup": "IHIET-Ai", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260700704", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-07-23", "bulan": "2026-07", "jurnal": "Operational Journal: YBN - Binus University Malang - 23/07/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 4800000, "memo": "Reimburse Conf - ISCBI 2026 - Riza Rizqiyah", "penerima": "Riza Rizqiyah", "event": "ISCBI 2026", "eventGrup": "ISCBI", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260703521", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-08-01", "bulan": "2026-08", "jurnal": "Operational Journal: YBN - Binus University Malang - 01/08/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 8000000, "memo": "Reimburse The International Journal of Technology in Education and Science (IJTES) - FREDERIK MASRI GASA - Q3", "penerima": "Frederik Masri Gasa", "event": "The International Journal of Technology in Education and Science (IJTES)", "eventGrup": "The International Journal of Technology in Education and Science (IJTES)", "jenis": "Jurnal", "quartile": "Q3", "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260704687", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-08-05", "bulan": "2026-08", "jurnal": "Operational Journal: YBN - Binus University Malang - 05/08/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 2500378, "memo": "Reimb Conf ISIBER 2026 - ID 1571232378 - SIMEON YUDA PRASETYO", "penerima": "Simeon Yuda Prasetyo", "event": "ISIBER 2026", "eventGrup": "ISIBER", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260800543", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-08-04", "bulan": "2026-08", "jurnal": "Operational Journal: YBN - Binus University Malang - 04/08/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 8000000, "memo": "Reimburse International Journal of Technology in Education and Science - YUDHISTYA AYU KUSUMAWATI - Q3 (Proporsional)", "penerima": "Yudhistya Ayu Kusumawati", "event": "International Journal of Technology in Education and Science", "eventGrup": "International Journal of Technology in Education and Science", "jenis": "Jurnal", "quartile": "Q3", "proporsional": true, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260800320", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-08-07", "bulan": "2026-08", "jurnal": "Operational Journal: YBN - Binus University Malang - 07/08/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 4800000, "memo": "Reimburse Conf - CoDIT 2026 - RISCA KURNIA SARI", "penerima": "Risca Kurnia Sari", "event": "CoDIT 2026", "eventGrup": "CoDIT", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260801218", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-08-01", "bulan": "2026-08", "jurnal": "Operational Journal: YBN - Binus University Malang - 01/08/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 7300000, "memo": "SI260202876 REAL - Payment conf ISTES 2025 ID 855 - FREDERIK MASRI GASA", "penerima": "Frederik Masri Gasa", "event": "ISTES 2025", "eventGrup": "ISTES", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260603837", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-08-01", "bulan": "2026-08", "jurnal": "Operational Journal: YBN - Binus University Malang - 01/08/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 8800000, "memo": "SI260300027 REAL - Payment Conf ICRES 2025 - FREDERIK MASRI GASA", "penerima": "Frederik Masri Gasa", "event": "ICRES 2025", "eventGrup": "ICRES", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260603813", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-08-10", "bulan": "2026-08", "jurnal": "Operational Journal: YBN - Binus University Malang - 10/08/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 2500000, "memo": "Reimburse Conf - INFINITYS 2026 - RIEFKY PRABOWO", "penerima": "Riefky Prabowo", "event": "INFINITYS 2026", "eventGrup": "INFINITYS", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260801541", "jenisDokumen": "Supplier Invoice"}, {"tanggal": "2026-08-21", "bulan": "2026-08", "jurnal": "Operational Journal: YBN - Binus University Malang - 21/08/2026", "noJurnal": null, "sumber": "Supplier Invoice", "akun": "5112133", "akunNama": "Journal Publication Expense", "kategori": "Journal, Conference and Publication", "nilai": 4800000, "memo": "Reimburse Conf - ICRES 2026 - Frederik Masri Gasa", "penerima": "Frederik Masri Gasa", "event": "ICRES 2026", "eventGrup": "ICRES", "jenis": "Konferensi", "quartile": null, "proporsional": false, "batch": null, "pegawai": null, "supplier": "DOSEN / GURU", "itemBiaya": null, "lokasi": null, "dokumen": "SI260803574", "jenisDokumen": "Supplier Invoice"}], "meta": {"costCenter": "VR RESEARCH AND TECHNOLOGY TRANSFER BINUS @MALANG", "activity": "Research Conference and Journal", "total": 583484175, "n": 62, "dari": "2026-01-01", "sampai": "2026-08-21"}};
+const TRX = D.trx, META = D.meta;
+
+/* ---------- helper ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const n0 = x => (x==null||isNaN(x))?"–":Math.round(x).toLocaleString("id-ID");
+const n1 = x => (x==null||isNaN(x))?"–":(Math.round(x*10)/10).toLocaleString("id-ID",{minimumFractionDigits:1,maximumFractionDigits:1});
+const rp  = x => x==null?"–":"Rp "+n0(x);
+const rpc = x => {                                   // ringkas: jt / M
+  if(x==null) return "–";
+  const a=Math.abs(x);
+  if(a>=1e9) return "Rp "+n1(x/1e9)+" M";
+  if(a>=1e6) return "Rp "+n1(x/1e6)+" jt";
+  if(a>=1e3) return "Rp "+n0(x/1e3)+" rb";
+  return "Rp "+n0(x);
+};
+const BULAN = {"01":"Jan","02":"Feb","03":"Mar","04":"Apr","05":"Mei","06":"Jun","07":"Jul","08":"Ags","09":"Sep","10":"Okt","11":"Nov","12":"Des"};
+const mLab = m => BULAN[m.slice(5,7)]+" "+m.slice(2,4);
+const tglLab = t => t.slice(8,10)+" "+BULAN[t.slice(5,7)]+" "+t.slice(0,4);
+const HALO = 'style="paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round"';
+const sum = (a,f) => a.reduce((s,x)=>s+(f?f(x):x),0);
+
+const KAT = ["Journal, Conference and Publication","Lecturer Honorarium","Membership & Subscription"];
+const KATC = {"Journal, Conference and Publication":"#16406F","Lecturer Honorarium":"#0F7A6B","Membership & Subscription":"#C8871A"};
+const KATS = {"Journal, Conference and Publication":"Publikasi & konferensi","Lecturer Honorarium":"Honorarium dosen","Membership & Subscription":"Keanggotaan & HKI"};
+const JENIS = ["Konferensi","Jurnal","Honorarium","HKI / Kekayaan Intelektual"];
+const JENISC = {"Konferensi":"#2E77C4","Jurnal":"#7A4A86","Honorarium":"#0F7A6B","HKI / Kekayaan Intelektual":"#C8871A"};
+const MONTHS = [...new Set(TRX.map(t=>t.bulan))].sort();
+const AMBANG = [0, 1e6, 2.5e6, 5e6, 1e7, 5e7];
+
+/* ---------- state ---------- */
+const S = {bulan:"", kat:"", jenis:"", sumber:"", pen:"", min:0, q:"", tren:"stack", ev:"nilai",
+           sort:{k:"tanggal", dir:-1}};
+const passF = t =>
+     (!S.bulan  || t.bulan===S.bulan)   && (!S.kat || t.kategori===S.kat)
+  && (!S.jenis  || t.jenis===S.jenis)   && (!S.sumber || t.sumber===S.sumber)
+  && (!S.pen    || t.penerima===S.pen)  && (t.nilai >= S.min);
+const scope = () => TRX.filter(passF);
+const searched = () => {
+  const rows = scope(); if(!S.q) return rows;
+  return rows.filter(t => [t.memo,t.penerima,t.event,t.dokumen,t.noJurnal,t.pegawai,t.kategori,t.jenis,t.akunNama]
+    .filter(Boolean).join(" ").toLowerCase().includes(S.q));
+};
+
+/* ---------- tooltip ---------- */
+const tipEl = $("tip");
+function bindTip(el, html){
+  const move = e => {
+    const r = tipEl.getBoundingClientRect();
+    let x = e.clientX+14, y = e.clientY-10;
+    if(x+r.width > innerWidth-8) x = e.clientX-r.width-14;
+    if(y+r.height > innerHeight-8) y = innerHeight-r.height-8;
+    tipEl.style.left = x+"px"; tipEl.style.top = Math.max(8,y)+"px";
+  };
+  el.addEventListener("mouseenter", e=>{ tipEl.innerHTML=html; tipEl.style.opacity=1; move(e); });
+  el.addEventListener("mousemove", move);
+  el.addEventListener("mouseleave", ()=>{ tipEl.style.opacity=0; });
+}
+const tips = root => root.querySelectorAll("[data-tip]").forEach(el=>bindTip(el, el.getAttribute("data-tip")));
+
+/* ---------- filter ---------- */
+const fill = (sel, items, allLabel) =>
+  sel.innerHTML = `<option value="">${allLabel}</option>` + items.map(v=>`<option value="${esc(v.v)}">${esc(v.t)}</option>`).join("");
+function buildFilters(){
+  fill($("fBulan"), MONTHS.map(m=>({v:m, t:mLab(m).replace(/(\d\d)$/,"20$1")})), "Semua bulan");
+  fill($("fKat"),   KAT.filter(k=>TRX.some(t=>t.kategori===k)).map(v=>({v, t:KATS[v]})), "Semua kategori");
+  fill($("fJenis"), JENIS.filter(j=>TRX.some(t=>t.jenis===j)).map(v=>({v, t:v})), "Semua jenis");
+  fill($("fSumber"),[...new Set(TRX.map(t=>t.sumber))].sort().map(v=>({v,t:v})), "Semua sumber");
+  fill($("fMin"),   AMBANG.slice(1).map(v=>({v:String(v), t:"≥ "+rpc(v)})), "Semua nilai");
+  refreshPen();
+  const on=(id,k,cast)=>$(id).addEventListener("change",e=>{ S[k]= cast?cast(e.target.value):e.target.value; if(k!=="pen") refreshPen(); render(); });
+  on("fBulan","bulan"); on("fKat","kat"); on("fJenis","jenis"); on("fSumber","sumber"); on("fPen","pen");
+  on("fMin","min", v=>v?+v:0);
+  $("fReset").addEventListener("click",()=>{
+    Object.assign(S,{bulan:"",kat:"",jenis:"",sumber:"",pen:"",min:0,q:""});
+    ["fBulan","fKat","fJenis","fSumber","fMin"].forEach(i=>$(i).value=""); $("fQ").value="";
+    refreshPen(); render();
+  });
+  $("fQ").addEventListener("input",e=>{ S.q=e.target.value.trim().toLowerCase(); renderTabel(); });
+  $("trenToggle").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return;
+    S.tren=b.dataset.m; [...$("trenToggle").children].forEach(x=>x.setAttribute("aria-pressed",x===b)); renderTren(); });
+  $("evToggle").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return;
+    S.ev=b.dataset.m; [...$("evToggle").children].forEach(x=>x.setAttribute("aria-pressed",x===b)); renderEvent(); });
+  $("btnCsv").addEventListener("click", unduhCsv);
+}
+function refreshPen(){
+  const keep=S.pen;
+  const list = [...new Set(TRX.filter(t=>(!S.bulan||t.bulan===S.bulan)&&(!S.kat||t.kategori===S.kat)
+      &&(!S.jenis||t.jenis===S.jenis)&&(!S.sumber||t.sumber===S.sumber)&&t.penerima).map(t=>t.penerima))]
+    .sort((a,b)=>a.localeCompare(b,"id"));
+  fill($("fPen"), list.map(v=>({v,t:v})), "Semua penerima");
+  if(list.includes(keep)) $("fPen").value=keep; else S.pen="";
+}
+
+/* ---------- 01 kartu ---------- */
+function renderKPI(){
+  const rows = scope();
+  const tot = sum(rows,t=>t.nilai);
+  const nilai = rows.map(t=>t.nilai).sort((a,b)=>a-b);
+  const maxT = rows.length ? rows.reduce((a,b)=>b.nilai>a.nilai?b:a) : null;
+  const bulanAktif = new Set(rows.map(t=>t.bulan)).size;
+  const nPen = new Set(rows.map(t=>t.penerima).filter(Boolean)).size;
+  const median = nilai.length ? (nilai.length%2 ? nilai[(nilai.length-1)/2] : (nilai[nilai.length/2-1]+nilai[nilai.length/2])/2) : null;
+  const share = META.total ? tot/META.total*100 : 0;
+
+  const card = o => `<div class="kpi ${o.tone||''}">
+      <div class="lab">${o.lab}</div>
+      <div class="val num">${o.val}${o.unit?`<small> ${o.unit}</small>`:""}</div>
+      ${o.bar!=null?`<div class="bar"><i style="width:${Math.min(100,o.bar)}%;background:${o.barc||'#5B98D8'}"></i></div>`:""}
+      <div class="foot">${o.foot}</div></div>`;
+
+  $("kpiRow").innerHTML = [
+    card({lab:"Total belanja", val:rpc(tot), tone:"money", bar:share, barc:"#0F7A6B",
+          foot:`${n1(share)}% dari seluruh belanja ${rpc(META.total)}`}),
+    card({lab:"Jumlah transaksi", val:n0(rows.length), tone:"navy",
+          foot:`dari ${n0(META.n)} baris jurnal · ${n0(bulanAktif)} bulan aktif`}),
+    card({lab:"Rata-rata per transaksi", val:rpc(rows.length?tot/rows.length:0),
+          foot:`median ${rpc(median)}`}),
+    card({lab:"Transaksi terbesar", val:rpc(maxT?maxT.nilai:0), tone:"warn",
+          foot: maxT ? `${esc(maxT.penerima||KATS[maxT.kategori]||"–")} · ${tglLab(maxT.tanggal)}` : "–"}),
+    card({lab:"Penerima dana", val:n0(nPen), tone:"navy",
+          foot:`dosen penerima reimbursement publikasi`}),
+    card({lab:"Rata-rata per bulan", val:rpc(bulanAktif?tot/bulanAktif:0), tone:"money",
+          foot:`laju belanja pada bulan yang tercatat`})
+  ].join("");
+
+  $("kpiSub").textContent = "Seluruh angka adalah nilai debit transaksi; tidak ada baris kredit pada periode ini.";
+  $("scope").innerHTML = `Cakupan aktif: <b class="num">${n0(rows.length)}</b> transaksi · <b>${rpc(tot)}</b>`
+    + (rows.length!==TRX.length ? ` dari ${n0(TRX.length)} transaksi` : "");
+  $("stamps").innerHTML = [
+    {b:rpc(META.total), s:"Total belanja"},
+    {b:n0(META.n), s:"Baris jurnal"},
+    {b:MONTHS.length+" bulan", s:"Jan–Ags 2026"},
+    {b:n0(new Set(TRX.map(t=>t.penerima).filter(Boolean)).size), s:"Penerima dana"}
+  ].map(x=>`<div class="stamp"><b class="num">${x.b}</b><span>${x.s}</span></div>`).join("");
+}
+
+/* ---------- 02 tren: stacked bar + garis kumulatif ---------- */
+function renderTren(){
+  const rows = scope();
+  const keys = S.tren==="stack" ? KAT.filter(k=>rows.some(t=>t.kategori===k)) : JENIS.filter(j=>rows.some(t=>t.jenis===j));
+  const col  = S.tren==="stack" ? KATC : JENISC;
+  const lab  = S.tren==="stack" ? (k=>KATS[k]||k) : (k=>k);
+  const fld  = S.tren==="stack" ? (t=>t.kategori) : (t=>t.jenis);
+  const data = MONTHS.map(m=>{
+    const mr = rows.filter(t=>t.bulan===m), v={};
+    keys.forEach(k=>v[k]=sum(mr.filter(t=>fld(t)===k),t=>t.nilai));
+    return {m, v, tot:sum(mr,t=>t.nilai), n:mr.length};
+  });
+  const W=680,H=310,mL=52,mR=52,mT=22,mB=36;
+  const max = Math.max(...data.map(d=>d.tot),1);
+  const totAll = sum(data,d=>d.tot) || 1;
+  const bw = Math.min(46,(W-mL-mR)/MONTHS.length-14);
+  const cx = i => mL + (i+0.5)*((W-mL-mR)/MONTHS.length);
+  const py = v => mT + (1-v/max)*(H-mT-mB);
+  const pyc = p => mT + (1-p/100)*(H-mT-mB);
+
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Tren belanja bulanan">`;
+  for(let t=0;t<=4;t++){ const v=max*t/4, yy=py(v);
+    s+=`<line class="gridline" x1="${mL}" y1="${yy}" x2="${W-mR}" y2="${yy}"/>`
+     + `<text class="tick" x="${mL-8}" y="${yy+4}" text-anchor="end">${t?rpc(v).replace("Rp ",""):"0"}</text>`
+     + `<text class="tick" x="${W-mR+8}" y="${yy+4}" fill="#7A4A86">${t*25}%</text>`; }
+  let cum=0; const cpts=[];
+  data.forEach((d,i)=>{
+    let yTop=py(d.tot);
+    let acc=0;
+    keys.forEach(k=>{
+      const v=d.v[k]||0; if(!v) return;
+      const y1=py(acc+v), y2=py(acc), hh=Math.max(1,y2-y1);
+      s+=`<g data-tip="<b>${mLab(d.m)} · ${esc(lab(k))}</b><s>${rp(v)}</s><s>${n1(v/(d.tot||1)*100)}% dari belanja bulan itu</s>">
+        <rect x="${cx(i)-bw/2}" y="${y1}" width="${bw}" height="${hh}" fill="${col[k]}" stroke="#fff" stroke-width=".8"/></g>`;
+      acc+=v;
+    });
+    s+=`<text class="tick b" x="${cx(i)}" y="${yTop-7}" text-anchor="middle" ${HALO}>${rpc(d.tot).replace("Rp ","")}</text>`;
+    s+=`<text class="tick b" x="${cx(i)}" y="${H-mB+20}" text-anchor="middle">${mLab(d.m)}</text>`;
+    s+=`<text class="tick" x="${cx(i)}" y="${H-mB+33}" text-anchor="middle" fill="#93A3B5">${d.n} trx</text>`;
+    cum+=d.tot; cpts.push({i, p:cum/totAll*100, cum});
+  });
+  s+=`<path d="${cpts.map((p,j)=>`${j?"L":"M"}${cx(p.i)},${pyc(p.p)}`).join(" ")}" fill="none" stroke="#7A4A86" stroke-width="2.2" stroke-dasharray="5 3"/>`;
+  cpts.forEach(p=>s+=`<g data-tip="<b>Kumulatif s.d. ${mLab(MONTHS[p.i])}</b><s>${rp(p.cum)}</s><s>${n1(p.p)}% dari total cakupan</s>">
+      <circle cx="${cx(p.i)}" cy="${pyc(p.p)}" r="11" fill="transparent"/>
+      <circle cx="${cx(p.i)}" cy="${pyc(p.p)}" r="3.6" fill="#fff" stroke="#7A4A86" stroke-width="2.2"/></g>`);
+  s+=`<line class="axis" x1="${mL}" y1="${H-mB}" x2="${W-mR}" y2="${H-mB}"/></svg>`;
+  $("tren").innerHTML=s; tips($("tren"));
+
+  $("trenLeg").innerHTML = keys.map(k=>`<span><i style="background:${col[k]}"></i>${esc(lab(k))} <b>${rpc(sum(data,d=>d.v[k]||0))}</b></span>`).join("")
+    + `<span><i style="background:#7A4A86"></i>Kumulatif (skala kanan)</span>`;
+  const top = data.slice().sort((a,b)=>b.tot-a.tot)[0];
+  $("trenHint").innerHTML = top && top.tot
+    ? `Puncak belanja terjadi pada <b>${mLab(top.m)}</b> sebesar <b>${rpc(top.tot)}</b> — ${n1(top.tot/totAll*100)}% dari total cakupan aktif.`
+    : `Tidak ada transaksi pada cakupan ini.`;
+}
+
+/* ---------- 03 donut ---------- */
+function renderDonut(){
+  const rows=scope();
+  const items = KAT.map(k=>({k, lab:KATS[k], c:KATC[k], v:sum(rows.filter(t=>t.kategori===k),t=>t.nilai),
+      n:rows.filter(t=>t.kategori===k).length})).filter(x=>x.v>0);
+  const total = sum(items,x=>x.v);
+  const W=340,H=252,cx=W/2,cy=H/2+4,R=88,r=59;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Komposisi belanja menurut kategori">`;
+  if(!total){ $("donut").innerHTML=s+`<text class="tick" x="${cx}" y="${cy}" text-anchor="middle">Tidak ada transaksi</text></svg>`;
+    $("donutLeg").innerHTML=""; $("donutHint").textContent=""; return; }
+  let a0=-Math.PI/2;
+  items.forEach(it=>{
+    const sw=it.v/total*Math.PI*2, a1=a0+sw, big=sw>Math.PI?1:0;
+    const p=(a,rad)=>[cx+Math.cos(a)*rad, cy+Math.sin(a)*rad];
+    const [x1,y1]=p(a0,R),[x2,y2]=p(a1,R),[x3,y3]=p(a1,r),[x4,y4]=p(a0,r);
+    s+=`<path d="M${x1},${y1} A${R},${R} 0 ${big} 1 ${x2},${y2} L${x3},${y3} A${r},${r} 0 ${big} 0 ${x4},${y4} Z"
+      fill="${it.c}" stroke="#fff" stroke-width="2"
+      data-tip="<b>${esc(it.lab)}</b><s>${rp(it.v)} · ${n1(it.v/total*100)}%</s><s>${n0(it.n)} transaksi · rata-rata ${rpc(it.v/it.n)}</s>"/>`;
+    if(it.v/total>0.07){ const [lx,ly]=p((a0+a1)/2,(R+r)/2);
+      s+=`<text x="${lx}" y="${ly+4}" text-anchor="middle" fill="#fff" font-size="12" font-weight="640" style="pointer-events:none">${n0(it.v/total*100)}%</text>`; }
+    a0=a1;
+  });
+  s+=`<text x="${cx}" y="${cy-3}" text-anchor="middle" font-size="18" font-weight="670" fill="#0C1A2B">${rpc(total)}</text>`
+   + `<text x="${cx}" y="${cy+16}" text-anchor="middle" font-size="11.5" fill="#6C7E93">${n0(rows.length)} transaksi</text></svg>`;
+  $("donut").innerHTML=s; tips($("donut"));
+  $("donutLeg").innerHTML = items.map(x=>`<span><i style="background:${x.c}"></i>${esc(x.lab)} <b>${rpc(x.v)}</b></span>`).join("");
+  const big = items.slice().sort((a,b)=>b.v-a.v)[0];
+  $("donutHint").innerHTML = `<b>${esc(big.lab)}</b> menyerap ${n1(big.v/total*100)}% belanja pada cakupan ini, dari ${n0(big.n)} transaksi.`;
+}
+
+/* ---------- hbar ---------- */
+function hbar(el, items, opt){
+  opt=opt||{};
+  const rowH=opt.rowH||29, W=560, mL=opt.mL||140, mR=opt.mR||70, H=items.length*rowH+18;
+  const max = Math.max(...items.map(i=>i.v),1);
+  const w = v => Math.max(2,(v/max)*(W-mL-mR));
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opt.aria||'')}">`;
+  items.forEach((it,i)=>{
+    const y=i*rowH+9;
+    s+=`<g data-tip="${it.tip}"><rect x="0" y="${y-7}" width="${W}" height="${rowH-3}" fill="transparent"/>
+      <text class="tick b" x="${mL-9}" y="${y+13}" text-anchor="end">${esc(it.label)}</text>
+      <rect x="${mL}" y="${y+2}" width="${W-mL-mR}" height="15" rx="4" fill="#F0F6FC"/>
+      <rect x="${mL}" y="${y+2}" width="${w(it.v)}" height="15" rx="4" fill="${it.c}"/>
+      <text class="tick b" x="${W-6}" y="${y+14}" text-anchor="end">${it.vlab}</text></g>`;
+  });
+  el.innerHTML = s+`</svg>`; tips(el);
+}
+
+/* ---------- 04 penerima ---------- */
+function aggPenerima(rows){
+  const m={};
+  rows.filter(t=>t.penerima).forEach(t=>{
+    const a = m[t.penerima] = m[t.penerima] || {nama:t.penerima, v:0, n:0, ev:new Set()};
+    a.v+=t.nilai; a.n++; if(t.eventGrup) a.ev.add(t.eventGrup);
+  });
+  return Object.values(m).sort((a,b)=>b.v-a.v);
+}
+function renderPenerima(){
+  const rows=scope(), agg=aggPenerima(rows);
+  if(!agg.length){ $("penBar").innerHTML=`<div class="empty">Tidak ada transaksi dengan penerima terdata pada cakupan ini.</div>`;
+    $("penHint").textContent=""; return; }
+  const show = agg.slice(0,12);
+  hbar($("penBar"), show.map((a,i)=>({label:a.nama.length>22?a.nama.slice(0,20)+"…":a.nama, v:a.v,
+      c: i===0?"#0F7A6B":(i<3?"#16406F":"#5B98D8"), vlab:rpc(a.v),
+      tip:`<b>${esc(a.nama)}</b><s>${rp(a.v)} dari ${n0(a.n)} transaksi</s><s>${[...a.ev].slice(0,4).join(", ")}${a.ev.size>4?" …":""}</s>`})),
+    {aria:"Penerima dana terbesar", mL:150});
+  const totPen = sum(agg,a=>a.v);
+  $("penHint").innerHTML = `<b>${n0(agg.length)}</b> dosen menerima total <b>${rpc(totPen)}</b>. Ditampilkan 12 teratas${agg.length>12?`; ${n0(agg.length-12)} lainnya tidak tampil`:""}.`;
+}
+
+/* ---------- 05 pareto ---------- */
+function renderPareto(){
+  const agg=aggPenerima(scope());
+  if(agg.length<2){ $("pareto").innerHTML=`<div class="empty">Perlu minimal dua penerima untuk menghitung konsentrasi belanja.</div>`;
+    $("paretoHint").textContent=""; $("paretoLeg").innerHTML=""; return; }
+  const W=620,H=300,mL=52,mR=44,mT=22,mB=58;
+  const tot=sum(agg,a=>a.v), max=agg[0].v;
+  const bw=Math.min(30,(W-mL-mR)/agg.length-4);
+  const cx=i=>mL+(i+0.5)*((W-mL-mR)/agg.length);
+  const py=v=>mT+(1-v/max)*(H-mT-mB);
+  const pyc=p=>mT+(1-p/100)*(H-mT-mB);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Kurva konsentrasi belanja per penerima">`;
+  for(let t=0;t<=4;t++){ const yy=py(max*t/4);
+    s+=`<line class="gridline" x1="${mL}" y1="${yy}" x2="${W-mR}" y2="${yy}"/>`
+     + `<text class="tick" x="${mL-8}" y="${yy+4}" text-anchor="end">${t?rpc(max*t/4).replace("Rp ",""):"0"}</text>`
+     + `<text class="tick" x="${W-mR+8}" y="${yy+4}" fill="#7A4A86">${t*25}%</text>`; }
+  s+=`<line x1="${mL}" y1="${pyc(80)}" x2="${W-mR}" y2="${pyc(80)}" stroke="#A93226" stroke-width="1.2" stroke-dasharray="5 4"/>`
+   + `<text class="tick" x="${W-mR-4}" y="${pyc(80)-6}" text-anchor="end" fill="#A93226" ${HALO}>ambang 80% belanja</text>`;
+  let cum=0; const pts=[]; let n80=0;
+  agg.forEach((a,i)=>{
+    cum+=a.v; const p=cum/tot*100; pts.push({i,p,cum});
+    if(p<=80.0001) n80=i+1;
+    s+=`<g data-tip="<b>${esc(a.nama)}</b><s>${rp(a.v)} · ${n1(a.v/tot*100)}% dari belanja penerima</s><s>Kumulatif sampai peringkat ${i+1}: ${n1(p)}%</s>">
+      <rect x="${cx(i)-bw/2}" y="${py(a.v)}" width="${bw}" height="${(H-mB)-py(a.v)}" rx="2" fill="${i<n80?"#16406F":"#A9C8E8"}"/></g>`;
+    if(i<10||i===agg.length-1)
+      s+=`<text class="tick" x="${cx(i)}" y="${H-mB+14}" text-anchor="end" transform="rotate(-52,${cx(i)},${H-mB+14})">${esc(a.nama.split(" ")[0])}</text>`;
+  });
+  s+=`<path d="${pts.map((p,j)=>`${j?"L":"M"}${cx(p.i)},${pyc(p.p)}`).join(" ")}" fill="none" stroke="#7A4A86" stroke-width="2.2"/>`;
+  pts.forEach(p=>s+=`<circle cx="${cx(p.i)}" cy="${pyc(p.p)}" r="2.8" fill="#7A4A86"/>`);
+  s+=`<line class="axis" x1="${mL}" y1="${H-mB}" x2="${W-mR}" y2="${H-mB}"/>`
+   + `<text class="alab" x="${(W+mL)/2}" y="${H-4}" text-anchor="middle">Penerima diurutkan dari nilai terbesar</text></svg>`;
+  $("pareto").innerHTML=s; tips($("pareto"));
+  $("paretoLeg").innerHTML = `<span><i style="background:#16406F"></i>Termasuk 80% belanja teratas</span>`
+    + `<span><i style="background:#A9C8E8"></i>Sisanya</span><span><i style="background:#7A4A86"></i>Kumulatif (skala kanan)</span>`;
+  $("paretoHint").innerHTML = `<b>${n0(n80)}</b> dari ${n0(agg.length)} penerima (${n1(n80/agg.length*100)}%) menyerap 80% belanja reimbursement. `
+    + `Penerima terbesar sendiri mengambil ${n1(agg[0].v/tot*100)}%.`;
+}
+
+/* ---------- 06 histogram + statistik ---------- */
+function renderHist(){
+  const rows=scope(), nilai=rows.map(t=>t.nilai).sort((a,b)=>a-b);
+  if(!nilai.length){ $("hist").innerHTML=`<div class="empty">Tidak ada transaksi pada cakupan ini.</div>`;
+    $("statBox").innerHTML=""; $("histHint").textContent=""; return; }
+  const BINS=[[0,1e6],[1e6,2.5e6],[2.5e6,5e6],[5e6,1e7],[1e7,5e7],[5e7,Infinity]];
+  const LBL=["< 1 jt","1–2,5 jt","2,5–5 jt","5–10 jt","10–50 jt","> 50 jt"];
+  const bins=BINS.map(([lo,hi],i)=>{ const r=rows.filter(t=>t.nilai>=lo&&t.nilai<hi);
+    return {label:LBL[i], n:r.length, v:sum(r,t=>t.nilai)}; });
+  const W=620,H=230,mL=52,mR=16,mT=22,mB=48;
+  const max=Math.max(...bins.map(b=>b.n),1);
+  const bw=Math.min(58,(W-mL-mR)/bins.length-14);
+  const cx=i=>mL+(i+0.5)*((W-mL-mR)/bins.length);
+  const py=n=>mT+(1-n/max)*(H-mT-mB);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Sebaran nilai transaksi">`;
+  for(let t=0;t<=4;t++){ const yy=py(max*t/4);
+    s+=`<line class="gridline" x1="${mL}" y1="${yy}" x2="${W-mR}" y2="${yy}"/><text class="tick" x="${mL-8}" y="${yy+4}" text-anchor="end">${n0(max*t/4)}</text>`; }
+  bins.forEach((b,i)=>{
+    const hh=(H-mB)-py(b.n);
+    s+=`<g data-tip="<b>${b.label}</b><s>${n0(b.n)} transaksi (${n1(b.n/rows.length*100)}%)</s><s>Total ${rp(b.v)} · ${n1(b.v/sum(rows,t=>t.nilai)*100)}% dari nilai</s>">
+      <rect x="${cx(i)-bw/2}" y="${py(b.n)}" width="${bw}" height="${Math.max(1,hh)}" rx="3" fill="${b.n?"#2E77C4":"#DEEAF7"}"/>
+      ${b.n?`<text class="tick b" x="${cx(i)}" y="${py(b.n)-6}" text-anchor="middle" ${HALO}>${b.n}</text>`:""}</g>`;
+    s+=`<text class="tick" x="${cx(i)}" y="${H-mB+18}" text-anchor="middle">${b.label}</text>`;
+  });
+  s+=`<line class="axis" x1="${mL}" y1="${H-mB}" x2="${W-mR}" y2="${H-mB}"/>`
+   + `<text class="alab" x="${(W+mL)/2}" y="${H-8}" text-anchor="middle">Nilai transaksi (rupiah)</text>`
+   + `<text class="alab" transform="translate(12,${(H-mB+mT)/2}) rotate(-90)" text-anchor="middle">Jumlah transaksi</text></svg>`;
+  $("hist").innerHTML=s; tips($("hist"));
+  const q=p=>{ const i=(nilai.length-1)*p, lo=Math.floor(i), hi=Math.ceil(i);
+    return nilai[lo]+(nilai[hi]-nilai[lo])*(i-lo); };
+  $("statBox").innerHTML = [
+    ["Nilai terkecil", rp(nilai[0])], ["Kuartil 1", rp(q(.25))],
+    ["Median", rp(q(.5))], ["Kuartil 3", rp(q(.75))],
+    ["Nilai terbesar", rp(nilai[nilai.length-1])], ["Total", rp(sum(nilai))]
+  ].map(([k,v])=>`<div><span>${k}</span><b class="num">${v}</b></div>`).join("");
+  const bigBin = bins.slice().sort((a,b)=>b.n-a.n)[0];
+  $("histHint").innerHTML = `Mayoritas transaksi berada di rentang <b>${bigBin.label}</b> (${n0(bigBin.n)} transaksi). `
+    + `Nilai terbesar ${rpc(nilai[nilai.length-1])} setara ${n1(nilai[nilai.length-1]/sum(nilai)*100)}% dari total cakupan.`;
+}
+
+/* ---------- 07 luaran ---------- */
+function renderEvent(){
+  const rows=scope().filter(t=>t.eventGrup && t.jenis!=="Honorarium");
+  if(!rows.length){ $("eventBar").innerHTML=`<div class="empty">Tidak ada luaran terdata pada cakupan ini.</div>`;
+    $("jurnalBox").innerHTML=""; $("eventHint").textContent=""; return; }
+  const m={};
+  rows.forEach(t=>{ const a=m[t.eventGrup]=m[t.eventGrup]||{k:t.eventGrup, v:0, n:0, jenis:t.jenis, pen:new Set()};
+    a.v+=t.nilai; a.n++; if(t.penerima) a.pen.add(t.penerima); });
+  const agg=Object.values(m).sort((a,b)=> S.ev==="nilai" ? b.v-a.v : b.n-a.n || b.v-a.v).slice(0,12);
+  hbar($("eventBar"), agg.map(a=>({label:a.k.length>26?a.k.slice(0,24)+"…":a.k,
+      v: S.ev==="nilai"?a.v:a.n, c:JENISC[a.jenis]||"#5B98D8",
+      vlab: S.ev==="nilai"?rpc(a.v):n0(a.n)+"x",
+      tip:`<b>${esc(a.k)}</b><s>${esc(a.jenis)} · ${n0(a.n)} transaksi · ${rp(a.v)}</s><s>${[...a.pen].slice(0,4).join(", ")}${a.pen.size>4?" …":""}</s>`})),
+    {aria:"Luaran yang dibiayai", mL:180});
+  const nEv=Object.keys(m).length;
+  $("eventHint").innerHTML = `<b>${n0(nEv)}</b> luaran berbeda dibiayai pada cakupan ini. Warna batang mengikuti jenis luaran.`;
+
+  const jur=scope().filter(t=>t.jenis==="Jurnal");
+  const hki=scope().filter(t=>t.jenis==="HKI / Kekayaan Intelektual");
+  const qs=["Q1","Q2","Q3","Q4"].map(q=>({q, r:jur.filter(t=>t.quartile===q)})).filter(x=>x.r.length);
+  $("jurnalBox").innerHTML = `<table class="tbl"><thead><tr><th>Rincian jenis luaran</th><th class="r">Transaksi</th><th class="r">Nilai</th><th class="r">Rata-rata</th></tr></thead><tbody>`
+    + JENIS.filter(j=>scope().some(t=>t.jenis===j)).map(j=>{
+        const r=scope().filter(t=>t.jenis===j);
+        return `<tr><td><span class="pill" style="background:${JENISC[j]}22;color:${JENISC[j]}">${esc(j)}</span></td>
+          <td class="r num">${n0(r.length)}</td><td class="r num">${rp(sum(r,t=>t.nilai))}</td><td class="r num">${rpc(sum(r,t=>t.nilai)/r.length)}</td></tr>`;
+      }).join("")
+    + (qs.length?`<tr><td colspan="4" style="padding-top:10px;color:var(--ink-3);font-size:11.5px">Kuartil jurnal yang dibiayai: `
+        + qs.map(x=>`<span class="pill p-blue">${x.q} · ${n0(x.r.length)}x · ${rpc(sum(x.r,t=>t.nilai))}</span>`).join(" ")+`</td></tr>`:"")
+    + (hki.length?`<tr><td colspan="4" style="color:var(--ink-3);font-size:11.5px">HKI: ${n0(hki.length)} pendaftaran senilai ${rp(sum(hki,t=>t.nilai))}, rata-rata ${rpc(sum(hki,t=>t.nilai)/hki.length)} per batch.</td></tr>`:"")
+    + `</tbody></table>`;
+}
+
+/* ---------- 08 tabel detail ---------- */
+const COLS = [
+  {k:"tanggal",  t:"Tanggal",  cls:"",  v:t=>tglLab(t.tanggal),  sv:t=>t.tanggal},
+  {k:"kategori", t:"Kategori", cls:"",  v:t=>`<span class="pill" style="background:${KATC[t.kategori]}1a;color:${KATC[t.kategori]}">${esc(KATS[t.kategori]||t.kategori)}</span>`, sv:t=>t.kategori},
+  {k:"jenis",    t:"Jenis",    cls:"",  v:t=>t.jenis?`<span class="pill p-neu">${esc(t.jenis)}</span>`:"—", sv:t=>t.jenis||""},
+  {k:"penerima", t:"Penerima", cls:"",  v:t=>t.penerima?`<span class="nm">${esc(t.penerima)}</span>`:(t.pegawai?`<span style="color:var(--ink-3)">${esc(t.pegawai)}</span>`:"—"), sv:t=>t.penerima||t.pegawai||""},
+  {k:"event",    t:"Luaran / keterangan", cls:"", v:t=>`<div style="font-size:12.5px;color:var(--ink-2);max-width:340px">${esc(t.memo||t.event||"—")}</div>`, sv:t=>t.event||""},
+  {k:"nilai",    t:"Nilai",    cls:"r", v:t=>`<b class="num">${n0(t.nilai)}</b>`, sv:t=>t.nilai},
+  {k:"sumber",   t:"Sumber",   cls:"",  v:t=>esc(t.sumber), sv:t=>t.sumber},
+  {k:"dokumen",  t:"Dokumen",  cls:"",  v:t=>t.dokumen?`<span class="num" style="font-size:12px">${esc(t.dokumen)}</span>`:(t.noJurnal?`<span class="num" style="font-size:12px">${esc(t.noJurnal)}</span>`:"—"), sv:t=>t.dokumen||t.noJurnal||""}
+];
+function renderTabel(){
+  const rows = searched().slice();
+  const c = COLS.find(x=>x.k===S.sort.k) || COLS[0];
+  rows.sort((a,b)=>{ const x=c.sv(a), y=c.sv(b);
+    return (typeof x==="number" ? x-y : String(x).localeCompare(String(y),"id")) * S.sort.dir; });
+  const tot=sum(rows,t=>t.nilai);
+  $("trxNote").innerHTML = `Menampilkan <b class="num">${n0(rows.length)}</b> transaksi senilai <b>${rp(tot)}</b>`
+    + (S.q?` yang memuat “${esc(S.q)}”`:"") + `. Kolom nilai dalam rupiah penuh.`;
+  if(!rows.length){ $("trxTbl").innerHTML=`<div class="empty">Tidak ada transaksi yang cocok. Coba kata kunci lain atau kosongkan filter.</div>`; return; }
+  $("trxTbl").innerHTML = `<table class="tbl"><thead><tr>`
+    + COLS.map(x=>`<th class="s ${x.cls}" data-k="${x.k}">${x.t}${S.sort.k===x.k?`<span class="ar">${S.sort.dir>0?"▲":"▼"}</span>`:""}</th>`).join("")
+    + `</tr></thead><tbody>`
+    + rows.map(t=>`<tr>`+COLS.map(x=>`<td class="${x.cls}">${x.v(t)}</td>`).join("")+`</tr>`).join("")
+    + `</tbody></table>`;
+  $("trxTbl").querySelectorAll("th.s").forEach(th=>th.addEventListener("click",()=>{
+    const k=th.dataset.k;
+    S.sort = S.sort.k===k ? {k, dir:-S.sort.dir} : {k, dir: k==="nilai"||k==="tanggal" ? -1 : 1};
+    renderTabel();
+  }));
+}
+function unduhCsv(){
+  const head=["Tanggal","Bulan","Kategori","Jenis luaran","Penerima","Pegawai pengaju","Luaran","Memo","Nilai","Sumber jurnal","Akun","Nama akun","Dokumen","Jenis dokumen","Kuartil","Proporsional"];
+  const q=s=>`"${String(s==null?"":s).replace(/"/g,'""')}"`;
+  const body=searched().map(t=>[t.tanggal,t.bulan,t.kategori,t.jenis,t.penerima,t.pegawai,t.event,t.memo,
+      t.nilai,t.sumber,t.akun,t.akunNama,t.dokumen,t.jenisDokumen,t.quartile,t.proporsional?"Ya":""].map(q).join(";"));
+  const csv="\uFEFF"+[head.map(q).join(";"),...body].join("\r\n");
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+  a.download=`spend_rtt_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* ---------- footnote ---------- */
+function renderFoot(){
+  $("footnote").innerHTML = `Sumber data: <b>Detail Spend RTT 02092026.xlsx</b>, sheet “Details View” — ${n0(META.n)} baris jurnal untuk cost center <b>${esc(META.costCenter)}</b>, aktivitas <b>${esc(META.activity)}</b>, periode ${tglLab(META.dari)} sampai ${tglLab(META.sampai)}.
+    Nilai yang dipakai adalah Transaction Debit Amount, yang pada berkas ini sama besar dengan Ledger/Budget Debit Amount; tidak ada baris kredit sehingga tidak ada pembatalan atau koreksi negatif.
+    Kolom Penerima, Jenis luaran, Luaran, dan Kuartil <b>tidak ada di berkas asli</b> — semuanya diurai dari teks Memo dan Worktags, jadi ejaan nama mengikuti apa yang tertulis pada memo dan sebaiknya diperiksa sebelum dipakai untuk keputusan personal.
+    Baris honorarium dosen tidak memuat memo sehingga penerimanya tidak dapat diurai per individu; angkanya hanya tersedia sebagai total bulanan.`;
+}
+
+/* ---------- render ---------- */
+function render(){ renderKPI(); renderTren(); renderDonut(); renderPenerima(); renderPareto(); renderHist(); renderEvent(); renderTabel(); }
+buildFilters(); renderFoot(); render();
+</script>
+</body>
+</html>

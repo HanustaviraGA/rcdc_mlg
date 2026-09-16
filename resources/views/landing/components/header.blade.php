@@ -20,7 +20,7 @@
       <div class="container position-relative d-flex align-items-center justify-content-between">
         <a href="{{ url('/') }}" class="logo d-flex align-items-center">
           <!-- Uncomment the line below if you also wish to use an image logo -->
-          <img src="{{ asset('Logo-Formal-ALRC-FIX.png') }}" alt="" class="logo-formal-alrc">
+          <img src="{{ asset('Logo-Formal-ALRC-FIX.png') }}" alt="ALRC BINUS Malang — Home" class="logo-formal-alrc">
           {{-- <h1 class="sitename">Constructo</h1> --}}
         </a>
 
@@ -31,6 +31,8 @@
             <li><a href="services.html">Services</a></li>
             <li><a href="projects.html">Projects</a></li> --}}
             <li><a href="{{ route('lecturers') }}" @if (Request::is('lecturers')) class="active" @endif>Lecturers</a></li>
+            <li><a href="{{ route('publication-dashboard') }}" @if (Request::routeIs('publication-dashboard')) class="active" aria-current="page" @endif>Dashboard KPI</a></li>
+            <li><a href="{{ route('research-gallery.index') }}" @if (Request::routeIs('research-gallery.*')) class="active" aria-current="page" @endif>Research Gallery</a></li>
             <li><a href="{{ route('outletpublikasi.public') }}" @if (Request::routeIs('outletpublikasi.public')) class="active" @endif>Outlet Publikasi</a></li>
             {{-- <li class="dropdown"><a href="#"><span>More Pages</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
               <ul>

@@ -77,13 +77,17 @@ class LandingController extends Controller
         $pendidikanLabels = array_keys($pendidikanCounts);
         $pendidikanData = array_values($pendidikanCounts);
 
-        // Research
-        $dosens = DataDosen::inRandomOrder()->first();
-        $kode_dosen = $dosens->kode_dosen;
-        $researchs = $this->getResearchs($kode_dosen);
+        $galleryProjects = app(\App\Services\Research\ResearchGallery::class)->projects();
+        $researchGalleryProjects = $galleryProjects->where('source', 'rectorate');
+        if ($researchGalleryProjects->isEmpty()) {
+            $researchGalleryProjects = $galleryProjects->where('source', 'system');
+        }
+        $researchGalleryCount = $researchGalleryProjects->count();
+        $researchGalleryProjects = $researchGalleryProjects->sortByDesc('year')->take(4)->values();
 
         return view('landing.index', compact(
-            'researchs',
+            'researchGalleryProjects',
+            'researchGalleryCount',
             'dosen',
             'prodiLabels',
             'prodiCounts',
