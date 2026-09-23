@@ -20,6 +20,8 @@ class PublicationDashboardTest extends TestCase
 
     private const HEADER = ['RequestCode', 'Author', 'FM Author', 'Kode Dosen', 'JJA', 'Pendidikan', 'Type', 'S/F', 'Dept', 'Kampus', 'First Author', 'Skema', 'Bobot', 'Submitted', 'St2026', 'Jenis', 'Tipe Publikasi', 'Title ', 'Scopus Year', 'Tanggal Pelaporan', 'Source title', 'Quartile Jurnal', 'Notes', 'Prodi KPI'];
 
+    private const KPI_HEADER = ['Kode Dosen', 'Nama Dosen', 'Jurusan Binaan', 'JJA', 'Faculty Type', 'Non Scopus', 'Scopus', 'Jumlah First Author', 'Score KPI', 'Scopus First Author', 'Non Scopus Rectorate', 'Scopus Rectorate', 'Non Scopus RTTO', 'Scopus RTTO', 'Score KPI RTTO', 'Punya Scopus'];
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -45,6 +47,7 @@ class PublicationDashboardTest extends TestCase
         });
         (require database_path('migrations/2026_09_08_000000_add_publication_import_tracking.php'))->up();
         (require database_path('migrations/2026_09_08_000100_create_publication_planning_tables.php'))->up();
+        (require database_path('migrations/2026_09_23_000000_create_publication_kpi_entries_table.php'))->up();
         DB::table('database_dosen')->insert([
             ['kode_dosen' => 'D001', 'nama_dosen' => 'Test Lecturer', 'pendidikan_dosen' => 'S2', 'jurusan_dosen' => 'CS', 'jja_dosen' => 'L200', 'ft_dosen' => 'Functional'],
             ['kode_dosen' => 'D002', 'nama_dosen' => 'No Report', 'pendidikan_dosen' => 'S2', 'jurusan_dosen' => 'CS', 'jja_dosen' => 'L200', 'ft_dosen' => 'Functional'],
@@ -263,6 +266,233 @@ class PublicationDashboardTest extends TestCase
         $this->assertSame(1, $dashboard['snapshots'][2026]['legacy_campus']);
         $this->assertSame(1, $dashboard['snapshots'][2026]['unverified_campus']);
         $this->assertSame(['Computer Science'], collect($dashboard['faculty'])->pluck('program')->unique()->values()->all());
+    }
+
+    public function test_malang_takes_precedence_over_raw_and_reconciles_each_category_independently(): void
+    {
+        $papers = [$this->row(), $this->row(['RequestCode' => 'NON', 'Tipe Publikasi' => 'Nscopus', 'Submitted' => 'Non Scopus FM', 'Bobot' => '2'])];
+        $kpi = $this->kpiRow(['Non Scopus RTTO' => 1, 'Scopus RTTO' => 4, 'Score KPI RTTO' => 3]);
+        $file = $this->workbook([
+            'Raw' => [self::HEADER, array_values($this->row(['RequestCode' => 'EXCLUDED']))],
+            ' malang ' => [self::HEADER, ...array_map('array_values', $papers)],
+            'KPI' => [array_reverse(self::KPI_HEADER), array_values(array_reverse($kpi, true))],
+        ]);
+        $summary = app(PublicationImporter::class)->import($file, 'workbook.xlsx', 2026, 9, 3);
+        $this->assertSame('MALANG', $summary['sheet']);
+        $this->assertSame(2, $summary['selected']);
+        $this->assertSame(1, $summary['kpi']['lecturers']);
+        $dashboard = app(PublicationDashboard::class)->data();
+        $faculty = collect($dashboard['faculty'])->keyBy('code');
+        $annual = $faculty['D001']['annual'][2026];
+        $this->assertSame(3, $annual['score']);
+        $this->assertNotNull($annual['system_score']);
+        $this->assertSame(0.5, $annual['workbook']['rectorate_scopus']);
+        $this->assertSame(4.0, $annual['workbook']['scopus']);
+        $this->assertSame(2.0, $annual['workbook']['non_scopus']);
+        $this->assertSame('RTTO', $annual['workbook']['scopus_source']);
+        $this->assertSame('Rectorate', $annual['workbook']['non_scopus_source']);
+        $this->assertSame(1, $annual['workbook']['first_author']);
+        $this->assertSame(5.0, $annual['weight']);
+        $this->assertTrue($dashboard['snapshots'][2026]['has_kpi']);
+        $this->assertSame(['R1', 'NON'], collect($dashboard['publications'])->pluck('request_code')->all());
+        $this->assertSame('Y', $dashboard['publications'][0]['first_author']);
+        $this->assertSame('Scopus', $dashboard['publications'][0]['tipe_publikasi']);
+    }
+
+    public function test_first_author_requires_all_three_filters_and_counts_author_contributions(): void
+    {
+        $papers = [
+            $this->row(),
+            $this->row(['Kode Dosen' => 'D002', 'First Author' => 'N']),
+            $this->row(['RequestCode' => 'WRONG-TYPE', 'Tipe Publikasi' => 'Nscopus']),
+            $this->row(['RequestCode' => 'WRONG-SUBMITTED', 'Submitted' => 'Non Scopus FM']),
+            $this->row(['RequestCode' => 'NON-FIRST', 'First Author' => 'N']),
+        ];
+        $summary = app(PublicationImporter::class)->import($this->rawFile($papers), 'filters.xlsx', 2026, 9, 3);
+        $this->assertSame(3, $summary['workbook_totals']['titles']);
+        $this->assertSame(1, $summary['workbook_totals']['first_author']);
+        $this->assertSame(2.0, $summary['workbook_totals']['rectorate_scopus']);
+        $this->assertSame(0.5, $summary['workbook_totals']['rectorate_non_scopus']);
+        $this->assertSame(4, $summary['publications']);
+    }
+
+    public function test_explicit_zero_rtto_only_and_absent_kpi_scores_remain_distinct(): void
+    {
+        $kpi = [
+            $this->kpiRow(['Kode Dosen' => 'D002', 'Score KPI RTTO' => 0]),
+            $this->kpiRow(['Kode Dosen' => 'D999', 'Nama Dosen' => 'External-only Lecturer', 'Scopus RTTO' => 3.25, 'Score KPI RTTO' => 5]),
+        ];
+        $file = $this->workbookWithKpi([$this->row()], $kpi);
+        $summary = app(PublicationImporter::class)->import($file, 'zero.xlsx', 2026, 9, 3);
+        $this->assertSame(['D999'], $summary['unmatched_codes']);
+        $faculty = collect(app(PublicationDashboard::class)->data()['faculty'])->keyBy('code');
+        $this->assertNull($faculty['D001']['annual'][2026]['score']);
+        $this->assertNotNull($faculty['D001']['annual'][2026]['system_score']);
+        $this->assertSame(0, $faculty['D002']['annual'][2026]['score']);
+        $this->assertSame(0, $faculty['D002']['annual'][2026]['rows']);
+        $this->assertSame(5, $faculty['D999']['annual'][2026]['score']);
+        $this->assertSame(3.25, $faculty['D999']['annual'][2026]['workbook']['scopus']);
+        $this->assertSame('External-only Lecturer', $faculty['D999']['name']);
+        $this->assertCount(1, app(PublicationDashboard::class)->data()['publications']);
+    }
+
+    public function test_blank_rtto_does_not_become_zero_and_derived_cache_is_audited(): void
+    {
+        $file = $this->workbookWithKpi([$this->row()], [$this->kpiRow([
+            'Scopus RTTO' => '', 'Non Scopus RTTO' => '', 'Score KPI RTTO' => '',
+            'Scopus Rectorate' => '99', 'Jumlah First Author' => '99',
+        ])]);
+        $summary = app(PublicationImporter::class)->import($file, 'blanks.xlsx', 2026, 9, 3);
+        $this->assertSame(1, $summary['kpi']['missing_rtto']);
+        $this->assertCount(2, $summary['kpi']['differences']);
+        $faculty = collect(app(PublicationDashboard::class)->data()['faculty'])->keyBy('code');
+        $m = $faculty['D001']['annual'][2026]['workbook'];
+        $this->assertNull($m['rtto_scopus']);
+        $this->assertNull($m['score']);
+        $this->assertSame(0.5, $m['scopus']);
+        $this->assertSame(1, $m['first_author']);
+    }
+
+    public function test_latest_snapshot_does_not_inherit_older_rtto_and_reimport_replaces_both_sources(): void
+    {
+        $importer = app(PublicationImporter::class);
+        $old = $this->workbookWithKpi([$this->row()], [$this->kpiRow(['Scopus RTTO' => 9, 'Score KPI RTTO' => 6])]);
+        $latest = $this->workbookWithKpi([$this->row()], [$this->kpiRow(['Scopus RTTO' => 1, 'Score KPI RTTO' => 2])]);
+        $importer->import($old, 'august.xlsx', 2026, 8, 3);
+        $importer->import($latest, 'september.xlsx', 2026, 9, 3);
+        $faculty = collect(app(PublicationDashboard::class)->data()['faculty'])->keyBy('code');
+        $this->assertSame(2, $faculty['D001']['annual'][2026]['score']);
+        $this->assertSame(1.0, $faculty['D001']['annual'][2026]['workbook']['scopus']);
+        $importer->import($latest, 'again.xlsx', 2026, 9, 3);
+        $this->assertSame(2, DB::table('publication_kpi_entries')->count());
+        $importer->import($this->rawFile([$this->row()]), 'raw.xlsx', 2026, 9, 3);
+        $dashboard = app(PublicationDashboard::class)->data();
+        $this->assertFalse($dashboard['snapshots'][2026]['has_kpi']);
+        $faculty = collect($dashboard['faculty'])->keyBy('code');
+        $this->assertSame(4, $faculty['D001']['annual'][2026]['score']);
+        $this->assertNull($faculty['D001']['annual'][2026]['workbook']['rtto_scopus']);
+        $this->assertSame(1, DB::table('publication_kpi_entries')->count());
+        $this->assertSame(2, DB::table('rectorate_dosen')->count());
+    }
+
+    public function test_invalid_rtto_and_duplicate_kpi_codes_preserve_previous_snapshot(): void
+    {
+        $importer = app(PublicationImporter::class);
+        $importer->import($this->workbookWithKpi([$this->row()], [$this->kpiRow()]), 'valid.xlsx', 2026, 9, 3);
+        foreach ([['Scopus RTTO' => '#REF!'], ['Non Scopus RTTO' => -1], ['Score KPI RTTO' => 7], ['Score KPI RTTO' => 2.5]] as $invalid) {
+            try {
+                $importer->import($this->workbookWithKpi([$this->row()], [$this->kpiRow($invalid)]), 'invalid.xlsx', 2026, 9, 3);
+                $this->fail('Invalid RTTO must fail.');
+            } catch (ValidationException $e) {
+                $this->assertStringContainsString('Baris KPI', $e->getMessage());
+            }
+        }
+        try {
+            $importer->import($this->workbookWithKpi([$this->row()], [$this->kpiRow(), $this->kpiRow()]), 'duplicate.xlsx', 2026, 9, 3);
+            $this->fail('Duplicate KPI code must fail.');
+        } catch (ValidationException $e) {
+            $this->assertStringContainsString('duplikat', $e->getMessage());
+        }
+        $this->assertSame('valid.xlsx', DB::table('publication_imports')->value('filename'));
+        $this->assertSame(1, DB::table('rectorate_dosen')->count());
+        $this->assertSame(1, DB::table('publication_kpi_entries')->count());
+    }
+
+    public function test_kpi_and_publications_roll_back_together_on_insert_failure(): void
+    {
+        $importer = app(PublicationImporter::class);
+        $file = $this->workbookWithKpi([$this->row()], [$this->kpiRow(['Scopus RTTO' => 3])]);
+        $importer->import($file, 'original.xlsx', 2026, 9, 3);
+        DB::unprepared("CREATE TRIGGER reject_workbook BEFORE INSERT ON rectorate_dosen BEGIN SELECT RAISE(ABORT, 'test rollback'); END");
+        try {
+            $importer->import($this->workbookWithKpi([$this->row()], [$this->kpiRow(['Scopus RTTO' => 10])]), 'replacement.xlsx', 2026, 9, 3);
+            $this->fail('Database trigger must abort.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            $this->assertStringContainsString('test rollback', $e->getMessage());
+        }
+        $this->assertEquals(3, DB::table('publication_kpi_entries')->value('rtto_scopus'));
+        $this->assertSame('original.xlsx', DB::table('publication_imports')->value('filename'));
+        $this->assertSame(1, DB::table('rectorate_dosen')->count());
+    }
+
+    public function test_workbook_dry_run_validates_without_writing_either_source(): void
+    {
+        $file = $this->workbookWithKpi([$this->row()], [$this->kpiRow()]);
+        $summary = app(PublicationImporter::class)->import($file, 'dry.xlsx', 2026, 9, 3, true);
+        $this->assertSame(1, $summary['kpi']['lecturers']);
+        $this->assertSame(0, DB::table('publication_imports')->count());
+        $this->assertSame(0, DB::table('publication_kpi_entries')->count());
+        $this->assertSame(0, DB::table('rectorate_dosen')->count());
+        $this->get('/kpi-publikasi')->assertOk()
+            ->assertSee('Peringkat dosen')->assertSee('Status produktivitas dosen')
+            ->assertSee('id="topToggle"', false)->assertSee('id="donut"', false)
+            ->assertDontSee('id="workbookTabs"', false)->assertDontSee('id="scoreBasis"', false);
+    }
+
+    public function test_excel_display_format_does_not_round_weights_or_formula_results_during_import(): void
+    {
+        $file = $this->workbookWithKpi([$this->row()], [$this->kpiRow()]);
+        $zip = new ZipArchive;
+        $zip->open($file);
+        $ns = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+        $zip->addFromString('xl/styles.xml', '<styleSheet xmlns="'.$ns.'"><cellXfs count="2"><xf numFmtId="0"/><xf numFmtId="2" applyNumberFormat="1"/></cellXfs></styleSheet>');
+        $rels = str_replace('</Relationships>', '<Relationship Id="styles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>', $zip->getFromName('xl/_rels/workbook.xml.rels'));
+        $zip->addFromString('xl/_rels/workbook.xml.rels', $rels);
+        $publications = preg_replace('/<c r="M2".*?<\/c>/', '<c r="M2" s="1"><v>0.3333333333333333</v></c>', $zip->getFromName('xl/worksheets/sheet1.xml'));
+        $zip->addFromString('xl/worksheets/sheet1.xml', $publications);
+        $kpi = preg_replace('/<c r="N2".*?<\/c>/', '<c r="N2" s="1"><f>1/3</f><v>0.3333333333333333</v></c>', $zip->getFromName('xl/worksheets/sheet2.xml'));
+        $zip->addFromString('xl/worksheets/sheet2.xml', $kpi);
+        $zip->close();
+        app(PublicationImporter::class)->import($file, 'precision.xlsx', 2026, 9, 3);
+        $this->assertEqualsWithDelta(1 / 3, DB::table('rectorate_dosen')->value('bobot_asli'), 0.000000000001);
+        $this->assertEqualsWithDelta(1 / 3, DB::table('publication_kpi_entries')->value('rtto_scopus'), 0.000000000001);
+    }
+
+    public function test_missing_kpi_header_and_invalid_malang_do_not_fall_back_to_other_sheets(): void
+    {
+        $reader = app(PublicationImporter::class);
+        $badKpi = $this->workbook(['MALANG' => [self::HEADER, array_values($this->row())], 'KPI' => [['Kode Dosen'], ['D001']]]);
+        try {
+            $reader->import($badKpi, 'bad.xlsx', 2026, 9, 3);
+            $this->fail('Malformed KPI must fail.');
+        } catch (ValidationException $e) {
+            $this->assertStringContainsString('Header nama dosen', $e->getMessage());
+        }
+        $badMalang = $this->workbook(['MALANG' => [self::HEADER], 'Raw' => [self::HEADER, array_values($this->row())]]);
+        try {
+            $reader->import($badMalang, 'bad.xlsx', 2026, 9, 3);
+            $this->fail('Empty MALANG must fail.');
+        } catch (ValidationException $e) {
+            $this->assertStringContainsString('Tidak ada baris MALANG', $e->getMessage());
+        }
+        $this->assertSame(0, DB::table('publication_imports')->count());
+    }
+
+    public function test_kpi_workbook_requires_first_author_and_program_source_columns(): void
+    {
+        foreach (['First Author', 'Prodi KPI'] as $missing) {
+            $header = array_values(array_filter(self::HEADER, fn ($h) => $h !== $missing));
+            $row = $this->row();
+            unset($row[$missing]);
+            $file = $this->workbook(['MALANG' => [$header, array_values($row)], 'KPI' => [self::KPI_HEADER, array_values($this->kpiRow())]]);
+            try {
+                app(PublicationImporter::class)->import($file, 'missing.xlsx', 2026, 9, 3);
+                $this->fail('Workbook must contain the fields used in its summaries.');
+            } catch (ValidationException $e) {
+                $this->assertStringContainsString(str_replace(' ', '_', strtolower($missing)), $e->getMessage());
+            }
+        }
+        $this->assertSame(0, DB::table('publication_imports')->count());
+    }
+
+    private function kpiRow(array $overrides = []): array
+    {
+        return array_replace(array_combine(self::KPI_HEADER, ['D001', 'Test Lecturer', 'CS', 'L200', 'Functional Faculty(A)', '', '', '', '', '', '', '', 0, 0, 0, '']), $overrides);
+    }
+
+    private function workbookWithKpi(array $papers, array $kpi): string
+    {
+        return $this->workbook(['MALANG' => [self::HEADER, ...array_map('array_values', $papers)], 'KPI' => [self::KPI_HEADER, ...array_map('array_values', $kpi)]]);
     }
 
     private function row(array $overrides = []): array

@@ -47,7 +47,8 @@
                 <div class="fv-row mb-5 col-md-12 ">
                     <label for="" class="required form-label mb-3 fw-bold">File (.xlsx)</label>
                     <input type="file" accept=".xlsx" required name="rectorate" id="rectorate" class="form-control bg-white border border-2 py-4 px-6 rounded-3 fw-light fs-6" placeholder="Input Data">
-                    <p class="text-muted mt-3">Import FM menggunakan sheet <strong>Raw</strong>, Kampus <strong>MALANG</strong>, dan Submitted <strong>Non Scopus FM / Scopus FM</strong>. Tahun dan Until Month adalah periode snapshot laporan; pilih quarter yang sesuai. Import ulang mengganti snapshot periode yang sama setelah file lolos validasi.</p>
+                    <p class="text-muted mt-3">Import FM mengutamakan sheet <strong>MALANG</strong>; jika tidak ada, memakai <strong>Raw</strong>. Filter: Kampus MALANG dan Submitted Non Scopus FM / Scopus FM. Sheet <strong>KPI</strong> dibaca untuk data RTTO dan daftar dosen, termasuk nilai nol. Rekap FIRST AUTHOR, TITLE &amp; BOBOT, dan PIVOT dihitung dari data publikasi dengan bobot asli. Bobot akhir memakai nilai tertinggi Rectorate–RTTO per kategori; Score KPI mengikuti Score KPI RTTO. File Raw lama tetap didukung.</p>
+                    <p class="text-muted">Tahun dan Until Month adalah periode snapshot laporan; pilih quarter yang sesuai. Import ulang mengganti publikasi dan data KPI periode yang sama setelah seluruh file lolos validasi. Jika file pengganti tidak memiliki sheet KPI, data RTTO periode tersebut ikut dihapus.</p>
                     <a href="{{ route('publication-dashboard') }}">Buka dashboard KPI publikasi</a>
                     <pre id="importSummary" class="mt-3" style="white-space:pre-wrap" aria-live="polite"></pre>
                 </div>

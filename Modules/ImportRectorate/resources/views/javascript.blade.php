@@ -74,9 +74,12 @@
                     const s = response.summary;
                     $('#importSummary').text([
                         response.message,
+                        'Sumber: ' + s.sheet + '; dosen KPI: ' + (s.kpi?.lecturers || 0),
+                        'Rekap Scopus: ' + s.workbook_totals.titles + ' kontribusi judul; ' + s.workbook_totals.first_author + ' first author; bobot asli ' + s.workbook_totals.rectorate_scopus.toLocaleString('id-ID', {maximumFractionDigits: 4}),
                         'Dilewati: ' + s.excluded_campus + ' baris kampus lain; ' + s.excluded_submitted + ' kategori Submitted lain; ' + s.duplicates + ' duplikat.',
                         'Kolom belum lengkap: ' + (Object.entries(s.missing).map(([key, count]) => key + ' (' + count + ' baris)').join(', ') || 'Tidak ada'),
-                        'Kode dosen belum ada di master: ' + (s.unmatched_codes.join(', ') || 'Tidak ada')
+                        'Kode dosen belum ada di master: ' + (s.unmatched_codes.join(', ') || 'Tidak ada'),
+                        ...(s.warnings || [])
                     ].join('\n'));
                 }
                 // $('#image_pic').empty().html(response.html);

@@ -13,7 +13,7 @@
   --r:10px;
 }
 .publication-page *{box-sizing:border-box}
-.publication-page,.publication-page{margin:0;padding:0}
+.publication-page{margin:0;padding:0}
 .publication-page{background:var(--canvas);color:var(--ink);
   font-family:"Inter","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
   font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
@@ -120,14 +120,23 @@
 @media print{.publication-page .filters{position:static}.publication-page{background:#fff}.publication-page .card{box-shadow:none;break-inside:avoid}}
 @media (prefers-reduced-motion:reduce){.publication-page *{transition:none!important;animation:none!important}}
 
-
-        .publication-page a.btn{display:inline-block;text-decoration:none}.publication-page .hd a{color:#fff}.publication-page .kpis{grid-template-columns:repeat(6,minmax(0,1fr))}
-        .publication-page .twocol{grid-template-columns:repeat(2,minmax(0,1fr))}.publication-page .kpi .val{font-size:26px}.publication-page .table-wrap{overflow:auto}
-        .publication-page .bar-row{display:grid;grid-template-columns:minmax(140px,2fr) 3fr 65px;gap:10px;align-items:center;margin:12px 0;font-size:12px}
-        .publication-page .bar-row .track{height:12px;background:var(--blue-050);border-radius:4px;overflow:hidden}.publication-page .bar-row .track i{display:block;height:100%;background:var(--blue-500)}
-        .publication-page .notice{margin-top:18px;border-left:4px solid var(--warn);background:var(--warn-bg);padding:12px 16px;border-radius:8px}
-        .publication-page .muted{color:var(--ink-3)}.publication-page .legend{margin-bottom:10px}.publication-page .tbl td.title{min-width:280px;max-width:540px}
-        .publication-page details summary{cursor:pointer;font-weight:600}.publication-page details p{margin-bottom:0}.publication-page .progress-note{font-size:12px;margin:6px 0}
-        @media(max-width:1100px){.publication-page .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
-        @media(max-width:800px){.publication-page .twocol{grid-template-columns:1fr}.publication-page .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.publication-page .filters{position:static}}
-        @media(max-width:480px){.publication-page .kpis{grid-template-columns:1fr}.publication-page .bar-row{grid-template-columns:120px 1fr 45px}}
+/* Keep the reference composition within the current BINUS portal theme. */
+.publication-page .filters .fin{display:flex;gap:13px;flex-wrap:wrap;padding-top:14px;padding-bottom:14px;align-items:flex-end}
+.publication-page .filters .fg{min-width:112px;flex:1 1 120px;max-width:220px}
+.publication-page .filters .fg:has(#fDosen){flex-basis:190px}
+.publication-page .filters #fReset{background:var(--brand-600);border-color:var(--brand-600);color:#fff}
+.publication-page .filters .scope{align-self:center;margin-left:auto;font-size:12px}
+.publication-page .grid{min-width:0}
+.publication-page .grid.kpis{grid-template-columns:repeat(6,minmax(0,1fr))}
+.publication-page .scroll{max-width:100%}
+.publication-page .tbl .nm{min-width:140px}
+.publication-page .tbl .topik{min-width:240px;white-space:pre-line}
+.publication-page #tip{z-index:1100;max-width:min(290px,calc(100vw - 16px))}
+.publication-page #tip s{color:#d5e7f3}
+.publication-page .dashboard-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.publication-page a.btn{text-decoration:none}
+@media(max-width:1399px){.publication-page .grid.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:991px){.publication-page .grid[style]{grid-template-columns:minmax(0,1fr)!important}}
+@media(max-width:767px){.publication-page .grid.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.publication-page .filters .fg{max-width:none;flex-basis:calc(50% - 13px)}}
+@media(max-width:479px){.publication-page .filters .scope{flex-basis:100%;margin:0}.publication-page .kpi .val{font-size:25px}.publication-page .grid.kpis{gap:10px}}
+@media print{.publication-page .dashboard-actions,.publication-page #tip,.publication-page #topToggle{display:none}.publication-page .grid[style]{grid-template-columns:minmax(0,1fr)!important}.publication-page .scroll{max-height:none!important;overflow:visible}.publication-page .card{break-inside:auto}}

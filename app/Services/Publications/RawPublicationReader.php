@@ -3,6 +3,7 @@
 namespace App\Services\Publications;
 
 use Aspera\Spreadsheet\XLSX\Reader;
+use Aspera\Spreadsheet\XLSX\ReaderConfiguration;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Illuminate\Validation\ValidationException;
@@ -25,23 +26,22 @@ class RawPublicationReader
 
     public function read(string $path, int $year): array
     {
-        $reader = new Reader;
+        $reader = new Reader((new ReaderConfiguration)->setReturnUnformatted(true));
         $summary = ['sheet' => 'Raw', 'read' => 0, 'excluded_campus' => 0, 'excluded_submitted' => 0,
             'duplicates' => 0, 'selected' => 0, 'submitted' => array_fill_keys(self::SUBMITTED, 0),
             'missing' => [], 'warnings' => []];
         $records = [];
         try {
             $reader->open($path);
-            $sheetIndex = null;
+            $sheets = [];
             foreach ($reader->getSheets() as $index => $sheet) {
-                if (strtolower(trim($sheet->getName())) === 'raw') {
-                    $sheetIndex = $index;
-                    break;
-                }
+                $sheets[strtolower(trim($sheet->getName()))] = $index;
             }
+            $sheetIndex = $sheets['malang'] ?? $sheets['raw'] ?? null;
             if ($sheetIndex === null) {
-                $this->invalid('Sheet Raw tidak ditemukan. Data sebelumnya tetap tersimpan.');
+                $this->invalid('Sheet Raw atau MALANG tidak ditemukan. Data sebelumnya tetap tersimpan.');
             }
+            $summary['sheet'] = isset($sheets['malang']) ? 'MALANG' : 'Raw';
             $reader->changeSheet($sheetIndex);
             $map = null;
             foreach ($reader as $number => $row) {
@@ -50,7 +50,7 @@ class RawPublicationReader
                 }
                 if ($map === null) {
                     $headers = array_map(fn ($h) => $this->normalize((string) $h), $row);
-                    $map = $this->mapHeaders($headers, $year);
+                    $map = $this->mapHeaders($headers, $year, isset($sheets['kpi']));
 
                     continue;
                 }
@@ -111,7 +111,7 @@ class RawPublicationReader
             $reader->close();
         }
         if (! $records) {
-            $this->invalid('Tidak ada baris Raw dengan Kampus MALANG dan Submitted Non Scopus FM / Scopus FM. Data lama tetap tersimpan.');
+            $this->invalid('Tidak ada baris '.$summary['sheet'].' dengan Kampus MALANG dan Submitted Non Scopus FM / Scopus FM. Data lama tetap tersimpan.');
         }
         $summary['selected'] = count($records);
         $summary['lecturers'] = count(array_unique(array_column($records, 'kode_dosen')));
@@ -141,19 +141,23 @@ class RawPublicationReader
         return $weight;
     }
 
-    private function mapHeaders(array $headers, int $year): array
+    private function mapHeaders(array $headers, int $year, bool $hasKpi = false): array
     {
         $map = [];
         foreach (self::HEADERS + ['status' => ['st'.$year, 'status']] as $field => $aliases) {
             $matches = array_keys(array_intersect($headers, $aliases));
             if (count($matches) > 1) {
-                $this->invalid("Kolom {$field} ambigu atau duplikat pada sheet Raw.");
+                $this->invalid("Kolom {$field} ambigu atau duplikat pada sheet publikasi.");
             }
             $map[$field] = $matches[0] ?? null;
         }
-        foreach (['request_code', 'kode_dosen', 'kampus', 'submitted', 'bobot_asli', 'title', 'jenis', 'tipe_publikasi', 'status'] as $field) {
+        $required = ['request_code', 'kode_dosen', 'kampus', 'submitted', 'bobot_asli', 'title', 'jenis', 'tipe_publikasi', 'status'];
+        if ($hasKpi) {
+            $required = array_merge($required, ['first_author', 'prodi_kpi']);
+        }
+        foreach ($required as $field) {
             if ($map[$field] === null) {
-                $this->invalid("Kolom {$field} tidak ditemukan pada sheet Raw. Kolom status harus Status atau St{$year}; periksa tahun import.");
+                $this->invalid("Kolom {$field} tidak ditemukan pada sheet publikasi. Kolom status harus Status atau St{$year}; periksa tahun import.");
             }
         }
 

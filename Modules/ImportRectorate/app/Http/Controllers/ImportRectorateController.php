@@ -184,7 +184,7 @@ class ImportRectorateController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Import Raw selesai: {$summary['selected']} baris, {$summary['publications']} publikasi, {$summary['lecturers']} dosen.",
+                'message' => "Import {$summary['sheet']} selesai: {$summary['selected']} baris, {$summary['publications']} publikasi, {$summary['lecturers']} dosen; {$summary['kpi']['lecturers']} dosen pada sheet KPI.",
                 'summary' => $summary,
             ]);
         }

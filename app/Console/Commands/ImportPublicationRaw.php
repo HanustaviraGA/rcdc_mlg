@@ -10,7 +10,7 @@ class ImportPublicationRaw extends Command
 {
     protected $signature = 'publications:import-raw {file} {--year=} {--month=} {--dry-run : Validate and summarize without changing data}';
 
-    protected $description = 'Import sheet Raw untuk FM MALANG (Non Scopus FM / Scopus FM)';
+    protected $description = 'Import publikasi FM dari MALANG/Raw dan data RTTO dari sheet KPI';
 
     public function handle(PublicationImporter $importer): int
     {

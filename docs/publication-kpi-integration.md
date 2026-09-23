@@ -1,5 +1,77 @@
 # Integrasi dashboard KPI publikasi FM
 
+## Tampilan aktif — kembali ke contoh HTML, 23 September 2026
+
+Sesuai koreksi pengguna, tampilan `/kpi-publikasi` sekarang mengikuti komposisi `Dashboard_KPI_Publikasi_FM_2027.html`: sepuluh bagian berurutan, enam kartu ringkasan, delapan filter, grafik tren per prodi dan institusi, donat produktivitas, perbandingan KPI/hibah prodi, risk matrix empat kuadran, tabel intervensi, peringkat Top 10/25/semua, grafik mentor dan hibah, tabel matriks, kartu cluster, serta topik/SDG 2027. Proporsi kolom dan jenis grafik mengikuti contoh. Warna, tipografi, navigasi, kartu, dan footer tetap memakai tema portal BINUS saat ini.
+
+Hero mengikuti gambar `hero.png` dari pengguna: breadcrumb, judul “Dashboard KPI Publikasi.”, pengantar, tautan Research Gallery, serta tiga ringkasan jumlah faculty member, program studi, dan tahun publikasi. Hero menggunakan gaya portal sebelumnya; sepuluh bagian dashboard di bawahnya tetap mengikuti contoh HTML. Pemeriksaan hero pada lebar 1345/390/320 piksel lolos tanpa overflow atau runtime error, dan tiga test halaman publik lolos (28 assertion). Bukti lokal: `storage/app/hero-verification.json` dan `storage/app/kpi-hero-restored-1345.png`.
+
+Pengguna mengonfirmasi bahwa **data tetap berasal dari database/Excel**, bukan data dosen yang tertanam di HTML. JavaScript mengadaptasi payload `PublicationDashboard` ke visualisasi contoh. Tahun, jumlah dosen/prodi, skor, dan peran hibah mengikuti data aktual; daftar dosen memakai kode dosen agar nama sama tidak tercampur. Mentor, cluster, dan topik tidak disalin atau disimpulkan dari data contoh. Ringkasan pedoman matriks/cluster mengikuti contoh dan diberi keterangan sumber.
+
+Panel rekonsiliasi workbook, rincian publikasi, katalog riset, serta filter sumber skor/cakupan tambahan dari tampilan sebelumnya telah dilepas dari halaman ini agar komposisinya kembali sesuai contoh. Dukungan impor MALANG/Raw/KPI serta perhitungan Rectorate–RTTO tetap tersedia. Skor otomatis mengikuti RTTO apabila snapshot memuat KPI, dan perhitungan sistem untuk snapshot lama. Penjelasan sumber berada di catatan bawah. Tautan pengelolaan tetap hanya untuk pengguna yang masuk.
+
+Validasi tampilan: **26 test publikasi / 198 assertion** lolos, Blade berhasil dikompilasi, dan **28 pemeriksaan browser** lolos. Pemeriksaan membandingkan urutan sepuluh judul dan kartu dengan HTML asli, menguji data database serta workbook September, filter/Top 10/25/semua, pencarian/reset topik, cetak, viewport 320/390/768/1024 piksel, data kosong, hanya satu tahun/dosen, ambang profesor 6, dan keamanan tooltip. Tidak ada overflow halaman, koordinat SVG tidak valid, atau runtime error. Bukti lokal: `storage/app/reference-dashboard-verification.json`, `kpi-reference-restored-desktop.png`, `kpi-reference-restored-top.png`, `kpi-reference-restored-mobile.png`, dan `kpi-reference-workbook-preview.png`.
+
+Catatan pembaruan di bawah mempertahankan riwayat implementasi impor; uraian tampilan workbook di dalamnya sudah digantikan oleh tampilan aktif di atas.
+
+## Pembaruan 23 September 2026 — workbook MALANG dan KPI RTTO
+
+Dashboard tetap menggunakan `/kpi-publikasi` dan mempertahankan grafik, filter, peringkat, rincian publikasi, riset, mentor, matriks, dan rencana penelitian yang sudah tersedia. Import FM sekarang mendukung bentuk `Scopus FM (September).xlsx` melalui formulir Import Rectorate yang sama.
+
+### Sumber dan perhitungan
+
+- **MALANG** dipilih jika ada; **Raw** menjadi fallback untuk file lama. Kedua sheet tidak digabungkan. Filter Kampus MALANG dan Submitted Non Scopus FM / Scopus FM tetap berlaku. MALANG yang kosong/tidak valid tidak diam-diam diganti Raw.
+- **FIRST AUTHOR** dihitung ulang dari baris dengan Tipe Publikasi Scopus, Submitted Scopus FM, dan First Author Y, dikelompokkan menurut Kode Dosen.
+- **TITLE & BOBOT** memakai Scopus + Scopus FM, lalu Count of Title dan SUM bobot asli menurut **Prodi KPI dari Excel**. Count of Title adalah jumlah kontribusi dosen–publikasi. Jumlah publikasi unik ditampilkan sebagai angka terpisah; satu publikasi dapat menyumbang beberapa kontribusi atau beberapa prodi.
+- **PIVOT** menjumlahkan bobot asli menurut Kode Dosen dan Tipe Publikasi Nscopus/Scopus. Tidak memakai bobot penyesuaian quartile.
+- **KPI** menyimpan daftar dosen, Jurusan Binaan, JJA, Faculty Type, Non Scopus RTTO, Scopus RTTO, dan Score KPI RTTO dari workbook. Bobot Rectorate dihitung ulang dari data publikasi, lalu bobot akhir mengambil **MAX(Rectorate, RTTO) per dosen dan per kategori**. Maksimum dihitung sebelum agregasi total.
+- Rumus **Score KPI** pada seluruh baris contoh merujuk langsung ke **Score KPI RTTO**. Dashboard mengikuti rumus ini; tidak menghitung maksimum antara skor sistem dan skor RTTO. Pilihan **Perhitungan sistem** tetap menyediakan skor operasional lama dengan bobot penyesuaian.
+- Jumlah first author dan status Sudah/Belum dihitung ulang. **Punya Scopus** berarti bobot Scopus akhir lebih dari nol, termasuk bila hanya RTTO yang memiliki bobot positif. Agregat RTTO tidak diubah menjadi daftar judul rekaan.
+
+Rekap FIRST AUTHOR, TITLE & BOBOT, dan PIVOT tidak bergantung pada cache PivotTable. Pembaca XLSX mengambil nilai numerik tanpa format tampilan, sehingga pecahan tidak terpotong mengikuti format dua desimal Excel. Nilai RTTO berupa formula memakai hasil tersimpan dari Excel; simpan workbook setelah kalkulasi. Formula eksternal tidak dijalankan oleh aplikasi.
+
+Header publikasi First Author dan Prodi KPI wajib jika workbook menyertakan sheet KPI. Header sheet KPI dipetakan berdasarkan nama, sehingga urutan kolom boleh berubah. Kode dosen duplikat, header tidak lengkap, angka RTTO negatif/tidak valid, atau skor di luar bilangan bulat 0–6 menggagalkan seluruh impor. Sel RTTO kosong disimpan NULL; nol eksplisit tetap nol. Nilai turunan KPI yang berbeda dari perhitungan dicatat pada ringkasan impor dan panel pemeriksaan sumber.
+
+### Tampilan dan penyimpanan
+
+Dashboard menambahkan enam kartu rekap serta empat tab: **KPI · Rectorate & RTTO**, **TITLE & BOBOT**, **FIRST AUTHOR**, dan **PIVOT**. Tabel rekonsiliasi menampilkan nilai kedua sumber, nilai maksimum, sumber yang terpilih, jumlah/status first author, Punya Scopus, dan Score KPI RTTO. Semua tabel mengikuti filter aktif dan mendukung klik nama dosen untuk membuka rincian. Mode cetak menampilkan keempat tab.
+
+Pilihan sumber skor otomatis memakai workbook jika snapshot mempunyai sheet KPI; snapshot lama tetap memakai sistem. Rata-rata, tren, peringkat, dan status produktivitas mengikuti pilihan tersebut. Tren workbook membiarkan tahun tanpa skor RTTO kosong. Filter **Dosen sheet KPI** tersedia untuk mencocokkan populasi workbook; **Semua dosen** mempertahankan cakupan master. Dosen di luar sheet KPI tidak diberi skor RTTO otomatis. Identitas/filter master lama tetap tersedia, sementara profil dari workbook ditampilkan pada tabel rekonsiliasi.
+
+Migrasi `2026_09_23_000000_create_publication_kpi_entries_table.php` menambah `publication_kpi_entries`, unik per batch impor dan kode dosen, dengan sumber baris dan payload audit. Migrasi telah dijalankan pada database lokal. Tidak ada paket tambahan.
+
+Publikasi dan KPI diimpor dalam satu transaksi. Impor ulang periode yang sama mengganti keduanya; periode lain tetap tersimpan. Mengunggah file Raw tanpa KPI untuk mengganti periode yang sama juga menghapus data KPI periode tersebut agar tidak menyisakan RTTO dari file lama. Dashboard hanya menggunakan data KPI dari batch yang sesuai dengan snapshot publikasi terbaru tahun itu.
+
+Untuk file contoh: pilih **FM / 2026 / Quarter 3 / September**, lalu unggah file XLSX melalui `/dashboard/importrectorate`. Validasi CLI tanpa menyimpan data tetap tersedia:
+
+```powershell
+php artisan publications:import-raw '<lokasi workbook.xlsx>' --year=2026 --month=9 --dry-run
+```
+
+### Verifikasi workbook September
+
+| Rekap | Hasil |
+| --- | ---: |
+| Baris MALANG | 183 |
+| Publikasi unik | 100 |
+| Dosen dengan baris publikasi | 68 |
+| Dosen sheet KPI | 113 |
+| Kontribusi judul Scopus FM | 163 |
+| Judul first author / dosen first author | 59 / 33 |
+| Prodi KPI dengan kontribusi Scopus | 8 |
+| Bobot asli Scopus Rectorate | 70,8333333333 |
+| Bobot asli Nscopus Rectorate | 18,6666666667 |
+| Bobot Scopus akhir, asumsi positif | 189,49 |
+| Bobot Non Scopus akhir, asumsi positif | 23,1666666667 |
+
+Impor workbook contoh diuji di SQLite sementara, tanpa memasukkan snapshot September ke database operasional. Sebanyak **1.496 perbandingan** terhadap nilai tersimpan di sheet KPI, FIRST AUTHOR, TITLE & BOBOT, dan PIVOT cocok dalam toleransi floating point 1e-9. Data master tetap mencakup 118 dosen: 113 memiliki skor workbook (termasuk 33 skor nol), lima di luar daftar KPI tetap tanpa skor RTTO.
+
+Pengujian regresi meliputi prioritas sheet, filter gabungan first author, presisi numerik/formula, MAX per kategori, RTTO-only, NULL versus nol, header wajib, duplikat, dry-run, isolasi antarperiode, dan rollback seluruh impor. Pemeriksaan browser mencakup 23 pemeriksaan interaksi, cetak, dan viewport 320/390/768/1024 piksel tanpa overflow halaman atau runtime error. Bukti lokal: `storage/app/workbook-verification.json`, `workbook-browser-verification.json`, `workbook-kpi-desktop.png`, `workbook-kpi-mobile.png`, dan `workbook-title-bobot-desktop.png`.
+
+Suite publikasi, riset, dan outlet lolos **46 tests / 396 assertions** melalui `php -d extension=pdo_sqlite vendor/bin/phpunit --filter 'PublicationDashboardTest|RectorateResearchTest|OutletPublikasiTest'`. Pint, pemeriksaan sintaks JavaScript/PHP, dan kompilasi Blade juga lolos. Suite lengkap masih memiliki kegagalan pada `Tests\Feature\ExampleTest`: tes Home tidak menyediakan tabel `database_dosen_new` dalam SQLite. Kegagalan tersebut berada pada `LandingController::home`, di luar perubahan publikasi.
+
+Bagian berikut merupakan catatan integrasi sebelumnya; aturan workbook di atas berlaku untuk format baru.
+
 Dashboard publik tersedia di `/kpi-publikasi`, tanpa login atau pemanggilan `change_perms`. URL lama `/dashboard/kpi-publikasi` mengarahkan ke URL publik dengan HTTP 301 dan mempertahankan query string. Tautannya ada di navigasi Home, Research Gallery, Perhitungan KPI, Perhitungan KPI Dosen, dan Import Rectorate.
 
 Pembaruan 16 September 2026 memakai template Home (Constructo) melalui `resources/views/landing/layout.blade.php`, dengan header/footer bersama, warna BINUS, dan navigasi publik. Template ini dipilih karena Dashboard KPI dan Research Gallery merupakan bagian portal untuk pengunjung luar. CSS grafik dan galeri dibatasi ke konten masing-masing agar tidak memengaruhi header/footer. Tombol impor dan pedoman matriks hanya ditampilkan ketika pengguna sudah masuk. Data contoh, penetapan mentor/cluster, dan angka historis dari HTML referensi tidak diimpor sebagai fakta.
