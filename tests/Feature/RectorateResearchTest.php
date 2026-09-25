@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Services\Publications\ImportedLecturerKpi;
 use App\Services\Research\RectorateResearchImporter;
 use App\Services\Research\RectorateResearchReader;
 use App\Services\Research\RectorateResearchRepository;
@@ -19,6 +20,47 @@ class RectorateResearchTest extends TestCase
 {
     private array $files = [];
 
+    public function test_module_upload_returns_summaries_and_monthly_status(): void
+    {
+        $this->actingAs((new User)->forceFill(['id' => 1]));
+        $path = $this->workbook(['MALANG' => [$this->row()]]);
+        $file = new UploadedFile($path, 'hibah.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true);
+        $response = $this->postJson(route('importrectorate.upload'), ['research_file' => $file, 'year' => 2026, 'month' => 9])
+            ->assertOk()->assertJsonPath('summaries.research_file.selected', 1);
+        $this->assertStringContainsString('Hibah berhasil diproses', $response->json('summary_html'));
+        $this->assertStringContainsString('hibah.xlsx', $response->json('history_html'));
+        $this->assertStringContainsString('2026-09', $response->json('history_html'));
+        $this->assertSame(1, DB::table('research_imports')->count());
+        $this->postJson(route('importrectorate.upload'), ['year' => 2026, 'month' => 9])
+            ->assertUnprocessable()->assertJsonValidationErrors('research_file');
+    }
+
+    public function test_admin_kpi_includes_grant_only_lecturers_and_keeps_undated_imports_separate(): void
+    {
+        $importer = app(RectorateResearchImporter::class);
+        $file = $this->workbook(['MALANG' => [
+            $this->row(['kode_dosen_nim' => 'D999', 'nama' => 'Grant Only', 'prodi_di_kpi' => 'CS']),
+            $this->row(['kode_dosen_nim' => 'D002', 'peran' => 'Anggota 1', 'prodi_di_kpi' => 'DI']),
+            $this->row(['kode_dosen_nim' => 'MHS', 'kategori_fm_eksternal_mahasiswa' => 'Mahasiswa']),
+        ]]);
+        $legacy = $importer->import($file, 'legacy.xlsx', year: 2026, month: 7);
+        DB::table('research_imports')->where('id', $legacy['import_id'])->update(['year' => null, 'month' => null]);
+        $importer->import($file, 'september.xlsx', year: 2026, month: 9);
+        $service = app(ImportedLecturerKpi::class);
+        $rows = $service->rows();
+        $this->assertCount(4, $rows);
+        $chair = $rows->where('month', 9)->firstWhere('code', 'D999');
+        $this->assertSame(1, $chair['grant_chair']);
+        $this->assertSame(0, $chair['grant_member']);
+        $this->assertNull($chair['scopus']);
+        $this->assertNull($chair['score']);
+        $this->assertSame(1, $rows->where('month', 9)->firstWhere('code', 'D002')['grant_member']);
+        $this->assertCount(2, $service->filter($rows, ['year' => 2026, 'month' => 9]));
+        $this->assertCount(2, $service->filter($rows, ['search' => 'D999']));
+        $this->assertCount(2, $rows->whereNull('month'));
+        $this->assertFalse($rows->contains('code', 'MHS'));
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -28,6 +70,7 @@ class RectorateResearchTest extends TestCase
         $this->assertSame('sqlite', config('database.default'));
         $this->assertSame(':memory:', config('database.connections.sqlite.database'));
         (require database_path('migrations/2026_09_08_000200_add_rectorate_research_imports.php'))->up();
+        (require database_path('migrations/2026_09_24_000000_add_monthly_research_snapshots.php'))->up();
         Schema::create('database_dosen', fn (Blueprint $table) => $table->string('kode_dosen')->primary());
         DB::table('database_dosen')->insert([['kode_dosen' => 'D001'], ['kode_dosen' => 'D002']]);
         Schema::create('researchs', function (Blueprint $table) {
@@ -90,8 +133,8 @@ class RectorateResearchTest extends TestCase
     public function test_latest_upload_per_year_keeps_older_years_and_audit_history(): void
     {
         $importer = app(RectorateResearchImporter::class);
-        $importer->import($this->workbook(['Detail' => [$this->row(), $this->row(['tahun_anggaran' => '2024', 'judul' => 'Older year'])]]), 'first.xlsx');
-        $importer->import($this->workbook(['Detail' => [$this->row(['judul' => 'Corrected title'])]]), 'next.xlsx');
+        $importer->import($this->workbook(['Detail' => [$this->row(), $this->row(['tahun_anggaran' => '2024', 'judul' => 'Older year'])]]), 'first.xlsx', year: 2026, month: 8);
+        $importer->import($this->workbook(['Detail' => [$this->row(['judul' => 'Corrected title'])]]), 'next.xlsx', year: 2026, month: 9);
         $active = app(RectorateResearchRepository::class)->activeRows();
         $this->assertSame(3, DB::table('rectorate_research')->count());
         $this->assertCount(2, $active);
@@ -214,9 +257,11 @@ class RectorateResearchTest extends TestCase
         $summary = app(RectorateResearchImporter::class)->import($path, 'dry.xlsx', true);
         $this->assertTrue($summary['dry_run']);
         $this->assertSame(0, DB::table('research_imports')->count());
-        $this->get(route('research-import.index'))->assertOk()->assertSee('Lokasi Kampus = Binus @Malang');
+        $this->get(route('research-import.index'))->assertRedirect('/dashboard/importrectorate');
+        $page = $this->get(route('importrectorate.index'))->assertOk()->json('page');
+        $this->assertStringContainsString('Lokasi Kampus = Binus @Malang', base64_decode($page));
         $file = new UploadedFile($path, 'research.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true);
-        $this->post(route('research-import.store'), ['research_file' => $file])->assertRedirect(route('research-import.index'))->assertSessionHas('research_summary');
+        $this->post(route('research-import.store'), ['research_file' => $file, 'year' => 2026, 'month' => 9])->assertRedirect('/dashboard/importrectorate')->assertSessionHas('research_summary');
         $this->assertSame(1, DB::table('rectorate_research')->count());
     }
 
@@ -224,9 +269,33 @@ class RectorateResearchTest extends TestCase
     {
         $this->get(route('research-import.index'))->assertForbidden();
         $this->post(route('research-import.store'))->assertForbidden();
+        $this->get(route('importrectorate.index'))->assertForbidden();
+        $this->postJson(route('importrectorate.upload'))->assertForbidden();
         $this->assertSame(0, DB::table('research_imports')->count());
         $this->assertSame(0, DB::table('rectorate_research')->count());
         $this->assertGuest();
+    }
+
+    public function test_malang_precedes_detail_and_evidence_is_preserved(): void
+    {
+        $file = $this->workbook(['Detail' => [$this->row(['judul' => 'Wrong source'])], 'MALANG' => [$this->row(['evidence' => 'Evidence reference'])]]);
+        $summary = app(RectorateResearchImporter::class)->import($file, 'malang.xlsx', year: 2026, month: 9);
+        $this->assertSame('MALANG', $summary['sheet']);
+        $this->assertSame('Evidence reference', DB::table('rectorate_research')->value('evidence'));
+        $this->assertSame('Rectorate research', DB::table('rectorate_research')->value('judul'));
+    }
+
+    public function test_monthly_replacement_and_backdated_upload_preserve_latest_snapshot(): void
+    {
+        $importer = app(RectorateResearchImporter::class);
+        $file = $this->workbook(['MALANG' => [$this->row()]]);
+        $importer->import($file, 'september.xlsx', year: 2026, month: 9);
+        $importer->import($file, 'august.xlsx', year: 2026, month: 8);
+        $this->assertSame(2, DB::table('research_imports')->count());
+        $importer->import($this->workbook(['MALANG' => [$this->row(['judul' => 'Corrected September'])]]), 'replacement.xlsx', year: 2026, month: 9);
+        $importer->import($this->workbook(['MALANG' => [$this->row(['judul' => 'Late August'])]]), 'older.xlsx', year: 2026, month: 8);
+        $this->assertSame(2, DB::table('rectorate_research')->count());
+        $this->assertSame('Corrected September', app(RectorateResearchRepository::class)->activeRows()->sole()->judul);
     }
 
     private function row(array $overrides = []): array

@@ -7,8 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 class DataDosen extends Model
 {
     protected $table = 'database_dosen_new';
+
     protected $primaryKey = 'kode_dosen';
+
     protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'kode_dosen',
         'fakultas_internal',
@@ -46,7 +51,7 @@ class DataDosen extends Model
         'alamat',
         'no_telp',
         'no_hp',
-        'no_hp2',
+        'no_hp_2',
         'email_1',
         'email_2',
         'tgl_mulai_mengajar',
@@ -59,6 +64,6 @@ class DataDosen extends Model
         'status_pernikahan',
         'note',
         'created_at',
-        'updated_at'
+        'updated_at',
     ];
 }

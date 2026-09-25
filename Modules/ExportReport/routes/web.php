@@ -14,12 +14,9 @@ use Modules\ExportReport\Http\Controllers\ExportReportController;
 |
 */
 
-Route::prefix('backoffice/exportreport')->group(function() {
+Route::prefix('backoffice/exportreport')->group(function () {
     Route::get('/', [ExportReportController::class, 'index'])->name('exportreport.index');
-    Route::post('create', [ExportReportController::class, 'create'])->name('exportreport.create');
-    Route::post('read', [ExportReportController::class, 'read'])->name('exportreport.read');
-    Route::put('update', [ExportReportController::class, 'update'])->name('exportreport.update');
-    Route::delete('delete', [ExportReportController::class, 'delete'])->name('exportreport.delete');
-    // Custom
-    Route::post('generate_pdf', [ExportReportController::class, 'generate_pdf'])->name('exportreport.generate_pdf');
+    Route::post('generate', [ExportReportController::class, 'generate'])->name('exportreport.generate');
+    Route::post('save', [ExportReportController::class, 'save'])->name('exportreport.save');
+    Route::post('download', [ExportReportController::class, 'download'])->name('exportreport.download');
 });

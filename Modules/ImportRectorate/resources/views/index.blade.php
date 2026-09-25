@@ -1,65 +1,25 @@
-<div class="mb-5"><a class="btn btn-light-primary" href="{{ route('research-import.index') }}">Import Riset / Hibah Rectorate (sheet Detail)</a></div>
-<div class="row table_data mb-5" data-roleable="false" data-role="Company-Read">
-    <div class=" col-12" id="tableCourseContainer">
-        <div class="card card-bordered">
-            <div class="card-body">
-                <div class="fv-row mb-5 col-md-12 ">
-                    <label for="" class="required form-label mb-3 fw-bold">Year</label>
-                    <select required name="year" id="year" class="form-control bg-white border border-2 py-4 px-6 rounded-3 fw-light fs-6" placeholder="Input Data">
-                        @for ($year = 2022; $year <= (int) date('Y'); $year++)
-                            <option value="{{ $year }}">{{ $year }}</option>
-                        @endfor
-                    </select>
+<div id="monthly-import">
+    <div class="card card-bordered mb-6">
+        <div class="card-body">
+            <h2 class="mb-3">Upload laporan bulanan</h2>
+            <p class="text-muted">Tiga sumber per bulan: publikasi FM, publikasi mahasiswa, dan hibah penelitian.</p>
+            <div class="alert alert-primary">Pilih tahun dan bulan laporan, lalu unggah satu atau beberapa file. Upload ulang mengganti sumber sejenis pada bulan yang sama. Seluruh file yang dipilih harus lolos validasi sebelum disimpan.</div>
+            <div id="monthly-import-errors" class="alert alert-danger" role="alert" hidden></div>
+            <div id="monthly-import-summary" aria-live="polite">@include('importrectorate::summary', ['summaries' => session('monthly_summaries', [])])</div>
+            <form id="monthly-import-form" action="{{ route('importrectorate.upload') }}" method="post" enctype="multipart/form-data">
+                @csrf
+                <div class="row g-5 mb-6">
+                    <div class="col-md-6"><label class="form-label required" for="upload-year">Tahun laporan</label><input class="form-control" id="upload-year" name="year" type="number" min="2000" max="2100" required value="{{ old('year', now()->year) }}"></div>
+                    <div class="col-md-6"><label class="form-label required" for="upload-month">Bulan laporan</label><select class="form-select" id="upload-month" name="month" required>@foreach(range(1, 12) as $month)<option value="{{ $month }}" @selected((int) old('month', now()->month) === $month)>{{ \Carbon\Carbon::create(2026, $month, 1)->locale('id')->translatedFormat('F') }}</option>@endforeach</select></div>
                 </div>
-                <div class="fv-row mb-5 col-md-12 ">
-                    <label for="" class="required form-label mb-3 fw-bold">Period</label>
-                    <select required name="period" id="period" class="form-control bg-white border border-2 py-4 px-6 rounded-3 fw-light fs-6" placeholder="Input Data">
-                        <option value="1">Quarter 1</option>
-                        <option value="2">Quarter 2</option>
-                        <option value="3">Quarter 3</option>
-                        <option value="4">Quarter 4</option>
-                    </select>
-                </div>
-                <div class="fv-row mb-5 col-md-12 ">
-                    <label for="" class="required form-label mb-3 fw-bold">Until Month</label>
-                    <select required name="month" id="month" class="form-control bg-white border border-2 py-4 px-6 rounded-3 fw-light fs-6" placeholder="Input Data">
-                        <option value="1">January</option>
-                        <option value="2">February</option>
-                        <option value="3">March</option>
-                        <option value="4">April</option>
-                        <option value="5">May</option>
-                        <option value="6">June</option>
-                        <option value="7">July</option>
-                        <option value="8">August</option>
-                        <option value="9">September</option>
-                        <option value="10">October</option>
-                        <option value="11">November</option>
-                        <option value="12">December</option>
-                    </select>
-                </div>
-                <div class="fv-row mb-5 col-md-12 ">
-                    <label for="" class="required form-label mb-3 fw-bold">FM / Mahasiswa</label>
-                    <select required name="fmmhs" id="fmmhs" class="form-control bg-white border border-2 py-4 px-6 rounded-3 fw-light fs-6" placeholder="Input Data">
-                        <option value="FM">FM</option>
-                        <option value="MHS">Mahasiswa</option>
-                    </select>
-                </div>
-                <div class="fv-row mb-5 col-md-12 ">
-                    <label for="" class="required form-label mb-3 fw-bold">File (.xlsx)</label>
-                    <input type="file" accept=".xlsx" required name="rectorate" id="rectorate" class="form-control bg-white border border-2 py-4 px-6 rounded-3 fw-light fs-6" placeholder="Input Data">
-                    <p class="text-muted mt-3">Import FM mengutamakan sheet <strong>MALANG</strong>; jika tidak ada, memakai <strong>Raw</strong>. Filter: Kampus MALANG dan Submitted Non Scopus FM / Scopus FM. Sheet <strong>KPI</strong> dibaca untuk data RTTO dan daftar dosen, termasuk nilai nol. Rekap FIRST AUTHOR, TITLE &amp; BOBOT, dan PIVOT dihitung dari data publikasi dengan bobot asli. Bobot akhir memakai nilai tertinggi Rectorate–RTTO per kategori; Score KPI mengikuti Score KPI RTTO. File Raw lama tetap didukung.</p>
-                    <p class="text-muted">Tahun dan Until Month adalah periode snapshot laporan; pilih quarter yang sesuai. Import ulang mengganti publikasi dan data KPI periode yang sama setelah seluruh file lolos validasi. Jika file pengganti tidak memiliki sheet KPI, data RTTO periode tersebut ikut dihapus.</p>
-                    <a href="{{ route('publication-dashboard') }}">Buka dashboard KPI publikasi</a>
-                    <pre id="importSummary" class="mt-3" style="white-space:pre-wrap" aria-live="polite"></pre>
-                </div>
-                <button class="btn btn-primary w-20" onclick="onAdd()" id="toggleFormButton"><i class="las la-plus fs-2"></i> Simpan</button>
-            </div>
+                <div class="mb-6"><label class="form-label fw-bold" for="fm_file">Publikasi FM (.xlsx)</label><input class="form-control" id="fm_file" name="fm_file" type="file" accept=".xlsx"><div class="form-text">Sheet MALANG (atau Raw) dan KPI. Termasuk daftar dosen, bobot Rectorate / RTTO, first author, dan skor KPI.</div></div>
+                <div class="mb-6"><label class="form-label fw-bold" for="mhs_file">Publikasi MHS (.xlsx)</label><input class="form-control" id="mhs_file" name="mhs_file" type="file" accept=".xlsx"><div class="form-text">Membaca sheet MALANG, TITLE, dan LIST untuk publikasi mahasiswa.</div></div>
+                <div class="mb-6"><label class="form-label fw-bold" for="research_file">Hibah penelitian (.xlsx)</label><input class="form-control" id="research_file" name="research_file" type="file" accept=".xlsx"><div class="form-text">Mengutamakan sheet MALANG, lalu Detail, dengan Lokasi Kampus = Binus @Malang. Tahun Anggaran mengikuti isi file; tahun dan bulan laporan mengikuti pilihan di atas.</div></div>
+                <p class="text-muted">Maksimal 20 MB per file. Pilih minimal satu file.</p>
+                <div class="d-flex flex-wrap gap-3"><button class="btn btn-primary" id="monthly-import-submit" type="submit">Upload dan import</button><a class="btn btn-light-primary" href="{{ url('/dashboard/perhitungankpi') }}">Data KPI dosen</a><a class="btn btn-light-primary" href="{{ url('/dashboard/exportreport') }}">Generate laporan</a></div>
+            </form>
         </div>
-        {{-- <div class="card card-bordered mt-5">
-            <div class="card-body" id="image_pic">
-                <object data="" type="application/pdf" width="100%" height="500px"></object>
-            </div>
-        </div> --}}
     </div>
+    <div class="card card-bordered"><div class="card-body"><h3 class="mb-5">Kelengkapan sumber bulanan</h3><div id="monthly-import-history">@include('importrectorate::history')</div></div></div>
 </div>
 @include('importrectorate::javascript')

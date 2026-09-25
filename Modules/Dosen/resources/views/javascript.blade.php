@@ -530,7 +530,6 @@
     });
 
     function onAdd(){
-        $('#modalHakakses').modal('hide');
         blockPage();
         var formData = new FormData();
         formData.append('dosen', $('#dosen')[0].files[0]);
@@ -541,21 +540,30 @@
             contentType: false,     // Important
             processData: false,     // Important
             headers:{
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
             },  
             success: function (response) {
                 $('#formHakakses').trigger('reset');
                 unblockPage();
                 SUPER.showMessage({
                     success: true,
-                    message: 'Sukses mengunggah data',
+                    message: response.message,
                     title: 'Berhasil'
                 });
+                const summary = response.summary;
+                $('#dosenImportSummary').text(response.message + '\nKolom tidak disertakan (data lama dipertahankan): ' + summary.preserved_columns.join(', ')
+                    + '\nKolom belum dikenali: ' + (summary.unknown_columns.join(', ') || 'Tidak ada'));
                 init_table();
                 // $('#image_pic').empty().html(response.html);
                 // window.open(response.link);
                 // $("#image_pic object").attr("data", response.data);
-            }
+            },
+            error: function (xhr) {
+                const errors = xhr.responseJSON?.errors;
+                $('#dosenImportSummary').text(errors ? Object.values(errors).flat().join('\n') : (xhr.responseJSON?.message || 'Upload gagal. Silakan coba kembali.'));
+            },
+            complete: function () { unblockPage(); }
         });
     }
 

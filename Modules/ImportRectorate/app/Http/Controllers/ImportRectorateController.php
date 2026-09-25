@@ -3,314 +3,82 @@
 namespace Modules\ImportRectorate\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\DB;
+use App\Services\Publications\PublicationImporter;
+use App\Services\Publications\StudentPublicationImporter;
+use App\Services\Research\RectorateResearchImporter;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
-use App\Models\RectorateMahasiswa;
-use App\Models\RectorateDosen;
-use Aspera\Spreadsheet\XLSX\Reader;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ImportRectorateController extends Controller
 {
-
-    /**
-     * Display a listing of the resource with loadPage helper.
-     * @return Renderable
-     */
     public function index()
     {
-        return loadPage('importrectorate::index');
+        abort_unless(Auth::check(), 403);
+
+        return loadPage('importrectorate::index', $this->history());
     }
 
-    /**
-     * Initialize a Datatable.
-     * @return Renderable
-     */
-    public function init_table()
+    public function store(Request $request, RectorateResearchImporter $importer)
     {
+        abort_unless(Auth::check(), 403);
 
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     * @param Request $request
-     * @return Renderable
-     */
-    public function create_old(Request $request)
-    {
-        $data = $request->all();
-        $period = $data['period'];
-        $month = $data['month'];
-        $fmmhs = $data['fmmhs'];
-        // if($month == 1 || $month == 2 || $month == 3){
-        //     $period = 1;
-        // }else if($month == 4 || $month == 5 || $month == 6){
-        //     $period = 2;
-        // }else if($month == 7 || $month == 8 || $month == 9){
-        //     $period = 3;
-        // }else if($month == 10 || $month == 11 || $month == 12){
-        //     $period = 4;
-        // }
-        $year = $data['year'];
-
-        if($fmmhs == 'FM'){
-            $check = RectorateDosen::where('year', $year)->where('period', $period)->where('month', $month)->exists();
-            if($check){
-                RectorateDosen::where('year', $year)->where('period', $period)->where('month', $month)->delete();
-            }
-        }else{
-            $check = RectorateMahasiswa::where('year', $year)->where('period', $period)->where('month', $month)->exists();
-            if($check){
-                RectorateMahasiswa::where('year', $year)->where('period', $period)->where('month', $month)->delete();
-            }
-        }
-        
-        // Import file
-        $csv = $request->file('rectorate');
-        $extension = $csv->getClientOriginalExtension();
-        $filename = 'Y'.$year.'M'.$month.'P'.$period.'T'.$fmmhs.'.'.$extension;
-        $csv->move(public_path('uploads/rectorate'), $filename);
-        if (($handle = fopen(public_path('uploads/rectorate/'.$filename), "r")) !== FALSE) {
-            $row = 0;
-            while (($read = fgetcsv($handle, 1000, ";")) !== FALSE) {
-                $row++;
-                if($fmmhs == 'FM'){
-                    if ($row == 1 || $read[9] !== 'MALANG'){
-                        continue;
-                    }
-                    // Adjustment untuk scopus
-                    $bobot = floatval(str_replace(',', '.', $read[12]));
-                    if($read[16] == 'Scopus'){
-                        // Kalau tipenya jurnal
-                        if($read[15] == 'Jurnal'){
-                            if($read[21] == 'Q1'){
-                                $bobot = 3;
-                            }else if($read[21] == 'Q2'){
-                                $bobot = 2;
-                            }else if($read[21] == 'Q3' || $read[21] == 'Q4'){
-                                $bobot = 1;
-                            }else if($read[21] == 'Q2/Q3'){ // Samakan dengan Q3
-                                $bobot = 1;
-                            }
-                        // Kalau tipenya seminar/konferensi
-                        }else if($read[15] == 'Seminar'){
-                            $bobot = 1;
-                        }
-                    }
-                    RectorateDosen::create([
-                        'id_rectorate' => md5(rand(0, 100).generateCode().date('Y-m-d H:i:s')),
-                        'request_code' => $read[0],
-                        'author' => $read[1],
-                        'kode_dosen' => $read[3],
-                        'first_author' => $read[10],
-                        'sumber_paper' => $read[11],
-                        'bobot' => $bobot,
-                        'bobot_asli' => floatval(str_replace(',', '.', $read[12])),
-                        'submitted' => $read[13],
-                        'status' => $read[14],
-                        'jenis' => $read[15],
-                        'tipe_publikasi' => $read[16],
-                        'title' => $read[17],
-                        'scopus_year' => $read[18],
-                        'source_title' => $read[19],
-                        'publisher' => $read[20],
-                        'quartile_jurnal' => $read[21],
-                        'year' => $year,
-                        'period' => $period,
-                        'month' => $month,
-                    ]);
-                }else{
-                    if($row == 1 || $read[6] !== 'MALANG'){
-                        continue;
-                    }
-                    $bobot = floatval(str_replace(',', '.', $read[9]));
-                    RectorateMahasiswa::create([
-                        'id_rectorate' => md5(rand(0, 100).generateCode().date('Y-m-d H:i:s')),
-                        'request_code' => $read[0],
-                        'author' => $read[1],
-                        'fm_author' => $read[2],
-                        'sf' => $read[4],
-                        'dept' => $read[5],
-                        'first_author' => $read[7],
-                        'sumber_paper' => $read[8],
-                        'bobot' => $bobot,
-                        // 'bobot_asli' => $read[9],
-                        'submitted' => $read[10],
-                        'status' => $read[11],
-                        'jenis' => $read[12],
-                        'tipe_publikasi' => $read[13],
-                        'title' => $read[14],
-                        'scopus_year' => $read[15],
-                        'source_title' => $read[16],
-                        // 'publisher' => $read[20],
-                        'quartile_jurnal' => $read[17],
-                        'year' => $year,
-                        'period' => $period,
-                        'month' => $month,
-                    ]);
-                }
-            }
-            fclose($handle);
-        }
-        return response()->json(['success' => true], 200);
-    }
-
-    /**
-     * Show the specified resource.
-     * @param int $id
-     * @return Renderable
-     */
-    public function read(Request $request)
-    {
-        $data = $request->all();
-    }
-
-    public function create(Request $request)
-    {
         $validated = $request->validate([
-            'rectorate' => ['required', 'file', 'mimes:xlsx', 'max:20480'],
+            'research_file' => ['required_without_all:fm_file,mhs_file', 'nullable', 'file', 'mimes:xlsx', 'max:20480'],
+            'fm_file' => ['nullable', 'file', 'mimes:xlsx', 'max:20480'],
+            'mhs_file' => ['nullable', 'file', 'mimes:xlsx', 'max:20480'],
             'year' => ['required', 'integer', 'between:2000,2100'],
             'month' => ['required', 'integer', 'between:1,12'],
-            'period' => ['required', 'integer', 'between:1,4'],
-            'fmmhs' => ['required', 'in:FM,MHS'],
         ]);
-        if ($validated['fmmhs'] === 'FM') {
-            $file = $request->file('rectorate');
-            $summary = app(\App\Services\Publications\PublicationImporter::class)->import(
-                $file->getRealPath(), $file->getClientOriginalName(),
-                (int) $validated['year'], (int) $validated['month'], (int) $validated['period'],
-            );
+        $summaries = DB::transaction(function () use ($request, $validated, $importer) {
+            $year = (int) $validated['year'];
+            $month = (int) $validated['month'];
+            $results = [];
+            foreach (['fm_file', 'mhs_file', 'research_file'] as $type) {
+                if (! $request->hasFile($type)) {
+                    continue;
+                }
+                $file = $request->file($type);
+                $results[$type] = match ($type) {
+                    'fm_file' => app(PublicationImporter::class)->import($file->getRealPath(), $file->getClientOriginalName(), $year, $month, (int) ceil($month / 3)),
+                    'mhs_file' => app(StudentPublicationImporter::class)->import($file->getRealPath(), $file->getClientOriginalName(), $year, $month),
+                    default => $importer->import($file->getRealPath(), $file->getClientOriginalName(), year: $year, month: $month),
+                };
+            }
 
+            return $results;
+        });
+
+        if ($request->expectsJson()) {
             return response()->json([
-                'success' => true,
-                'message' => "Import {$summary['sheet']} selesai: {$summary['selected']} baris, {$summary['publications']} publikasi, {$summary['lecturers']} dosen; {$summary['kpi']['lecturers']} dosen pada sheet KPI.",
-                'summary' => $summary,
+                'summaries' => $summaries,
+                'summary_html' => view('importrectorate::summary', compact('summaries'))->render(),
+                'history_html' => view('importrectorate::history', $this->history())->render(),
             ]);
         }
 
-        $data = $request->all();
-        $period = $data['period'];
-        $month = $data['month'];
-        $year = $data['year'];
-        $fmmhs = $data['fmmhs'];
+        return redirect('/dashboard/importrectorate')->with('monthly_summaries', $summaries)
+            ->with('research_summary', $summaries['research_file'] ?? null);
+    }
 
-        if ($fmmhs == 'FM') {
-            RectorateDosen::where('year', $year)->where('period', $period)->where('month', $month)->delete();
-        } else {
-            RectorateMahasiswa::where('year', $year)->where('period', $period)->where('month', $month)->delete();
-        }
+    private function history(): array
+    {
+        $monthly = collect();
+        $legacyResearch = false;
+        foreach (['fm' => 'publication_imports', 'mhs' => 'student_publication_imports', 'hibah' => 'research_imports'] as $type => $table) {
+            $batches = Schema::hasTable($table) ? DB::table($table)->orderBy('updated_at')->get() : collect();
+            foreach ($batches as $batch) {
+                if (! ($batch->year ?? null) || ! ($batch->month ?? null)) {
+                    $legacyResearch = $legacyResearch || $type === 'hibah';
 
-        $xlsx = $request->file('rectorate');
-        $extension = $xlsx->getClientOriginalExtension();
-        $filename = 'Y' . $year . 'M' . $month . 'P' . $period . 'T' . $fmmhs . '.' . $extension;
-        $xlsx->move(public_path('uploads/rectorate'), $filename);
-
-        $reader = new Reader();
-        $reader->open(public_path('uploads/rectorate/' . $filename));
-        foreach ($reader->getSheets() as $index => $sheet_data) {
-            $reader->changeSheet($index);
-            $row_count = 0;
-            foreach ($reader as $row) {
-                $row_count++;
-                if ($row_count == 1) {
                     continue;
                 }
-                if ($fmmhs == 'FM') {
-                    if (($row[9] ?? null) !== 'MALANG') {
-                        continue;
-                    }
-                    $bobot = floatval(str_replace(',', '.', $row[12] ?? 0));
-                    if (($row[16] ?? '') == 'Scopus') {
-                        if (($row[15] ?? '') == 'Jurnal') {
-                            if (($row[21] ?? '') == 'Q1') {
-                                $bobot = 3;
-                            } else if (($row[21] ?? '') == 'Q2') {
-                                $bobot = 2;
-                            } else if (($row[21] ?? '') == 'Q3' || ($row[21] ?? '') == 'Q4') {
-                                $bobot = 1;
-                            } else if (($row[21] ?? '') == 'Q2/Q3') {
-                                $bobot = 1;
-                            }
-                        } else if (($row[15] ?? '') == 'Seminar') {
-                            $bobot = 1;
-                        }
-                    }
-                    RectorateDosen::create([
-                        'id_rectorate' => md5(rand(0, 100) . generateCode() . date('Y-m-d H:i:s')),
-                        'request_code' => $row[0] ?? null,
-                        'author' => $row[1] ?? null,
-                        'kode_dosen' => $row[3] ?? null,
-                        'first_author' => $row[10] ?? null,
-                        'sumber_paper' => $row[11] ?? null,
-                        'bobot' => $bobot,
-                        'bobot_asli' => floatval(str_replace(',', '.', $row[12] ?? 0)),
-                        'submitted' => $row[13] ?? null,
-                        'status' => $row[14] ?? null,
-                        'jenis' => $row[15] ?? null,
-                        'tipe_publikasi' => $row[16] ?? null,
-                        'title' => $row[17] ?? null,
-                        'scopus_year' => $row[18] ?? null,
-                        'source_title' => $row[19] ?? null,
-                        'publisher' => $row[21] ?? null,
-                        'quartile_jurnal' => $row[20] ?? null,
-                        'year' => $year,
-                        'period' => $period,
-                        'month' => $month,
-                    ]);
-                } else {
-                    if (($row[6] ?? null) !== 'MALANG') {
-                        continue;
-                    }
-                    $bobot = floatval(str_replace(',', '.', $row[9] ?? 0));
-                    RectorateMahasiswa::create([
-                        'id_rectorate' => md5(rand(0, 100) . generateCode() . date('Y-m-d H:i:s')),
-                        'request_code' => $row[0] ?? null,
-                        'author' => $row[1] ?? null,
-                        'fm_author' => $row[2] ?? null,
-                        'sf' => $row[4] ?? null,
-                        'dept' => $row[5] ?? null,
-                        'first_author' => $row[7] ?? null,
-                        'sumber_paper' => $row[8] ?? null,
-                        'bobot' => $bobot,
-                        'submitted' => $row[10] ?? null,
-                        'status' => $row[11] ?? null,
-                        'jenis' => $row[12] ?? null,
-                        'tipe_publikasi' => $row[13] ?? null,
-                        'title' => $row[14] ?? null,
-                        'scopus_year' => $row[15] ?? null,
-                        'source_title' => $row[16] ?? null,
-                        'quartile_jurnal' => $row[17] ?? null,
-                        'year' => $year,
-                        'period' => $period,
-                        'month' => $month,
-                    ]);
-                }
+                $key = sprintf('%04d-%02d', $batch->year, $batch->month);
+                $monthly[$key] = array_merge($monthly[$key] ?? [], [$type => $batch->filename]);
             }
         }
-        $reader->close();
 
-        return response()->json(['success' => true], 200);
-    }
-
-    /**
-     * Update the specified resource in storage.
-     * @param Request $request
-     * @param int $id
-     * @return Renderable
-     */
-    public function update(Request $request)
-    {
-        $data = $request->all();
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     * @param int $id
-     * @return Renderable
-     */
-    public function delete(Request $request)
-    {
-        $data = $request->all();
+        return ['monthly' => $monthly->sortKeysDesc(), 'legacyResearch' => $legacyResearch];
     }
 }

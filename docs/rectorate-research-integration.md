@@ -91,7 +91,7 @@ Tahun, kode proposal, kode peneliti, nama, peran, judul, serta header kampus waj
 - `/research-gallery`: pilihan sumber Rectorate/Sistem Riset/Semua, pencarian, filter tahun/bidang/fakultas/peneliti, urutan, dan paginasi. Sumber awal Rectorate.
 - Detail proyek: metadata, peneliti dan peran, dana, periode, SDG, produk/roadmap yang tersedia, serta catatan perbedaan nilai. Tombol cetak memakai fasilitas cetak/simpan PDF browser.
 - `/`: empat proyek rectorate terbaru menurut tahun; beralih ke sumber sistem jika rectorate belum tersedia.
-- `/dashboard/import-hibah`: upload XLSX, ringkasan kelengkapan setelah import, dan sepuluh riwayat upload terakhir. Tautan tersedia di Home dashboard dan Import Rectorate.
+- `/dashboard/importrectorate`: halaman upload FM, MHS, dan hibah, ringkasan import, serta kelengkapan sumber per bulan. Alamat lama `/dashboard/import-hibah` mengarahkan ke modul ini. POST utama berada di `/backoffice/importrectorate/upload`; `/research-imports` tetap kompatibel.
 - `/kpi-publikasi`: peran hibah FM dari batch aktif, termasuk tahun dan pengakuan KPI Y/N. URL lama `/dashboard/kpi-publikasi` mengarahkan ke URL ini. Peran penelitian tidak ditebak dari urutan nama pada tabel `researchs`.
 
 Galeri menggunakan ilustrasi geometris dan metadata nyata sebagai sampul. Abstrak, metode, foto kegiatan, hasil terukur, dan dampak yang tidak tersedia tidak diambil dari contoh HTML. SDG yang sudah dilaporkan tidak otomatis menjadi rencana prioritas 2027.

@@ -7,7 +7,6 @@ use App\Models\AttributeDosen;
 use App\Models\DataDosen;
 use App\Models\Dosen;
 use App\Models\IdentitasDosen;
-use Aspera\Spreadsheet\XLSX\Reader;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -101,113 +100,13 @@ class DosenController extends Controller
         }
     }
 
-    public function read(Request $request)
+    public function read(Request $request, \App\Services\Lecturers\LecturerWorkbook $workbook)
     {
-        // Import file
-        $xlsx = $request->file('dosen');
-        $extension = $xlsx->getClientOriginalExtension();
-        $year = date('Y');
-        $month = date('m');
-        $filename = 'DSN-Y'.$year.'M'.$month.'.'.$extension;
-        $xlsx->move(public_path('uploads/dosen'), $filename);
-        $reader = new Reader;
-        $reader->open(public_path('uploads/dosen/'.$filename));
-        $sheets = $reader->getSheets();
-        foreach ($sheets as $index => $sheet_data) {
-            $reader->changeSheet($index);
-            // Note: Any call to changeSheet() resets the current read position to the beginning of the selected sheet.
-            if ($sheet_data->getName() == 'Malang' || $sheet_data->getName() == 'FM Malang' || $sheet_data->getName() == 'FM BINUS Malang') {
-                $headerMap = null;
-                foreach ($reader as $row_number => $row) {
-                    if ($headerMap === null && in_array('Kode Dosen', $row, true)) {
-                        $headerMap = [];
-                        foreach ($row as $idx => $name) {
-                            $name = trim((string) $name);
-                            if ($name !== '') {
-                                $headerMap[$name] = $idx;
-                            }
-                        }
+        $request->validate(['dosen' => ['required', 'file', 'mimes:xlsx', 'max:20480']]);
+        $summary = $workbook->import($request->file('dosen')->getRealPath());
 
-                        continue;
-                    }
-
-                    if ($headerMap === null) {
-                        continue;
-                    }
-
-                    $getCell = function (string $name) use ($row, $headerMap) {
-                        if (! array_key_exists($name, $headerMap)) {
-                            return null;
-                        }
-
-                        return $row[$headerMap[$name]] ?? null;
-                    };
-
-                    $kodeDosen = trim((string) $getCell('Kode Dosen'));
-                    if ($kodeDosen === '') {
-                        continue;
-                    }
-
-                    DataDosen::updateOrCreate(
-                        ['kode_dosen' => $kodeDosen],
-                        [
-                            'fakultas_internal' => $getCell('Fakultas Internal'),
-                            'nama_gugus_binaan' => $getCell('Nama Gugus Binaan'),
-                            'nama_program' => $getCell('Nama Program'),
-                            'lokasi' => $getCell('Lokasi'),
-                            'campus' => $getCell('Campus'),
-                            'nama_gugus_binaan_eksternal' => $getCell('Nama Gugus Binaan Eksternal'),
-                            'acad_career' => $getCell('Acad Career'),
-                            'nama_dosen' => $getCell('Nama Dosen'),
-                            'tipe' => $getCell('Tipe'),
-                            'nama_tipe_dosen_detail' => $getCell('Nama Tipe Dosen Detail'),
-                            'status' => $getCell('Status'),
-                            'effdate_dosen_cuti' => $getCell('Effdate Dosen Cuti'),
-                            'remun' => $getCell('Remun'),
-                            'homebase_remun' => $getCell('Homebase Remun'),
-                            'jenis_registrasi' => $getCell('Jenis Registrasi'),
-                            'nomor_nidn_nupn' => $getCell('Nomor Nidn/Nupn'),
-                            'university_registered_nidn' => $getCell('University Registered NIDN'),
-                            'pendidikan' => $getCell('Pendidikan'),
-                            'alumni' => $getCell('Alumni'),
-                            'jurusan' => $getCell('Jurusan'),
-                            'jja' => $getCell('JJA'),
-                            'tmt_jja' => $getCell('Tmt JJA'),
-                            'university_registered_jja' => $getCell('University Registered JJA'),
-                            'nomor_sk_jja' => $getCell('Nomor SK JJA'),
-                            'jka' => $getCell('JKA'),
-                            'tmt_jka' => $getCell('Tmt JKA'),
-                            'toefl' => $getCell('TOEFL'),
-                            'status_serdos' => $getCell('Status Serdos'),
-                            'jenis_kelamin' => $getCell('Jenis Kelamin'),
-                            'tanggal_lahir' => $getCell('Tanggal Lahir'),
-                            'usia' => $getCell('Usia'),
-                            'agama' => $getCell('Agama'),
-                            'alamat' => $getCell('Alamat'),
-                            'no_telp' => $getCell('No Telp'),
-                            'no_hp' => $getCell('No HP'),
-                            'no_hp_2' => $getCell('No HP2'),
-                            'email_1' => $getCell('Email 1'),
-                            'email_2' => $getCell('Email 2'),
-                            'tgl_mulai_mengajar' => $getCell('Tgl Mulai Mengajar'),
-                            'kewarganegaraan' => $getCell('Kewarganegaraan'),
-                            'bn_id' => $getCell('Binusian ID'),
-                            'nama_kelompok_rumpun_ilmu' => $getCell('Nama Kelompok Rumpun Ilmu'),
-                            'nama_rumpun_ilmu' => $getCell('Nama Rumpun Ilmu'),
-                            'tipe_faculty' => $getCell('Tipe Faculty'),
-                            'tax_status' => $getCell('Tax Status'),
-                            'status_pernikahan' => $getCell('Status Pernikahan'),
-                            'note' => $getCell('NOTE'),
-                        ]
-                    );
-                }
-            } else {
-                continue;
-            }
-        }
-        $reader->close();
-
-        return response()->json(['success' => true], 200);
+        return response()->json(['success' => true, 'summary' => $summary,
+            'message' => "Import {$summary['sheet']} selesai: {$summary['selected']} dosen, {$summary['mapped_columns']} kolom; {$summary['created']} baru, {$summary['updated']} diperbarui."]);
     }
 
     public function detail(Request $request)
@@ -229,31 +128,12 @@ class DosenController extends Controller
         ], 200);
     }
 
-    public function headers(Request $request)
+    public function headers(Request $request, \App\Services\Lecturers\LecturerWorkbook $workbook)
     {
-        $xlsx = $request->file('dosen');
-        $extension = $xlsx->getClientOriginalExtension();
-        $filename = 'DSN-HEADERS.'.$extension;
-        $xlsx->move(public_path('uploads/dosen'), $filename);
+        $request->validate(['dosen' => ['required', 'file', 'mimes:xlsx', 'max:20480']]);
+        $parsed = $workbook->read($request->file('dosen')->getRealPath());
 
-        $reader = new Reader;
-        $reader->open(public_path('uploads/dosen/'.$filename));
-        $headers = [];
-        foreach ($reader->getSheets() as $index => $sheet_data) {
-            $reader->changeSheet($index);
-            foreach ($reader as $row) {
-                if (in_array('Kode Dosen', $row, true)) {
-                    $headers = array_values(array_filter(array_map('trim', array_map('strval', $row))));
-                    break;
-                }
-            }
-            if (! empty($headers)) {
-                break;
-            }
-        }
-        $reader->close();
-
-        return response()->json(['headers' => $headers], 200);
+        return response()->json($parsed['summary']);
     }
 
     /**

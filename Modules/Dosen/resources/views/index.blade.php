@@ -75,7 +75,9 @@
                 <div class="modal-body">
                     <div class="fv-row mb-7 fv-plugins-icon-container">
                         <label for="" class="required form-label">Data Center (.xlsx)</label>
-                        <input type="file" required id="dosen" name="dosen" class="form-control form-control-outline">
+                        <input type="file" accept=".xlsx" required id="dosen" name="dosen" class="form-control form-control-outline">
+                        <p class="text-muted mt-3">Membaca sheet Malang (atau FM Malang / FM BINUS Malang) berdasarkan nama kolom. Kolom yang tidak disertakan mempertahankan data sebelumnya.</p>
+                        <pre id="dosenImportSummary" class="mt-3" style="white-space:pre-wrap" aria-live="polite"></pre>
                         <div class="fv-plugins-message-container invalid-feedback"></div>
                     </div>
                 </div>

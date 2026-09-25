@@ -3,10 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Services\Publications\ImportedLecturerKpi;
 use App\Services\Publications\PublicationDashboard;
 use App\Services\Publications\PublicationImporter;
 use App\Services\Publications\PublicationScore;
 use App\Services\Publications\RawPublicationReader;
+use App\Services\Research\RectorateResearchImporter;
+use App\Services\Research\RectorateResearchReader;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -17,6 +20,101 @@ use ZipArchive;
 class PublicationDashboardTest extends TestCase
 {
     private array $files = [];
+
+    public function test_admin_kpi_defaults_to_all_imported_lecturers_and_all_months(): void
+    {
+        $importer = app(PublicationImporter::class);
+        $importer->import($this->workbookWithKpi([$this->row()], [
+            $this->kpiRow(['Scopus RTTO' => 2, 'Score KPI RTTO' => 3]),
+            $this->kpiRow(['Kode Dosen' => 'D999', 'Nama Dosen' => 'New <script>alert(1)</script>', 'Score KPI RTTO' => 0]),
+        ]), 'august.xlsx', 2026, 8, 3);
+        $importer->import($this->workbookWithKpi([$this->row(['Bobot' => 0.75])], [
+            $this->kpiRow(['Scopus RTTO' => 4, 'Score KPI RTTO' => 5]),
+            $this->kpiRow(['Kode Dosen' => 'D002', 'Scopus RTTO' => '', 'Non Scopus RTTO' => '', 'Score KPI RTTO' => '']),
+        ]), 'september.xlsx', 2026, 9, 3);
+
+        $rows = app(ImportedLecturerKpi::class)->rows();
+        $this->assertCount(4, $rows);
+        $this->assertSame(4.0, $rows->where('month', 9)->firstWhere('code', 'D001')['scopus']);
+        $this->assertSame(2.0, $rows->where('month', 8)->firstWhere('code', 'D001')['scopus']);
+        $this->assertSame(0.75, $rows->where('month', 9)->firstWhere('code', 'D001')['rectorate_scopus']);
+        $this->assertSame(0, $rows->firstWhere('code', 'D999')['score']);
+        $this->assertNull($rows->firstWhere('code', 'D002')['score']);
+        $this->assertNull($rows->firstWhere('code', 'D002')['rtto_scopus']);
+        $this->assertNull($rows->first()['grant_chair']);
+
+        $this->actingAs((new User)->forceFill(['id' => 1]));
+        $html = base64_decode($this->get(route('perhitungankpi.index'))->assertOk()->json('page'));
+        $this->assertStringContainsString('4 baris dari 3 dosen', $html);
+        $this->assertStringContainsString('Semua tahun', $html);
+        $this->assertStringContainsString('Semua bulan', $html);
+        $this->assertStringNotContainsString('filter_period', $html);
+        $this->assertStringNotContainsString('Quarter', $html);
+        $this->assertStringContainsString('data-code="D999"', $html);
+        $this->assertStringNotContainsString('<script>alert(1)</script>', $html);
+        $this->postJson(route('perhitungankpi.init_table'))->assertOk()->assertJsonPath('count', 4)->assertJsonPath('lecturers', 3);
+        $this->postJson(route('perhitungankpi.init_table'), ['year' => '', 'month' => '', 'prodi' => '', 'search' => ''])
+            ->assertOk()->assertJsonPath('count', 4);
+    }
+
+    public function test_admin_kpi_filters_and_search_are_optional_and_composable(): void
+    {
+        $importer = app(PublicationImporter::class);
+        $file = $this->workbookWithKpi([$this->row()], [
+            $this->kpiRow(['Nama Dosen' => 'Alpha Researcher']),
+            $this->kpiRow(['Kode Dosen' => 'D999', 'Nama Dosen' => 'Beta Researcher', 'Jurusan Binaan' => 'Interior Design']),
+        ]);
+        $importer->import($file, 'august.xlsx', 2026, 8, 3);
+        $importer->import($file, 'september.xlsx', 2026, 9, 3);
+        $this->actingAs((new User)->forceFill(['id' => 1]));
+        foreach ([
+            [['search' => 'BETA'], 2], [['search' => 'd001'], 2], [['prodi' => 'DI'], 2],
+            [['year' => 2026, 'month' => 8, 'prodi' => 'CS', 'search' => 'alpha'], 1],
+            [['year' => 2025], 0], [['month' => 7], 0], [['search' => 'missing'], 0],
+        ] as [$filters, $expected]) {
+            $this->postJson(route('perhitungankpi.init_table'), $filters)->assertOk()->assertJsonPath('count', $expected);
+        }
+        $this->postJson(route('perhitungankpi.init_table'), ['month' => 13])->assertUnprocessable()->assertJsonValidationErrors('month');
+    }
+
+    public function test_admin_kpi_legacy_calculation_uses_only_its_own_month(): void
+    {
+        $importer = app(PublicationImporter::class);
+        $importer->import($this->rawFile([$this->row(['Bobot' => 0.1, 'Quartile Jurnal' => ''])]), 'low.xlsx', 2026, 8, 3);
+        $importer->import($this->rawFile([$this->row(['Bobot' => 10, 'Quartile Jurnal' => ''])]), 'high.xlsx', 2026, 9, 3);
+        $rows = app(ImportedLecturerKpi::class)->rows()->keyBy('month');
+        $this->assertCount(2, $rows);
+        $this->assertSame('Sistem', $rows[8]['score_source']);
+        $this->assertLessThan($rows[9]['score'], $rows[8]['score']);
+        $this->assertSame(0.1, $rows[8]['scopus']);
+        $this->assertSame(10.0, $rows[9]['scopus']);
+        $this->assertFalse(app(ImportedLecturerKpi::class)->rows()->contains('code', 'D002'));
+    }
+
+    public function test_admin_kpi_requires_login_and_handles_an_empty_database(): void
+    {
+        $this->get(route('perhitungankpi.index'))->assertForbidden();
+        $this->postJson(route('perhitungankpi.init_table'))->assertForbidden();
+        $this->actingAs((new User)->forceFill(['id' => 1]));
+        $html = base64_decode($this->get(route('perhitungankpi.index'))->assertOk()->json('page'));
+        $this->assertStringContainsString('0 baris dari 0 dosen', $html);
+        $this->postJson(route('perhitungankpi.init_table'))->assertOk()->assertJsonPath('count', 0);
+    }
+
+    public function test_admin_kpi_retains_legacy_imports_without_a_campus_or_tracking_batch(): void
+    {
+        app(PublicationImporter::class)->import($this->rawFile([$this->row()]), 'legacy.xlsx', 2026, 8, 3);
+        DB::table('rectorate_dosen')->update(['publication_import_id' => null, 'kampus' => null]);
+        DB::table('publication_imports')->delete();
+        $rows = app(ImportedLecturerKpi::class)->rows();
+        $this->assertCount(1, $rows);
+        $this->assertSame('D001', $rows->sole()['code']);
+        $this->assertSame(8, $rows->sole()['month']);
+        DB::table('rectorate_dosen')->update(['kampus' => 'JAKARTA']);
+        $this->assertCount(0, app(ImportedLecturerKpi::class)->rows());
+        DB::table('rectorate_dosen')->update(['kampus' => null, 'submitted' => 'Scopus Mahasiswa']);
+        $this->assertCount(0, app(ImportedLecturerKpi::class)->rows());
+    }
 
     private const HEADER = ['RequestCode', 'Author', 'FM Author', 'Kode Dosen', 'JJA', 'Pendidikan', 'Type', 'S/F', 'Dept', 'Kampus', 'First Author', 'Skema', 'Bobot', 'Submitted', 'St2026', 'Jenis', 'Tipe Publikasi', 'Title ', 'Scopus Year', 'Tanggal Pelaporan', 'Source title', 'Quartile Jurnal', 'Notes', 'Prodi KPI'];
 
@@ -158,7 +256,8 @@ class PublicationDashboardTest extends TestCase
         $faculty = collect($dashboard['faculty'])->keyBy('code');
         $this->assertSame(4, $faculty['D001']['annual'][2026]['score']);
         $this->assertNull($faculty['D002']['annual'][2026]['score']);
-        $this->assertNull($faculty['D001']['annual'][2026]['cluster']);
+        $this->assertSame('B', $faculty['D001']['annual'][2026]['cluster']);
+        $this->assertSame('Otomatis dari import', $faculty['D001']['annual'][2026]['cluster_analysis']['source']);
     }
 
     public function test_supplied_publication_collection_does_not_query_other_years(): void
@@ -223,6 +322,47 @@ class PublicationDashboardTest extends TestCase
         $this->assertSame('B', $faculty['D001']['annual'][2026]['cluster']);
         $this->assertCount(1, $dashboard['priorities']);
         $this->assertSame('Verified plan', $dashboard['priorities'][0]['topic']);
+    }
+
+    public function test_uploaded_grants_populate_topics_years_and_clusters_without_counting_members_twice(): void
+    {
+        app(PublicationImporter::class)->import($this->rawFile([$this->row()]), 'fm.xlsx', 2026, 9, 3);
+        (require database_path('migrations/2026_09_08_000200_add_rectorate_research_imports.php'))->up();
+        (require database_path('migrations/2026_09_24_000000_add_monthly_research_snapshots.php'))->up();
+        $base = array_replace(array_fill_keys(array_keys(RectorateResearchReader::HEADERS), ''), [
+            'tahun_anggaran' => '2026', 'kd_prop' => 'P1', 'kode_dosen_nim' => 'D001', 'nama' => 'Lecturer',
+            'peran' => 'Ketua', 'kategori_fm_eksternal_mahasiswa' => 'FM', 'lokasi_kampus' => 'Binus @Malang',
+            'judul' => 'Digital business project', 'sdgs' => '8 - Decent Work and Economic Growth',
+            'subtopik_research_roadmap' => 'Sustainable business', 'sumber_dana' => 'Nasional - DIKTI',
+            'sumber_pemberi_hibah' => 'Dalam Negeri (Nasional)', 'nidn' => 'PRIVATE-NIDN', 'email_mitra' => 'private@example.org',
+        ]);
+        $make = fn ($rows) => $this->workbook(['MALANG' => [array_values(RectorateResearchReader::HEADERS), ...array_map('array_values', $rows)]]);
+        $importer = app(RectorateResearchImporter::class);
+        $importer->import($make([
+            $base,
+            array_replace($base, ['kode_dosen_nim' => 'D999', 'nama' => 'Grant Only Lecturer', 'peran' => 'Anggota 1']),
+            array_replace($base, ['tahun_anggaran' => '2023', 'kd_prop' => 'HISTORY', 'judul' => 'Historical education', 'sdgs' => '4 - Quality Education']),
+        ]), 'september.xlsx', year: 2026, month: 9);
+        $importer->import($make([array_replace($base, ['judul' => 'Outdated title', 'sdgs' => '9 - Industry'])]), 'late-august.xlsx', year: 2026, month: 8);
+
+        $dashboard = app(PublicationDashboard::class)->data();
+        $this->assertSame(['2023', '2026'], $dashboard['years']);
+        $this->assertSame('2026', $dashboard['default_year']);
+        $projects = collect($dashboard['research_projects']);
+        $this->assertCount(2, $projects);
+        $project = $projects->firstWhere('year', 2026);
+        $this->assertSame(['D001', 'D999'], $project['codes']);
+        $this->assertSame([8], $project['sdgs']);
+        $this->assertSame(['Sustainable business'], $project['topics']);
+        $this->assertSame('Digital business project', $project['title']);
+        $faculty = collect($dashboard['faculty'])->keyBy('code');
+        $this->assertSame('A', $faculty['D001']['annual'][2026]['cluster']);
+        $this->assertNull($faculty['D001']['annual'][2023]['score']);
+        $this->assertNull($faculty['D001']['annual'][2023]['cluster']);
+        $this->assertSame('Grant Only Lecturer', $faculty['D999']['name']);
+        $this->get(route('publication-dashboard'))->assertOk()->assertSee('Peta SDG dan topik penelitian')
+            ->assertSee('publication-research.js')->assertDontSee('PRIVATE-NIDN')->assertDontSee('private@example.org')
+            ->assertDontSee('Outdated title');
     }
 
     public function test_import_transaction_restores_snapshot_if_database_insert_fails(): void
@@ -493,6 +633,22 @@ class PublicationDashboardTest extends TestCase
     private function workbookWithKpi(array $papers, array $kpi): string
     {
         return $this->workbook(['MALANG' => [self::HEADER, ...array_map('array_values', $papers)], 'KPI' => [self::KPI_HEADER, ...array_map('array_values', $kpi)]]);
+    }
+
+    public function test_multiple_monthly_files_roll_back_when_a_later_file_is_invalid(): void
+    {
+        $original = $this->workbook(['Raw' => [self::HEADER, array_values($this->row())]]);
+        app(PublicationImporter::class)->import($original, 'original.xlsx', 2026, 9, 3);
+        $replacement = $this->workbook(['Raw' => [self::HEADER, array_values($this->row(['Title ' => 'Replacement']))]]);
+        $invalid = $this->workbook(['MALANG' => [['Incorrect header']]]);
+        $this->actingAs((new User)->forceFill(['id' => 1, 'name' => 'Editor']));
+        $this->postJson(route('importrectorate.upload'), [
+            'year' => 2026, 'month' => 9,
+            'fm_file' => new \Illuminate\Http\UploadedFile($replacement, 'fm.xlsx', null, null, true),
+            'mhs_file' => new \Illuminate\Http\UploadedFile($invalid, 'mhs.xlsx', null, null, true),
+        ])->assertUnprocessable();
+        $this->assertSame('original.xlsx', DB::table('publication_imports')->value('filename'));
+        $this->assertNotSame('Replacement', DB::table('rectorate_dosen')->value('title'));
     }
 
     private function row(array $overrides = []): array

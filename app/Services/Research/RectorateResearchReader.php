@@ -34,6 +34,7 @@ class RectorateResearchReader
         'tujuan_sosial_ekonomi' => 'Tujuan Sosial Ekonomi', 'sub_tujuan_sosial_ekonomi' => 'SubTujuan Sosial Ekonomi',
         'email_peneliti_luar' => 'Email Peneliti luar (Ketua atau anggota)', 'keterangan' => 'Keterangan',
         'mitra' => 'Mitra', 'nama_mitra' => 'Nama Mitra', 'email_mitra' => 'Email Mitra', 'multi_disiplin' => 'Multi Disiplin',
+        'evidence' => 'Evidence',
     ];
 
     public function read(string $path): array
@@ -44,17 +45,16 @@ class RectorateResearchReader
             'duplicates' => 0, 'missing' => [], 'invalid_values' => [], 'years' => [], 'roles' => []];
         try {
             $reader->open($path);
-            $sheetIndex = null;
+            $sheets = [];
             foreach ($reader->getSheets() as $index => $sheet) {
-                if ($this->normalize($sheet->getName()) === 'detail') {
-                    $sheetIndex = $index;
-                    break;
-                }
+                $sheets[$this->normalize($sheet->getName())] = ['index' => $index, 'name' => $sheet->getName()];
             }
-            if ($sheetIndex === null) {
-                $this->invalid('Sheet Detail tidak ditemukan. Tidak ada data yang diubah.');
+            $sheet = $sheets['malang'] ?? $sheets['detail'] ?? null;
+            if ($sheet === null) {
+                $this->invalid('Sheet MALANG atau Detail tidak ditemukan. Tidak ada data yang diubah.');
             }
-            $reader->changeSheet($sheetIndex);
+            $summary['sheet'] = $sheet['name'];
+            $reader->changeSheet($sheet['index']);
             $map = null;
             foreach ($reader as $number => $cells) {
                 $cells = array_map(fn ($value) => $value instanceof DateTimeInterface ? $value->format('Y-m-d') : trim((string) $value), $cells);
@@ -146,7 +146,7 @@ class RectorateResearchReader
             $reader->close();
         }
         if (! $rows) {
-            $this->invalid('Tidak ada baris Detail dengan Lokasi Kampus Binus @Malang. Tidak ada data yang diubah.');
+            $this->invalid('Tidak ada baris pada sheet terpilih dengan Lokasi Kampus Binus @Malang. Tidak ada data yang diubah.');
         }
         $summary['selected'] = count($rows);
         $summary['projects'] = count(array_unique(array_column($rows, 'project_key')));
@@ -210,13 +210,13 @@ class RectorateResearchReader
         foreach (self::HEADERS as $field => $label) {
             $matches = array_keys($headers, $this->normalize($label), true);
             if (count($matches) > 1) {
-                $this->invalid("Kolom {$label} duplikat pada sheet Detail.");
+                $this->invalid("Kolom {$label} duplikat pada sheet hibah terpilih.");
             }
             $map[$field] = $matches[0] ?? null;
         }
         foreach (['tahun_anggaran', 'kd_prop', 'kode_dosen_nim', 'nama', 'peran', 'judul', 'lokasi_kampus'] as $field) {
             if ($map[$field] === null) {
-                $this->invalid('Kolom '.self::HEADERS[$field].' tidak ditemukan pada sheet Detail.');
+                $this->invalid('Kolom '.self::HEADERS[$field].' tidak ditemukan pada sheet hibah terpilih.');
             }
         }
 

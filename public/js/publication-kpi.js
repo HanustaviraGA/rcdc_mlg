@@ -21,7 +21,7 @@ const GUIDE = {
             "kriteria": [
                 "Pendidikan S3 atau JJA Lektor/LK/GB",
                 "Memiliki publikasi Scopus",
-                "Belum pernah menjadi ketua riset eksternal"
+                "Ketua hibah eksternal belum tercatat pada data import"
             ],
             "hibah": [
                 "PIB-TERAPAN",
@@ -33,7 +33,7 @@ const GUIDE = {
         "C": {
             "kriteria": [
                 "Belum memenuhi kriteria Cluster A & B",
-                "Menjadi member RIG / Research Center"
+                "Keanggotaan RIG / Research Center ditampilkan jika tersedia; bila kosong perlu dilengkapi"
             ],
             "hibah": [
                 "PPB",
@@ -118,7 +118,6 @@ const DOSEN = source.faculty.map(row => {
     const grants = source.grants.filter(grant => grant.code === row.code);
     const chairs = grants.filter(grant => String(grant.role).trim().toLowerCase() === 'ketua');
     const members = grants.filter(grant => String(grant.role).trim().toLowerCase().startsWith('anggota'));
-    const plans = source.priorities.filter(plan => plan.code === row.code);
     return {
         kode: row.code, nama: row.name, prodi: programKeys.get(row.program),
         tipe: row.faculty_detail || row.faculty || 'Tidak tercatat',
@@ -126,12 +125,12 @@ const DOSEN = source.faculty.map(row => {
         kolom: columns[row.rule?.function?.replace(/Func$|Prof$/, '')] || 'Tidak terpetakan',
         ambang4num: row.rule?.threshold ?? null, annual: row.annual,
         get cluster() { return row.annual[S.year]?.cluster || 'Tidak tercatat'; },
+        get clusterAnalysis() { return row.annual[S.year]?.cluster_analysis; },
         get labelMentor() { return row.annual[S.year]?.mentor?.toUpperCase() || 'Tidak tercatat'; },
         ketua: HYEARS.map(year => chairs.filter(grant => String(grant.year) === year).length),
         anggota: HYEARS.map(year => members.filter(grant => String(grant.year) === year).length),
         totKetua: chairs.length, totAnggota: members.length, totHibah: chairs.length + members.length,
-        statusKeterlibatan: chairs.length ? 'Pernah menjadi ketua' : members.length ? 'Hanya sebagai anggota' : 'Tidak tercatat',
-        sdg: [...new Set(plans.flatMap(plan => plan.sdgs))], topik: plans.map(plan => plan.topic).join('\n\n')
+        statusKeterlibatan: chairs.length ? 'Pernah menjadi ketua' : members.length ? 'Hanya sebagai anggota' : 'Tidak tercatat'
     };
 });
 const D = {dosen: DOSEN, prodiNama: PRODI, ...GUIDE};
@@ -163,7 +162,7 @@ const HIBC = {"Pernah menjadi ketua":"#12764C","Hanya sebagai anggota":"#2E77C4"
 
 
 /* ---------- state ---------- */
-const S = {year:source.default_year || "", prodi:"", type:"", pend:"", jja:"", clu:"", lab:"", dosen:"", topN:10, q:""};
+const S = {year:source.default_year || "", prodi:"", type:"", pend:"", jja:"", clu:"", lab:"", dosen:"", topN:10, q:"", sdg:""};
 const scoreOf = (d,y) => d.annual[y]?.score ?? null;
 const passFilters = d =>
      (!S.prodi || d.prodi===S.prodi) && (!S.type || d.tipe===S.type)
@@ -225,7 +224,7 @@ function buildFilters(){
   $("fReset").addEventListener("click",()=>{
     ["prodi","type","pend","jja","clu","lab","dosen"].forEach(k=>S[k]="");
     ["fProdi","fType","fPend","fJJA","fClu","fLab"].forEach(i=>$(i).value="");
-    S.q=""; $("fTopik").value="";
+    S.q=""; S.sdg=""; $("fTopik").value="";
     refreshDosenList(); render();
   });
   $("topToggle").addEventListener("click",e=>{
@@ -235,8 +234,13 @@ function buildFilters(){
     renderTop();
   });
   $("fTopik").addEventListener("input",e=>{ S.q=e.target.value.trim().toLowerCase(); renderTopik(); });
+  $("fTopicSdg").addEventListener("change",e=>{ S.sdg=e.target.value; renderTopik(); });
+  $("sdgFocus").addEventListener("click",e=>{
+    const button=e.target.closest('[data-sdg]'); if(!button) return;
+    S.sdg=button.dataset.sdg; $("fTopicSdg").value=S.sdg; renderTopik();
+  });
   $("printDashboard").addEventListener("click",()=>window.print());
-  $("stamps").innerHTML = [[DOSEN.length, 'Faculty member'], [Object.keys(PRODI).length, 'Program studi'], [YEARS.join(' · ') || 'Belum tersedia', 'Tahun publikasi']]
+  $("stamps").innerHTML = [[DOSEN.length, 'Faculty member'], [Object.keys(PRODI).length, 'Program studi'], [YEARS.join(' · ') || 'Belum tersedia', 'Tahun data']]
     .map(([value,label])=>`<div class="stamp"><b class="num">${esc(value)}</b><span>${esc(label)}</span></div>`).join('');
   $("trendTitle").textContent = 'Perkembangan KPI' + (YEARS.length ? ' ' + yearRange(YEARS) : '');
   $("grantTitle").textContent = 'Peran dalam hibah penelitian' + (HYEARS.length ? ' ' + yearRange(HYEARS) : '');
@@ -405,7 +409,7 @@ function renderDonut(){
 function hbar(el, items, opt){
   opt=opt||{};
   if(!items.length){ el.innerHTML='<div class="empty">Belum ada data pada cakupan ini.</div>'; return; }
-  const rowH=31, W=560, mL=opt.mL||112, mR=opt.mR||46, H=items.length*rowH+20;
+  const rowH=31, W=opt.width||560, mL=opt.mL||112, mR=opt.mR||46, H=items.length*rowH+20;
   const max = Math.max(...items.map(i=>i.v), ...items.map(i=>i.ref||0), opt.min||0) || 1;
   const w = v => Math.max(0,(v/max)*(W-mL-mR));
   let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opt.aria||'')}">`;
@@ -658,43 +662,79 @@ function renderMatriks(){
   const berat = rows.filter(d=>d.ambang4num!=null && d.ambang4num>=2).length;
   $("kolomHint").innerHTML = `Sebaran dosen per kolom pada cakupan aktif. <b class="num">${n0(berat)}</b> dosen berada di kolom berambang berat (bobot ≥ 2,00), dan warna batang mengikuti berat ambang itu.`;
 
+  $("clusterHint").textContent = 'Indikasi otomatis dari data import sampai ' + (S.year || 'tahun terpilih') + '. A/B memakai syarat pendidikan/JJA dan Scopus; A juga membutuhkan bukti ketua hibah eksternal.';
   $("cluBox").innerHTML = ["A","B","C"].map(c=>{
-    const n = scope().filter(d=>d.cluster===c).length;
+    const members = rows.filter(d=>d.cluster===c);
+    const manual = members.filter(d=>d.clusterAnalysis?.source==='Penetapan').length;
     const info = D.cluster[c];
     return `<div class="clu"><h4><span class="badge">${c}</span> Cluster ${c}
-        <span class="pill p-blue num" style="margin-left:auto">${n0(n)} dosen</span></h4>
-      <ul>${info.kriteria.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">${info.hibah.map(h=>`<span class="pill p-neu">${esc(h)}</span>`).join("")}</div></div>`;
-  }).join("") + (scope().some(d=>d.cluster==="Tidak tercatat")
-      ? `<p class="note">${n0(scope().filter(d=>d.cluster==="Tidak tercatat").length)} dosen belum memiliki penetapan cluster pada tahun ${esc(S.year || 'terpilih')}.</p>` : "");
+        <span class="pill p-blue num" style="margin-left:auto">${n0(members.length)} dosen</span></h4>
+      <p class="hint">${n0(members.length-manual)} indikasi otomatis; ${n0(manual)} penetapan tersimpan.</p>
+      <ul>${info.kriteria.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`;
+  }).join("") + (rows.some(d=>d.cluster==="Tidak tercatat")
+      ? `<p class="note">${n0(rows.filter(d=>d.cluster==="Tidak tercatat").length)} dosen belum memiliki data cukup untuk pengelompokan.</p>` : "");
+  $("clusterTbl").innerHTML = rows.length ? `<table class="tbl"><thead><tr><th>Dosen / prodi</th><th>Cluster</th><th>Dasar pengelompokan</th></tr></thead><tbody>`
+    + rows.map(d=>{
+      const analysis=d.clusterAnalysis, evidence=analysis?.evidence || {};
+      return `<tr data-cluster="${esc(d.cluster)}"><td class="nm">${esc(shortName(d.nama))}<br><span class="pill p-neu">${esc(d.prodi)}</span></td>
+        <td><span class="pill p-blue">${esc(d.cluster)}</span><div class="hint">${esc(analysis?.source || 'Data belum cukup')}</div></td>
+        <td class="topik"><div>${esc(evidence.education || 'Pendidikan belum tersedia')} / ${esc(ranks[evidence.rank] || 'JJA belum tersedia')};
+          ${n0(evidence.scopus_titles || 0)} judul Scopus; bobot RTTO tertinggi ${n2(evidence.rtto_scopus_max)};
+          ${n0(evidence.external_chair_projects || 0)} proyek sebagai ketua eksternal.</div>
+          <div class="hint">${esc(analysis?.reason || 'Data belum tersedia.')}</div>
+          ${evidence.rig?.length ? `<div>RIG / Research Center: ${evidence.rig.map(esc).join('; ')}</div>` : ''}</td></tr>`;
+    }).join('') + '</tbody></table>' : '<div class="empty">Tidak ada dosen pada cakupan ini.</div>';
 }
 
 /* ---------- 10 topik & SDG ---------- */
+const researchProjects = () => PublicationResearch.scopedProjects(source.research_projects || [], scope().map(d=>d.kode), S.year);
 function renderSDG(){
-  const rows=scope();
-  const cnt={};
-  rows.forEach(d=>d.sdg.forEach(s=>cnt[s]=(cnt[s]||0)+1));
-  const items = Object.entries(cnt).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))
-    .map(([k,v])=>({label:k, v, c:"#2E77C4", vlab:n0(v),
-      tip:`<b>${esc(k)}</b><s>${n0(v)} dosen membidik SDG ini</s>`}));
-  if(!items.length){ $("sdgBar").innerHTML=`<div class="empty">Belum ada SDG tercatat pada cakupan ini.</div>`; $("sdgHint").textContent=""; return; }
-  items[0].c="#16406F";
-  hbar($("sdgBar"), items, {aria:"Frekuensi SDG yang dibidik", mL:66});
-  const withTopic = rows.filter(d=>d.topik).length;
-  $("sdgHint").innerHTML = `<b class="num">${n0(withTopic)}</b> dari ${n0(rows.length)} dosen sudah merumuskan topik prioritas 2027.`;
+  const projects=researchProjects(), summary=PublicationResearch.summarize(projects);
+  const items=summary.ranked.map(({sdg,count})=>({
+    label:'SDG '+sdg, v:count, c:summary.dominant.includes(sdg)?'#16406F':'#2E77C4', vlab:n0(count),
+    tip:`<b>SDG ${sdg}</b><s>${n0(count)} proyek hibah unik pada tahun anggaran ${esc(S.year)}</s>`
+  }));
+  const choices=summary.ranked.map(row=>({v:String(row.sdg),t:'SDG '+row.sdg+' ('+row.count+' proyek)'}));
+  fill($("fTopicSdg"), choices, 'Semua SDG');
+  if (!choices.some(row=>row.v===S.sdg)) S.sdg='';
+  $("fTopicSdg").value=S.sdg;
+  $("sdgHint").innerHTML = `<b>${n0(summary.total)} proyek unik</b> pada tahun anggaran ${esc(S.year || 'terpilih')}; ${n0(summary.withSdg)} memiliki SDG, ${n0(summary.total-summary.withSdg)} belum terisi. Satu proyek dihitung sekali pada setiap SDG, meskipun melibatkan beberapa dosen.`;
+  if(!items.length){
+    $("sdgBar").innerHTML='<div class="empty">Belum ada SDG hibah pada cakupan ini.</div>';
+    $("sdgFocus").replaceChildren();
+    return;
+  }
+  hbar($("sdgBar"), items, {aria:'Jumlah proyek hibah per SDG', mL:72, width:360});
+  const count=summary.ranked[0].count;
+  $("sdgFocus").innerHTML=`<b>Terbanyak: ${summary.dominant.map(sdg=>'SDG '+sdg).join(', ')}</b> &mdash; masing-masing ${n0(count)} proyek (${n1(count/summary.total*100)}% dari proyek dalam cakupan).
+    <p style="margin:8px 0 4px">Topik terkait dari roadmap atau judul hibah:</p>
+    <ul>${summary.topics.slice(0,3).map(row=>`<li>${esc(row.topic)}${row.count>1?' ('+n0(row.count)+' proyek)':''}</li>`).join('')}</ul>
+    <div class="mini">${summary.dominant.map(sdg=>`<button type="button" data-sdg="${sdg}">Lihat topik SDG ${sdg}</button>`).join('')}</div>`;
 }
 function renderTopik(){
-  const rows=scope().filter(d=>d.topik);
-  const q=S.q;
-  const hit = !q ? rows : rows.filter(d=>
-    (d.nama+" "+d.prodi+" "+(d.topik||"")+" "+d.sdg.join(" ")).toLowerCase().includes(q));
-  $("topikHint").innerHTML = `Menampilkan <b class="num">${n0(hit.length)}</b> rumusan topik${q?` yang memuat “${esc(S.q)}”`:""}.`;
-  if(!hit.length){ $("topikTbl").innerHTML=`<div class="empty">Tidak ada topik yang cocok. Coba kata kunci lain atau longgarkan filter.</div>`; return; }
-  $("topikTbl").innerHTML = `<table class="tbl"><thead><tr><th style="min-width:150px">Dosen</th><th>SDG</th><th>Topik prioritas 2027</th></tr></thead><tbody>`
-    + hit.sort((a,b)=>a.prodi.localeCompare(b.prodi)||a.nama.localeCompare(b.nama,"id")).map(d=>`<tr>
-        <td><div class="nm">${esc(shortName(d.nama))}</div><span class="pill p-neu" style="margin-top:3px">${esc(d.prodi)}</span></td>
-        <td>${d.sdg.map(s=>`<span class="pill p-blue" style="margin:1px 0">${esc(s)}</span>`).join(" ")||`<span style="color:var(--ink-4)">—</span>`}</td>
-        <td class="topik">${esc(d.topik)}</td></tr>`).join("") + `</tbody></table>`;
+  const projects=researchProjects().filter(project=>!S.sdg || project.sdgs.includes(Number(S.sdg)));
+  const hit=scope().flatMap(d=>{
+    const matches=projects.filter(project=>project.codes.includes(d.kode) && (!S.q ||
+      [d.nama,d.kode,d.prodi,PRODI[d.prodi],project.title,...project.topics,...project.keywords,...project.sdgs.map(sdg=>'SDG '+sdg)].join(' ').toLowerCase().includes(S.q)));
+    return matches.length ? [{d,projects:matches}] : [];
+  });
+  const projectCount=new Set(hit.flatMap(row=>row.projects.map(project=>project.id))).size;
+  $("topikHint").innerHTML=`${n0(hit.length)} dosen pada ${n0(projectCount)} proyek hibah tahun anggaran ${esc(S.year || 'terpilih')}. Topik memakai Subtopik Research Roadmap, atau judul hibah bila roadmap kosong.${S.q?` Pencarian: &ldquo;${esc(S.q)}&rdquo;.`:''}`;
+  if(!hit.length){
+    $("topikTbl").innerHTML='<div class="empty">Tidak ada topik hibah yang sesuai. Periksa tahun, cakupan dosen, SDG, atau pencarian.</div>';
+    return;
+  }
+  $("topikTbl").innerHTML=`<table class="tbl"><thead><tr><th>Dosen / prodi</th><th>SDG</th><th>Rumusan topik dan judul hibah</th></tr></thead><tbody>`
+    + hit.sort((a,b)=>a.d.prodi.localeCompare(b.d.prodi)||a.d.nama.localeCompare(b.d.nama,'id')).map(({d,projects})=>{
+      const sdgs=[...new Set(projects.flatMap(project=>project.sdgs))].sort((a,b)=>a-b);
+      return `<tr data-code="${esc(d.kode)}"><td><div class="nm">${esc(shortName(d.nama))}</div><span class="pill p-neu">${esc(d.prodi)}</span></td>
+        <td>${sdgs.map(sdg=>`<span class="pill p-blue" style="margin:1px 0">SDG ${sdg}</span>`).join(' ') || '&mdash;'}</td>
+        <td class="topik">${projects.map(project=>`<div class="research-topic"><b>${project.topics.map(esc).join('; ')}</b>
+          <div class="hint">${esc(project.topic_source)} &middot; ${esc(project.proposal)} &middot; ${project.year}</div>
+          ${project.topic_source!=='Judul hibah'?`<div>Judul: ${esc(project.title)}</div>`:''}
+          <div>SDG proyek: ${project.sdgs.map(sdg=>'SDG '+sdg).join(', ') || 'Belum terisi'}</div>
+          ${project.keywords.length?`<details><summary>Keyword SDG dari hibah</summary>${project.keywords.map(esc).join('; ')}</details>`:''}</div>`).join('')}</td></tr>`;
+    }).join('')+'</tbody></table>';
 }
 
 /* ---------- footnote ---------- */
@@ -704,8 +744,8 @@ function renderFoot(){
   const scoreNote=snapshot?.has_kpi ? 'Score KPI mengikuti Score KPI RTTO pada workbook; nol yang tercatat tetap dihitung. Bobot publikasi menggunakan nilai tertinggi Rectorate–RTTO per kategori.' : 'Skor KPI dihitung dengan matriks sistem, bobot penyesuaian publikasi, dan profil dosen yang tersedia.';
   $("footnote").innerHTML = `<b>Sumber data: database RCDC Malang dan laporan Excel.</b> ${snapshotNote} ${scoreNote}
     Skor memakai skala 0–6; capaian adalah skor dibagi 6 dan standar matriks adalah skor 4. Skor kosong tidak dianggap nol.
-    Hibah mengikuti peran ketua/anggota yang tercatat; mentor, cluster, serta topik 2027 mengikuti penetapan dalam sistem.
-    Ringkasan pedoman matriks dan cluster mengikuti contoh dashboard. Kolom TP S1/S2 bersifat kualitatif; profil tanpa ambang numerik tidak diplot pada risk matrix.`;
+    SDG dan topik memakai proyek hibah unik pada tahun anggaran terpilih. Cluster otomatis memakai profil dosen serta bukti publikasi dan hibah sampai tahun tersebut; penetapan tersimpan diutamakan. Mentor mengikuti penetapan dalam sistem.
+    Dasar indikasi cluster ditampilkan per dosen. Kolom TP S1/S2 bersifat kualitatif; profil tanpa ambang numerik tidak diplot pada risk matrix.`;
   if(snapshot?.warnings?.length) $("footnote").innerHTML += `<p>${snapshot.warnings.map(esc).join('<br>')}</p>`;
 }
 

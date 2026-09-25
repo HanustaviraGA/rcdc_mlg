@@ -49,7 +49,7 @@
             type: 'POST',
             success: function (result) {
                 var base64 = result.page;
-                var decoded = atob(base64);
+                var decoded = new TextDecoder().decode(Uint8Array.from(atob(base64), char => char.charCodeAt(0)));
                 $.when(function () {
                     $("#kt_post").empty().html(decoded);
                     // Remove 'active' class and collapse all accordions

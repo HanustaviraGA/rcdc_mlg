@@ -14,7 +14,7 @@
                 <span class="portal-eyebrow">PUBLIKASI &amp; KINERJA RISET</span>
                 <h1>Dashboard KPI <span>Publikasi.</span></h1>
                 <p class="portal-intro">Telusuri capaian publikasi Faculty Member BINUS Malang, perkembangan program studi, dan potensi kolaborasi riset.</p>
-                <p class="portal-caption">Publication Performance Intelligence Dashboard · Persiapan riset 2027</p>
+                <p class="portal-caption">Publication Performance Intelligence Dashboard · Peta publikasi dan riset</p>
                 <a class="portal-link" href="{{ route('research-gallery.index') }}">Jelajahi Research Gallery <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
             </div>
             <div class="stamps" id="stamps" aria-label="Cakupan data publikasi"></div>
@@ -113,7 +113,7 @@
   </section>
 
   <section class="sec">
-    <div class="sech"><span class="n">09</span><h2>Ambang matriks dan cluster faculty member</h2><p>Aturan penilaian yang berlaku dan akses hibah internal menurut cluster.</p></div>
+    <div class="sech"><span class="n">09</span><h2>Ambang matriks dan cluster faculty member</h2><p>Pengelompokan berdasarkan profil dosen, publikasi Scopus, dan riwayat hibah.</p></div>
     <div class="grid" style="grid-template-columns:1.45fr 1fr">
       <div class="card">
         <h3>Ambang skor menurut kolom matriks</h3>
@@ -124,19 +124,26 @@
       </div>
       <div class="card">
         <h3>Cluster faculty member</h3>
-        <p class="hint">Kriteria dan skema mengikuti pedoman contoh. Jumlah dosen berdasarkan penetapan cluster yang tercatat.</p>
+        <p class="hint" id="clusterHint"></p>
         <div id="cluBox"></div>
       </div>
     </div>
+    <div class="card" style="margin-top:16px">
+      <h3>Dasar cluster per dosen</h3>
+      <p class="hint">Profil memakai master dosen terbaru. Bukti publikasi dan hibah dibatasi sampai tahun terpilih. Indikasi otomatis membantu pemetaan; penetapan cluster yang tersimpan tetap diutamakan.</p>
+      <div class="scroll" style="max-height:420px"><div id="clusterTbl"></div></div>
+    </div>
   </section>
 
-  <section class="sec">
-    <div class="sech"><span class="n">10</span><h2>Topik penelitian prioritas 2027</h2><p>Arah riset yang sudah dirumuskan tiap dosen beserta SDG yang dibidik.</p></div>
+  <section class="sec" id="research-topics">
+    <div class="sech"><span class="n">10</span><h2>Peta SDG dan topik penelitian</h2><p>SDG dominan dan rumusan topik dari hibah yang telah diupload, mengikuti tahun anggaran dan cakupan dosen terpilih.</p></div>
     <div class="grid" style="grid-template-columns:1fr 1.9fr">
-      <div class="card"><h3>SDG yang paling banyak dibidik</h3><p class="hint" id="sdgHint"></p><div id="sdgBar"></div></div>
+      <div class="card"><h3>SDG paling banyak pada hibah</h3><p class="hint" id="sdgHint"></p><div id="sdgBar"></div><div id="sdgFocus" class="note"></div></div>
       <div class="card">
         <h3>Rumusan topik per dosen</h3>
         <p class="hint" id="topikHint"></p>
+        <label for="fTopicSdg">Tampilkan topik pada SDG</label>
+        <select class="srch" id="fTopicSdg"><option value="">Semua SDG</option></select>
         <input class="srch" id="fTopik" type="search" placeholder="Cari kata kunci topik, nama dosen, atau SDG&hellip;" aria-label="Cari topik penelitian">
         <div class="scroll" style="max-height:460px"><div id="topikTbl"></div></div>
       </div>
@@ -148,7 +155,7 @@
         <button class="btn" type="button" id="printDashboard">Cetak dashboard</button>
         @auth
             <a class="btn" href="{{ url('/dashboard/importrectorate') }}">Import Excel</a>
-            <a class="btn" href="{{ route('research-import.index') }}">Import hibah</a>
+            <a class="btn" href="{{ url('/dashboard/importrectorate') }}">Import hibah</a>
             <a class="btn" href="{{ url('/dashboard/matrixkpidosen') }}">Pedoman matriks</a>
         @endauth
     </div>
@@ -158,5 +165,6 @@
 @endsection
 @push('scripts')
 <script>window.publicationDashboard = {{ Illuminate\Support\Js::from($dashboard) }};</script>
+<script src="{{ asset('js/publication-research.js') }}?v={{ filemtime(public_path('js/publication-research.js')) }}" defer></script>
 <script src="{{ asset('js/publication-kpi.js') }}?v={{ filemtime(public_path('js/publication-kpi.js')) }}" defer></script>
 @endpush

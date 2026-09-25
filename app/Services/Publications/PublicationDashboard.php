@@ -74,64 +74,74 @@ class PublicationDashboard
         $profiles = $this->rows('kpi_fm_profiles')->groupBy('kode_dosen');
         $priorities = $this->rows('kpi_research_priorities')->where('year', 2027)->values();
         $research = $this->rows('researchs');
-        $grants = app(\App\Services\Research\RectorateResearchRepository::class)->activeRows()
-            ->filter(fn ($row) => strtoupper($row->kategori_fm_eksternal_mahasiswa ?? '') === 'FM');
+        $grantRows = app(\App\Services\Research\RectorateResearchRepository::class)->activeRows();
+        $grants = $grantRows->filter(fn ($row) => strtoupper(trim($row->kategori_fm_eksternal_mahasiswa ?? '')) === 'FM');
+        $grantsByLecturer = $grants->groupBy('kode_dosen_nim');
+        $insights = app(FacultyResearchInsights::class);
+        $years = collect(array_keys($snapshots))->merge($grants->pluck('budget_year'))
+            ->map(fn ($year) => (string) $year)->unique()->sort()->values()->all();
         $faculty = [];
-        $codes = $master->keys()->merge($details->keys())->merge($byLecturer->keys())->merge($kpiByLecturer->keys())->unique();
+        $codes = $master->keys()->merge($details->keys())->merge($byLecturer->keys())->merge($kpiByLecturer->keys())->merge($grantsByLecturer->keys())->unique();
         foreach ($codes as $code) {
             $old = $master->get($code);
             $detail = $details->get($code);
             $papers = $byLecturer->get($code, collect());
             $lecturerKpi = $kpiByLecturer->get($code, collect());
+            $lecturerGrants = $grantsByLecturer->get($code, collect());
+            $latestGrant = $lecturerGrants->sortByDesc('budget_year')->first();
             $latestKpi = $lecturerKpi->sortByDesc('year')->first();
             $latest = $papers->sortByDesc(fn ($r) => (int) $r->year * 100 + (int) $r->month)->first();
-            if (! $old && ! $papers->count() && ! $latestKpi && ! str_contains(strtolower($detail->campus ?? ''), 'malang')) {
+            if (! $old && ! $papers->count() && ! $latestKpi && ! $latestGrant && ! str_contains(strtolower($detail->campus ?? ''), 'malang')) {
                 continue;
             }
             $education = $this->scoring->education($detail->pendidikan ?? null)
                 ?? $this->scoring->education($old->pendidikan_dosen ?? null) ?? $this->scoring->education($latest->pendidikan ?? null);
             $rank = $this->scoring->rank($detail->jja ?? null)
-                ?? $this->scoring->rank($old->jja_dosen ?? null) ?? $this->scoring->rank($latest->jja ?? null);
-            $type = $this->scoring->faculty($detail->tipe_faculty ?? null) ?? $this->scoring->faculty($old->ft_dosen ?? null);
+                ?? $this->scoring->rank($old->jja_dosen ?? null) ?? $this->scoring->rank($latestKpi->academic_rank ?? null)
+                ?? $this->scoring->rank($latest->jja ?? null);
+            $type = $this->scoring->faculty($detail->tipe_faculty ?? null) ?? $this->scoring->faculty($old->ft_dosen ?? null)
+                ?? $this->scoring->faculty($latestKpi->faculty_type ?? null);
             $rule = $this->scoring->rule($type, $rank, $education);
             $annual = [];
-            foreach (array_keys($snapshots) as $year) {
+            foreach ($years as $year) {
                 $annualPapers = $papers->where('year', $year);
                 $profile = $profiles->get($code, collect())->firstWhere('year', $year);
                 $entry = $lecturerKpi->firstWhere('year', $year);
                 $workbook = PublicationWorkbookMetrics::summarize($annualPapers, $entry);
                 $systemScore = $this->scoring->calculate($code, $rule, $annualPapers);
-                $annual[$year] = ['score' => $snapshots[$year]['has_kpi'] ? $workbook['score'] : $systemScore,
+                $cluster = $insights->cluster((int) $year, $education, $rank, $papers, $lecturerKpi, $lecturerGrants,
+                    collect(array_keys($snapshots))->contains(fn ($available) => (int) $available <= (int) $year), $profile);
+                $annual[$year] = ['score' => ($snapshots[$year]['has_kpi'] ?? false) ? $workbook['score'] : $systemScore,
                     'system_score' => $systemScore, 'workbook' => $workbook,
                     'rows' => $annualPapers->count(), 'scopus' => $annualPapers->where('submitted', 'Scopus FM')->count(),
                     'non_scopus' => $annualPapers->where('submitted', 'Non Scopus FM')->count(),
                     'weight' => $annualPapers->sum('bobot'), 'original_weight' => $annualPapers->sum('bobot_asli'),
-                    'cluster' => $profile->cluster ?? null, 'mentor' => $profile->mentor_label ?? null];
+                    'cluster' => $cluster['cluster'], 'cluster_analysis' => $cluster, 'mentor' => $profile->mentor_label ?? null];
             }
-            $faculty[] = ['code' => $code, 'name' => $detail->nama_dosen ?? $old->nama_dosen ?? $latestKpi->name ?? $latest->fm_author ?? $code,
+            $faculty[] = ['code' => $code, 'name' => $detail->nama_dosen ?? $old->nama_dosen ?? $latestKpi->name ?? $latest->fm_author ?? $latestGrant->nama ?? $code,
                 'program_code' => $old->jurusan_dosen ?? null,
-                'program' => $detail->nama_gugus_binaan ?? $programAliases->get($old->jurusan_dosen ?? '') ?? $old->jurusan_dosen ?? $latestKpi->program ?? $latest->dept ?? 'Belum tercatat',
-                'faculty' => $type, 'faculty_detail' => $detail->tipe_faculty ?? $type,
+                'program' => $detail->nama_gugus_binaan ?? $programAliases->get($old->jurusan_dosen ?? '') ?? $old->jurusan_dosen ?? $latestKpi->program ?? $latest->dept ?? $latestGrant->prodi_di_kpi ?? 'Belum tercatat',
+                'faculty' => $type, 'faculty_detail' => $detail->tipe_faculty ?? $latestKpi->faculty_type ?? $type,
                 'education' => $education, 'rank' => $rank, 'rule' => $rule,
-                'annual' => $annual, 'profile_source' => $detail ? 'database_dosen_new' : ($old ? 'database_dosen + Raw' : ($latestKpi ? 'KPI' : 'Raw'))];
+                'annual' => $annual, 'profile_source' => $detail ? 'database_dosen_new' : ($old ? 'database_dosen + Raw' : ($latestKpi ? 'KPI' : ($latest ? 'Raw' : 'Hibah')))];
         }
-        $years = array_map('strval', array_keys($snapshots));
         $latestYear = $years ? end($years) : null;
         $issues = [
             ['feature' => 'KPI workbook dan asumsi positif', 'detail' => 'Bobot Scopus dan Non Scopus masing-masing mengambil MAX(Rectorate, RTTO) per dosen. Rectorate memakai bobot asli. Score KPI mengikuti Score KPI RTTO dari sheet KPI, termasuk nilai nol. Pilihan Perhitungan sistem tetap tersedia secara terpisah. Data RTTO yang kosong tidak dianggap nol.'],
             ['feature' => 'FIRST AUTHOR, TITLE & BOBOT, PIVOT', 'detail' => 'Dihitung ulang dari MALANG (atau Raw jika MALANG tidak ada). Jumlah judul mengikuti Count of Title, yaitu kontribusi dosen–publikasi, bukan judul unik lintas penulis. Rekap prodi menggunakan Prodi KPI dari sumber. First author mensyaratkan Scopus, Scopus FM, dan Y. PIVOT menjumlahkan bobot asli berdasarkan Tipe Publikasi.'],
-            ['feature' => 'Riwayat KPI 2023–2024', 'detail' => 'Tahun hanya muncul jika memiliki snapshot publikasi. Angka contoh dalam HTML tidak digunakan.'],
+            ['feature' => 'Tahun data', 'detail' => 'Pilihan tahun mencakup publikasi dan tahun anggaran hibah. Tahun yang hanya memiliki hibah tidak diberi skor publikasi.'],
             ['feature' => 'Skor perhitungan sistem', 'detail' => 'Pilihan Perhitungan sistem memakai aturan operasional saat ini, bobot penyesuaian Scopus, dan profil master terbaru. Bukan skor historis yang sudah disahkan. Dalam pilihan ini, dosen tanpa baris publikasi atau profil matriks lengkap ditampilkan tanpa skor.'],
             ['feature' => 'Status publikasi', 'detail' => 'Semua status yang lolos filter Submitted tetap dihitung sesuai import lama, termasuk Reviewed dan Accepted. Submitted adalah kategori pelaporan, bukan bukti terbit.'],
-            ['feature' => 'Cluster dan mentor', 'detail' => 'Diambil hanya dari penetapan per tahun. Huruf (A/B/C) pada faculty type tidak dianggap sebagai cluster riset.'],
+            ['feature' => 'Cluster dan mentor', 'detail' => 'Cluster otomatis memakai pendidikan/JJA, bukti Scopus sampai tahun terpilih, dan peran ketua hibah eksternal. Hasil merupakan indikasi berdasarkan cakupan import; penetapan cluster tersimpan diprioritaskan. Huruf faculty type tidak dipakai sebagai cluster. Mentor tetap mengikuti penetapan.'],
             ['feature' => 'Peran hibah', 'detail' => 'Peran ketua/anggota hanya bersumber dari rectorate_research. Katalog researchs menunjukkan keterlibatan riset tanpa penetapan peran.'],
-            ['feature' => 'Prioritas 2027 dan SDG', 'detail' => 'Diambil dari rencana eksplisit tahun 2027. Judul/keyword riset historis tidak dijadikan rencana atau SDG otomatis.'],
+            ['feature' => 'SDG dan rumusan topik', 'detail' => 'SDG dihitung per proyek unik (tahun anggaran + kode proposal), bukan per anggota. Topik mengikuti Subtopik Research Roadmap, dengan judul hibah sebagai alternatif. Filter tahun memakai tahun anggaran; hasil memetakan riset yang sudah diupload.'],
         ];
         if (collect($snapshots)->sum('legacy_campus')) {
             $issues[] = ['feature' => 'Kampus pada import lama', 'detail' => 'Sebagian baris lama tidak menyimpan Kampus. Baris tersebut dipakai hanya jika kode dosen ada di master Malang; jumlahnya ditampilkan pada catatan snapshot.'];
         }
 
         return ['faculty' => $faculty, 'years' => $years, 'default_year' => $latestYear, 'snapshots' => $snapshots,
+            'research_projects' => $insights->projects($grantRows),
             'publications' => $selected->map(fn ($r) => collect((array) $r)->only(['kode_dosen', 'request_code', 'title', 'submitted', 'status', 'jenis', 'tipe_publikasi', 'first_author', 'dept', 'quartile_jurnal', 'bobot', 'bobot_asli', 'source_title', 'publisher', 'year', 'tanggal_pelaporan', 'notes', 'prodi_kpi'])->all())->values(),
             'research' => $research->map(fn ($r) => ['id' => $r->ID, 'code' => $r->kode_dosen, 'title' => $r->title, 'year' => $r->budget_year,
                 'fund' => $r->source_of_fund, 'researchers' => json_decode($r->researcher ?? '[]', true) ?: [],

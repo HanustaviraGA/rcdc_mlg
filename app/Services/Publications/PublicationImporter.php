@@ -20,6 +20,7 @@ class PublicationImporter
         $kpi = $this->kpiReader->read($path, $parsed['records']);
         $summary = $parsed['summary'] + ['year' => $year, 'month' => $month, 'period' => $period];
         $summary['kpi'] = $kpi['summary'];
+        $summary['report'] = app(ReportWorkbookReader::class)->read($path);
         $summary['warnings'] = array_merge($summary['warnings'], $kpi['summary']['warnings']);
         $metrics = PublicationWorkbookMetrics::summarize(collect($parsed['records']));
         $summary['workbook_totals'] = array_intersect_key($metrics, array_flip(['titles', 'first_author', 'rectorate_scopus', 'rectorate_non_scopus']));

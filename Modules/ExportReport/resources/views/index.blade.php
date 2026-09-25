@@ -1,54 +1,23 @@
-<div class="row table_data mt-5 mb-5" data-roleable="false" data-role="Company-Read">
-    <div class=" col-12" id="tableCourseContainer">
-        <div class="card card-bordered mt-5">
-            <div class="card-body">
-                {{-- <div class="fv-row mb-5 col-md-12 ">
-                    <label for="" class="required form-label mb-3 fw-bold">Year</label>
-                    <select required name="year" id="year" class="form-control bg-white border border-2 py-4 px-6 rounded-3 fw-light fs-6" placeholder="Input Data">
-                        <option value="2022">2022</option>
-                        <option value="2023">2023</option>
-                        <option value="2024">2024</option>
-                        <option value="2025">2025</option>
-                    </select>
-                </div>
-                <div class="fv-row mb-5 col-md-12 ">
-                    <label for="" class="required form-label mb-3 fw-bold">Period</label>
-                    <select required name="period" id="period" class="form-control bg-white border border-2 py-4 px-6 rounded-3 fw-light fs-6" placeholder="Input Data">
-                        <option value="1">Quarter 1</option>
-                        <option value="2">Quarter 2</option>
-                        <option value="3">Quarter 3</option>
-                        <option value="4">Quarter 4</option>
-                    </select>
-                </div>
-                <div class="fv-row mb-5 col-md-12 ">
-                    <label for="" class="required form-label mb-3 fw-bold">Until Month</label>
-                    <select required name="month" id="month" class="form-control bg-white border border-2 py-4 px-6 rounded-3 fw-light fs-6" placeholder="Input Data">
-                        <option value="1">January</option>
-                        <option value="2">February</option>
-                        <option value="3">March</option>
-                        <option value="4">April</option>
-                        <option value="5">May</option>
-                        <option value="6">June</option>
-                        <option value="7">July</option>
-                        <option value="8">August</option>
-                        <option value="9">September</option>
-                        <option value="10">October</option>
-                        <option value="11">November</option>
-                        <option value="12">December</option>
-                    </select>
-                </div>
-                <div class="fv-row mb-5 col-md-12 ">
-                    <label for="" class="required form-label mb-3 fw-bold">File (.csv)</label>
-                    <input type="file" accept=".csv" required name="rectorate" id="rectorate" class="form-control bg-white border border-2 py-4 px-6 rounded-3 fw-light fs-6" placeholder="Input Data">
-                </div> --}}
-                <button class="btn btn-primary w-20" onclick="onAdd()" id="toggleFormButton"><i class="las la-plus fs-2"></i> Simpan</button>
-            </div>
-        </div>
-        {{-- <div class="card card-bordered mt-5">
-            <div class="card-body" id="image_pic">
-                <object data="" type="application/pdf" width="100%" height="500px"></object>
-            </div>
-        </div> --}}
+<div class="card my-5"><div class="card-body">
+    <h2>Laporan publikasi Scopus FM &amp; mahasiswa</h2>
+    <p class="text-muted">Generate data dari periode terpilih, periksa dan ubah isi laporan, lalu unduh Word sesuai template. Perubahan hanya berlaku pada draft laporan.</p>
+    <div class="row g-4 align-items-end">
+        <div class="col-md-3"><label class="form-label" for="reportYear">Tahun</label><input class="form-control" type="number" id="reportYear" min="2000" max="2100" value="{{ now()->year }}"></div>
+        <div class="col-md-3"><label class="form-label" for="reportMonth">Bulan</label><select class="form-select" id="reportMonth">@foreach(range(1, 12) as $month)<option value="{{ $month }}" @selected($month === now()->month)>{{ \Carbon\Carbon::create(2026, $month, 1)->locale('id')->translatedFormat('F') }}</option>@endforeach</select></div>
+        <div class="col-md-6 d-flex gap-3"><button class="btn btn-primary" id="generateReport" type="button">Generate</button><a class="btn btn-light-primary" href="{{ url('/dashboard/importrectorate') }}">Upload 3 sumber bulanan</a></div>
     </div>
+    <div id="reportMessage" role="status" aria-live="polite" class="mt-4" style="white-space:pre-wrap"></div>
+</div></div>
+<div id="reportEditor" hidden>
+    <div class="card mb-5"><div class="card-body">
+        <h3>Pratinjau dan edit laporan</h3>
+        <p class="text-muted">Semua sel tabel dapat diedit. Grafik mengikuti Target dan Realization pada rekap. Jika mengubah rincian, sesuaikan rekap dan skor yang terkait. Sel kosong berarti data belum tersedia. Draft tersimpan selama sesi login ini.</p>
+        <label for="reportTitle" class="form-label">Judul</label><input id="reportTitle" class="form-control mb-3">
+        <label for="reportPeriod" class="form-label">Periode pada dokumen</label><input id="reportPeriod" class="form-control mb-4">
+        <div class="d-flex gap-3"><button id="saveReport" class="btn btn-light-primary" type="button">Simpan draft</button><button id="downloadReport" class="btn btn-primary" type="button">Unduh Word</button></div>
+        <div id="reportSources" class="mt-4 text-muted"></div>
+    </div></div>
+    <div id="reportCharts" class="row g-4 mb-5"></div>
+    <div id="reportTables"></div>
 </div>
 @include('exportreport::javascript')
