@@ -231,10 +231,10 @@
                           <span class="phase-number">{{ $loop->iteration }}</span>
                         </div>
                         <div class="timeline-content">
-                          <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                          {{-- <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                             <span class="badge bg-light text-dark border">{{ $list['source_label'] }}</span>
                             <span class="small text-muted">{{ $list['year'] ?: 'Tahun belum tersedia' }}</span>
-                          </div>
+                          </div> --}}
                           <h4><a href="{{ route('research-gallery.show', ['source' => $list['source'], 'id' => $list['id']]) }}">{{ $list['title'] }}</a></h4>
                           @php
                             $summary = implode(' ', $list['abstracts'] ?: $list['roadmap']);
