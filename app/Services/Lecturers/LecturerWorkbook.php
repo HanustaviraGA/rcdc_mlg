@@ -119,7 +119,8 @@ class LecturerWorkbook
             $created = 0;
             foreach ($parsed['records'] as $record) {
                 // Only supplied columns are updated; missing optional columns retain existing data.
-                $model = DataDosen::updateOrCreate(['kode_dosen' => $record['kode_dosen']], $record);
+                // Re-importing must not restore deleted profiles or reset their visibility.
+                $model = DataDosen::withTrashed()->updateOrCreate(['kode_dosen' => $record['kode_dosen']], $record);
                 $created += (int) $model->wasRecentlyCreated;
             }
 

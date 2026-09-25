@@ -32,6 +32,23 @@
                 }
             },
             {
+                data: 'is_hidden',
+                name: 'is_hidden',
+                orderable: false,
+                searchable: false,
+                render: function (data, type, full) {
+                    if (type !== 'display') return data ? 1 : 0;
+                    return $('<input>', {
+                        type: 'checkbox',
+                        class: 'form-check-input dosen-visibility',
+                        'data-code': full.kode_dosen,
+                        'aria-label': 'Sembunyikan profil ' + full.nama_dosen,
+                        title: 'Centang untuk menyembunyikan profil dari halaman depan',
+                        onchange: 'onDosenVisibilityChange(this)'
+                    }).attr('checked', data ? 'checked' : null).prop('outerHTML');
+                }
+            },
+            {
                 data: 'nama_dosen',
                 name: 'nama_dosen',
                 orderable: true,
@@ -151,6 +168,7 @@
         }, {
             stateKey: 'dosen.tableCourse',
             stateSignature: {
+                version: 2,
                 prodi: prodi
             }
         });
@@ -163,6 +181,53 @@
             $row = $row.prev();
         }
         return $('#tableCourse').DataTable().row($row).data();
+    }
+
+    function onDosenVisibilityChange(element) {
+        const checkbox = $(element);
+        const hidden = element.checked;
+        checkbox.prop('disabled', true);
+        $.ajax({
+            url: '{{ route('dosen.visibility') }}',
+            type: 'PATCH',
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+            data: { kode_dosen: checkbox.attr('data-code'), is_hidden: hidden ? 1 : 0 },
+            success: function (response) {
+                SUPER.showMessage({ success: true, title: 'Tersimpan', message: response.message });
+                $('#tableCourse').DataTable().ajax.reload(null, false);
+            },
+            error: function (xhr) {
+                checkbox.prop('checked', !hidden);
+                SUPER.showMessage({ success: false, title: 'Gagal', message: xhr.responseJSON?.message || 'Pengaturan profil gagal disimpan. Silakan coba kembali.' });
+            },
+            complete: function () { checkbox.prop('disabled', false); }
+        });
+    }
+
+    function onDestroy(element) {
+        const row = getRowDataFromElement(element);
+        if (!row) return;
+        SUPER.confirm({
+            message: 'Hapus dosen ' + row.nama_dosen + ' dari daftar? Data akan tetap tersimpan sebagai arsip.',
+            callback: function (confirmed) {
+                if (!confirmed) return;
+                blockPage();
+                $.ajax({
+                    url: '{{ route('dosen.delete') }}',
+                    type: 'DELETE',
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                    data: { kode_dosen: row.kode_dosen },
+                    success: function (response) {
+                        SUPER.showMessage({ success: true, title: 'Tersimpan', message: response.message });
+                        $('#tableCourse').DataTable().ajax.reload(null, false);
+                    },
+                    error: function (xhr) {
+                        SUPER.showMessage({ success: false, title: 'Gagal', message: xhr.responseJSON?.message || 'Dosen gagal dihapus. Silakan coba kembali.' });
+                    },
+                    complete: function () { unblockPage(); }
+                });
+            }
+        });
     }
 
     function fillDosenDetail(data) {

@@ -31,6 +31,7 @@ class MonthlyWorkbookTest extends TestCase
             }
             $table->timestamps();
         });
+        (require database_path('migrations/2026_09_25_000000_add_visibility_and_soft_deletes_to_database_dosen_new.php'))->up();
     }
 
     protected function tearDown(): void
@@ -64,6 +65,23 @@ class MonthlyWorkbookTest extends TestCase
         } catch (ValidationException) {
             $this->assertSame('Original', DataDosen::find('D1')->nama_dosen);
         }
+    }
+
+    public function test_reimport_keeps_hidden_and_deleted_profiles_without_duplicate_codes(): void
+    {
+        DataDosen::create(['kode_dosen' => 'D1', 'nama_dosen' => 'Hidden'])->forceFill(['is_hidden' => true])->save();
+        DataDosen::create(['kode_dosen' => 'D2', 'nama_dosen' => 'Archived'])->delete();
+        $summary = app(LecturerWorkbook::class)->import($this->makeWorkbook(['Malang' => [
+            ['Kode Dosen', 'Nama Dosen'], ['D1', 'Updated hidden'], ['D2', 'Updated archive'], ['D3', 'New lecturer'],
+        ]]));
+
+        $this->assertSame(1, $summary['created']);
+        $this->assertSame(2, $summary['updated']);
+        $this->assertTrue(DataDosen::find('D1')->is_hidden);
+        $this->assertTrue(DataDosen::withTrashed()->find('D2')->trashed());
+        $this->assertSame('Updated archive', DataDosen::withTrashed()->find('D2')->nama_dosen);
+        $this->assertSame(3, DataDosen::withTrashed()->count());
+        $this->assertSame(['D3'], DataDosen::visibleOnWebsite()->pluck('kode_dosen')->all());
     }
 
     public function test_student_import_uses_three_sheets_and_keeps_months_independent(): void

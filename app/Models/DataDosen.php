@@ -2,10 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class DataDosen extends Model
 {
+    use SoftDeletes;
+
     protected $table = 'database_dosen_new';
 
     protected $primaryKey = 'kode_dosen';
@@ -13,6 +17,16 @@ class DataDosen extends Model
     protected $keyType = 'string';
 
     public $incrementing = false;
+
+    protected function casts(): array
+    {
+        return ['is_hidden' => 'boolean'];
+    }
+
+    public function scopeVisibleOnWebsite(Builder $query): Builder
+    {
+        return $query->where($this->qualifyColumn('is_hidden'), false);
+    }
 
     protected $fillable = [
         'kode_dosen',

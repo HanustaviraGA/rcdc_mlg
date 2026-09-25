@@ -41,11 +41,13 @@
                         <button type="button" class="btn btn-primary w-100" onclick="$('#modalHakakses').modal('show')" id="toggleFormButton"><i class="las la-plus fs-2"></i> Perbarui Data</button>
                     </div>
                 </div>
+                <p class="text-muted">Centang <strong>Sembunyikan profil</strong> untuk menyembunyikan dosen dari beranda dan daftar/detail dosen di halaman depan. Hapus centang untuk menampilkannya kembali.</p>
                 <div class="table-responsive border-2 border-top">
                     <table class="table table-striped table-row-bordered align-middle rounded tdFirstCenter" id="tableCourse">
                         <thead>
                             <tr class="fw-bolder text-dark">
                                 <th style="width: 100px !important;">Kode Dosen</th>
+                                <th>Sembunyikan profil</th>
                                 <th style="width: 400px !important;">Nama Dosen</th>
                                 <th style="width: 200px !important;">Program Studi</th>
                                 <th>Faculty Type</th>
@@ -55,7 +57,7 @@
                         </thead>
                         <tbody id="table_dosen">
                             <tr id="package_empty">
-                                <td colspan="6" id="empty-message-package" class="text-center">Tidak ada Data</td>
+                                <td colspan="7" id="empty-message-package" class="text-center">Tidak ada Data</td>
                             </tr>
                         </tbody>
                     </table>

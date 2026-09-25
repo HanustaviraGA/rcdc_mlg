@@ -220,39 +220,52 @@
                 </div>
               @endif
 
-              @if(isset($researchs) && !empty($researchs))
-                <div class="methodology-section" data-aos="fade-up" data-aos-delay="300">
+                <div class="methodology-section" id="lecturer-research" data-aos="fade-up" data-aos-delay="300">
                   <h2>Research Projects</h2>
+                  @if($researchs->isNotEmpty())
+                  <p class="text-muted mb-4">Menampilkan {{ $researchs->count() }} dari {{ $researchCount }} proyek dari Sistem Riset dan Upload Rectorate, diurutkan dari tahun terbaru.</p>
                   <div class="methodology-timeline">
-                    @php
-                      $i = 1;
-                    @endphp
                     @foreach($researchs as $list)
-                      <div class="timeline-item">
+                      <div class="timeline-item lecturer-research-project">
                         <div class="timeline-marker">
-                          <span class="phase-number">{{ $i }}</span>
+                          <span class="phase-number">{{ $loop->iteration }}</span>
                         </div>
                         <div class="timeline-content">
-                          <h4 style="text-align: justify !important;">{{ $list['title'] }}</h4>
-                          <p style="text-align: justify !important;">{{ truncateDescription($list['abstract'], 200) }}</p>
+                          <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            <span class="badge bg-light text-dark border">{{ $list['source_label'] }}</span>
+                            <span class="small text-muted">{{ $list['year'] ?: 'Tahun belum tersedia' }}</span>
+                          </div>
+                          <h4><a href="{{ route('research-gallery.show', ['source' => $list['source'], 'id' => $list['id']]) }}">{{ $list['title'] }}</a></h4>
                           @php
-                            $keywords = explode(',', $list['keywords']);
+                            $summary = implode(' ', $list['abstracts'] ?: $list['roadmap']);
+                            $topics = array_merge($list['fields'], array_map(fn ($sdg) => 'SDG '.$sdg, $list['sdgs']));
                           @endphp
+                          @if($summary !== '')
+                            <p>{{ \Illuminate\Support\Str::limit(strip_tags($summary), 200) }}</p>
+                          @endif
+                          @if($topics)
                           <ul class="phase-features">
-                            @foreach($keywords as $katakunci)
-                              <li>{{ $katakunci }}</li>
+                            @foreach($topics as $topic)
+                              <li>{{ $topic }}</li>
                             @endforeach
                           </ul>
+                          @endif
+                          <a class="d-inline-block mt-2" href="{{ route('research-gallery.show', ['source' => $list['source'], 'id' => $list['id']]) }}" aria-label="Baca detail {{ $list['title'] }}">Baca detail <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
                         </div>
                       </div>
-                      @php
-                        $i++;
-                      @endphp
                     @endforeach
 
                   </div>
+                  <div class="mt-4 pt-4 border-top">
+                    <a class="btn btn-outline-primary" id="lecturer-research-more" href="{{ route('research-gallery.index', ['source' => 'all', 'person' => $kode_dosen, 'sort' => 'new']) }}#showcase">
+                      Lihat Lainnya <i class="bi bi-arrow-right ms-2" aria-hidden="true"></i>
+                    </a>
+                    <p class="small text-muted mt-2">Telusuri seluruh proyek {{ $dosen->nama_dosen }} di Research Gallery.</p>
+                  </div>
+                  @else
+                    <p class="text-muted">Belum ada proyek riset dosen ini di Sistem Riset atau Upload Rectorate.</p>
+                  @endif
                 </div>
-              @endif
 
             </div><!-- End Service Main Content -->
           </div>

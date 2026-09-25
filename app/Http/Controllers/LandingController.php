@@ -2,22 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AttributeDosen;
+use App\Models\Comdevs;
+use App\Models\DataDosen;
+use App\Services\Research\ResearchGallery;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\DataDosen;
-use App\Models\AttributeDosen;
-use App\Models\Researchs;
-use App\Models\Comdevs;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\GuzzleException;
+use Illuminate\Support\Facades\Http;
 
 class LandingController extends Controller
 {
     private const BINUS_SCHOLAR_BASE_URL = 'https://binus.ac.id/malang/computer-science/wp-json/binus-scholar/v1/lecturers/';
 
-    public function home(){
+    public function home()
+    {
         Auth::logout();
-        $dosen = DataDosen::limit(6)->inRandomOrder()->get();
+        $dosen = DataDosen::visibleOnWebsite()->limit(6)->inRandomOrder()->get();
         $prodi = \DB::table('v_statistik_prodi')->get();
         $prodiLabels = [];
         $prodiCounts = [];
@@ -102,21 +103,24 @@ class LandingController extends Controller
         ));
     }
 
-    public function lecturers(Request $request){
+    public function lecturers(Request $request)
+    {
         $data = $request->all();
-        $dosen = DataDosen::query();
+        $dosen = DataDosen::visibleOnWebsite();
         $dosen->leftJoin('identitas_dosen', 'database_dosen_new.kode_dosen', '=', 'identitas_dosen.kode_dosen');
-        if(isset($data['search'])){
-            $dosen->where('nama_dosen', 'LIKE', '%'.$data['search'].'%')
-                ->orWhere('nama_gugus_binaan', 'LIKE', '%'.$data['search'].'%');
+        if (isset($data['search'])) {
+            $dosen->where(function ($query) use ($data) {
+                $query->where('nama_dosen', 'LIKE', '%'.$data['search'].'%')
+                    ->orWhere('nama_gugus_binaan', 'LIKE', '%'.$data['search'].'%');
+            });
         }
-        if (!empty($data['gugus'])) {
+        if (! empty($data['gugus'])) {
             $dosen->where('nama_gugus_binaan', $data['gugus']);
         }
         $dosen->orderBy('nama_dosen', 'ASC');
         $dosen->select('database_dosen_new.*', 'identitas_dosen.foto_dosen');
-        $dosen = $dosen->paginate(12);
-        $gugusBinaan = DataDosen::query()
+        $dosen = $dosen->paginate(12)->withQueryString();
+        $gugusBinaan = DataDosen::visibleOnWebsite()
             ->select('nama_gugus_binaan')
             ->whereNotNull('nama_gugus_binaan')
             ->where('nama_gugus_binaan', '!=', '')
@@ -127,28 +131,22 @@ class LandingController extends Controller
         return view('landing.team', compact('dosen', 'gugusBinaan'));
     }
 
-    public function lecture_detail($kode_dosen){
-        $dosen = DataDosen::leftJoin('identitas_dosen', 'database_dosen_new.kode_dosen', '=', 'identitas_dosen.kode_dosen')->where('database_dosen_new.kode_dosen', $kode_dosen)->first();
+    public function lecture_detail($kode_dosen, ResearchGallery $gallery)
+    {
+        $dosen = DataDosen::visibleOnWebsite()
+            ->leftJoin('identitas_dosen', 'database_dosen_new.kode_dosen', '=', 'identitas_dosen.kode_dosen')
+            ->where('database_dosen_new.kode_dosen', $kode_dosen)
+            ->select('identitas_dosen.*', 'database_dosen_new.*')
+            ->firstOrFail();
         $attribute = AttributeDosen::where('kode_dosen', $kode_dosen)->get();
-        // Research
-        $researchs = $this->getResearchs($kode_dosen);
+        $projects = $gallery->forLecturer($kode_dosen);
+        $researchCount = $projects->count();
+        $researchs = $projects->take(3)->values();
 
         // Community Development
         $comdevs = $this->getComdevs($kode_dosen);
 
-        return view('landing.service-details', compact('dosen', 'attribute', 'researchs', 'comdevs', 'kode_dosen'));
-    }
-
-    private function getResearchs(string $kode_dosen): array
-    {
-        $research = $this->requestBinusScholar('POST', 'researchs', $kode_dosen);
-        $researchs = data_get($research, 'data');
-
-        if (is_array($researchs) && !empty($researchs)) {
-            return $researchs;
-        }
-
-        return Researchs::where('kode_dosen', $kode_dosen)->get()->toArray();
+        return view('landing.service-details', compact('dosen', 'attribute', 'researchs', 'researchCount', 'comdevs', 'kode_dosen'));
     }
 
     private function getComdevs(string $kode_dosen): array
@@ -156,7 +154,7 @@ class LandingController extends Controller
         $comdev = $this->requestBinusScholar('POST', 'community-services', $kode_dosen);
         $comdevs = data_get($comdev, 'data.v2');
 
-        if (is_array($comdevs) && !empty($comdevs)) {
+        if (is_array($comdevs) && ! empty($comdevs)) {
             return $comdevs;
         }
 
@@ -166,31 +164,19 @@ class LandingController extends Controller
     private function requestBinusScholar(string $method, string $endpoint, string $kode_dosen): array
     {
         try {
-            $client = new Client([
-                'base_uri' => self::BINUS_SCHOLAR_BASE_URL,
-                'connect_timeout' => 5,
-                'timeout' => 10,
-                'http_errors' => false,
-            ]);
+            $response = Http::baseUrl(self::BINUS_SCHOLAR_BASE_URL)
+                ->withToken((string) env('BINUS_API_TOKEN'))
+                ->connectTimeout(5)->timeout(10)
+                ->send($method, $endpoint, ['json' => ['lecturer_id' => $kode_dosen]]);
 
-            $response = $client->request($method, $endpoint, [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . env('BINUS_API_TOKEN'),
-                    'Content-Type' => 'application/json',
-                ],
-                'json' => [
-                    'lecturer_id' => $kode_dosen,
-                ],
-            ]);
-
-            if ($response->getStatusCode() < 200 || $response->getStatusCode() >= 300) {
+            if (! $response->successful()) {
                 return [];
             }
 
-            $payload = json_decode((string) $response->getBody(), true);
+            $payload = $response->json();
 
             return is_array($payload) ? $payload : [];
-        } catch (GuzzleException $e) {
+        } catch (ConnectionException $e) {
             return [];
         }
     }

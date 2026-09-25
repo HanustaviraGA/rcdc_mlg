@@ -14,13 +14,14 @@ use Modules\Dosen\Http\Controllers\DosenController;
 |
 */
 
-Route::prefix('backoffice/dosen')->group(function() {
+Route::prefix('backoffice/dosen')->group(function () {
     Route::get('/', [DosenController::class, 'index'])->name('dosen.index');
     Route::post('create', [DosenController::class, 'create'])->name('dosen.create');
     Route::post('read', [DosenController::class, 'read'])->name('dosen.read');
     Route::post('detail', [DosenController::class, 'detail'])->name('dosen.detail');
     Route::put('update', [DosenController::class, 'update'])->name('dosen.update');
-    Route::delete('delete', [DosenController::class, 'delete'])->name('dosen.delete');
+    Route::delete('delete', [DosenController::class, 'delete'])->middleware('auth')->name('dosen.delete');
+    Route::patch('visibility', [DosenController::class, 'visibility'])->middleware('auth')->name('dosen.visibility');
     // Custom
     Route::post('init_table', [DosenController::class, 'init_table'])->name('dosen.init_table');
 });

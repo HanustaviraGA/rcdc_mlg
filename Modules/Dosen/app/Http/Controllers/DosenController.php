@@ -32,15 +32,13 @@ class DosenController extends Controller
      */
     public function init_table(Request $request)
     {
-        $data = $request->all();
         $query = DataDosen::query();
         // $query->leftJoin('identitas_dosen', 'identitas_dosen.kode_dosen', '=', 'database_dosen.kode_dosen');
         // $query->select('database_dosen.*', 'identitas_dosen.email_dosen', 'identitas_dosen.telp_dosen');
-        if ($data['prodi'] !== 'All') {
-            $query->where('nama_gugus_binaan', $data['prodi']);
+        if ($request->filled('prodi') && $request->input('prodi') !== 'All') {
+            $query->where('nama_gugus_binaan', $request->input('prodi'));
         }
         $query->orderBy('nama_dosen', 'asc');
-        $query->get();
 
         return select_table($query);
     }
@@ -239,6 +237,27 @@ class DosenController extends Controller
      */
     public function delete(Request $request)
     {
-        $data = $request->all();
+        $validated = $request->validate(['kode_dosen' => ['required', 'string', 'max:100']]);
+        $dosen = DataDosen::findOrFail($validated['kode_dosen']);
+        $dosen->delete();
+
+        return response()->json(['success' => true, 'message' => 'Dosen berhasil dihapus dari daftar. Data tetap tersimpan sebagai arsip.']);
+    }
+
+    public function visibility(Request $request)
+    {
+        $validated = $request->validate([
+            'kode_dosen' => ['required', 'string', 'max:100'],
+            'is_hidden' => ['required', 'boolean'],
+        ]);
+        $dosen = DataDosen::findOrFail($validated['kode_dosen']);
+        $dosen->is_hidden = $request->boolean('is_hidden');
+        $dosen->save();
+
+        return response()->json([
+            'success' => true,
+            'is_hidden' => $dosen->is_hidden,
+            'message' => $dosen->is_hidden ? 'Profil dosen disembunyikan dari halaman depan.' : 'Profil dosen ditampilkan kembali di halaman depan.',
+        ]);
     }
 }

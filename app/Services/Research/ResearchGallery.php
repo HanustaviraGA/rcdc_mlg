@@ -15,6 +15,14 @@ class ResearchGallery
         return $this->rectorateProjects()->concat($this->systemProjects());
     }
 
+    public function forLecturer(string $code): Collection
+    {
+        return $this->projects()
+            ->filter(fn ($project) => collect($project['people'])->contains('code', $code))
+            ->sortBy([['year', 'desc'], ['title', 'asc']])
+            ->values();
+    }
+
     public function rectorateProjects(): Collection
     {
         return $this->rectorate->activeRows()->groupBy('project_key')->map(function ($rows, $key) {
