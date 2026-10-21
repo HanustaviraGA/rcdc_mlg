@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Services\Publications\ImportedLecturerKpi;
 use App\Services\Publications\PublicationDashboard;
 use App\Services\Publications\PublicationImporter;
+use App\Services\Publications\PublicationPerformanceDashboard;
 use App\Services\Publications\PublicationScore;
 use App\Services\Publications\RawPublicationReader;
 use App\Services\Research\RectorateResearchImporter;
@@ -360,7 +361,7 @@ class PublicationDashboardTest extends TestCase
         $this->assertNull($faculty['D001']['annual'][2023]['score']);
         $this->assertNull($faculty['D001']['annual'][2023]['cluster']);
         $this->assertSame('Grant Only Lecturer', $faculty['D999']['name']);
-        $this->get(route('publication-dashboard'))->assertOk()->assertSee('Peta SDG dan topik penelitian')
+        $this->get(route('publication-dashboard.legacy'))->assertOk()->assertSee('Peta SDG dan topik penelitian')
             ->assertSee('publication-research.js')->assertDontSee('PRIVATE-NIDN')->assertDontSee('private@example.org')
             ->assertDontSee('Outdated title');
     }
@@ -563,10 +564,63 @@ class PublicationDashboardTest extends TestCase
         $this->assertSame(0, DB::table('publication_imports')->count());
         $this->assertSame(0, DB::table('publication_kpi_entries')->count());
         $this->assertSame(0, DB::table('rectorate_dosen')->count());
-        $this->get('/kpi-publikasi')->assertOk()
+        $this->get(route('publication-dashboard.legacy'))->assertOk()
             ->assertSee('Peringkat dosen')->assertSee('Status produktivitas dosen')
             ->assertSee('id="topToggle"', false)->assertSee('id="donut"', false)
             ->assertDontSee('id="workbookTabs"', false)->assertDontSee('id="scoreBasis"', false);
+    }
+
+    public function test_performance_page_preserves_the_old_dashboard_at_its_own_route(): void
+    {
+        $this->get('/kpi-publikasi')->assertOk()->assertViewIs('dashboard.publication_kpi')
+            ->assertSee('publication-performance.css')->assertSee('publication-performance.js')
+            ->assertSee('Ringkasan capaian')->assertSee('Kinerja per jurusan')
+            ->assertSee('Alokasi Budget VRTT')->assertSee('id="performanceQuarter"', false)
+            ->assertDontSee('id="donut"', false)->assertDontSee('localStorage');
+        $this->get('/kpi-publikasi-old')->assertOk()->assertViewIs('dashboard.publication_kpi_old')
+            ->assertSee('id="donut"', false)->assertSee('publication-kpi.js');
+    }
+
+    public function test_performance_data_keeps_snapshots_separate_and_uses_official_program_realization(): void
+    {
+        $importer = app(PublicationImporter::class);
+        $importer->import($this->workbookWithKpi([$this->row(['Bobot' => 0.5])], [$this->kpiRow()]), 'august.xlsx', 2026, 8, 3);
+        $importer->import($this->workbookWithKpi([$this->row(['RequestCode' => 'SEP', 'Bobot' => 2])], [$this->kpiRow(['Score KPI RTTO' => 0])]), 'september.xlsx', 2026, 9, 3);
+        $batch = DB::table('publication_imports')->where('month', 9)->first();
+        $summary = json_decode($batch->summary, true);
+        $summary['report'] = ['realization' => ['CS' => ['target' => 16, 'realization' => 6.5], 'BINUS' => ['target' => 89, 'realization' => 12.5]],
+            'ranges' => ['CS' => [1 => [0, 10], 2 => [10.01, 20]]]];
+        DB::table('publication_imports')->where('id', $batch->id)->update(['summary' => json_encode($summary)]);
+
+        $data = app(PublicationPerformanceDashboard::class)->data();
+        $snapshots = collect($data['snapshots'])->keyBy('month');
+        $this->assertCount(2, $snapshots);
+        $this->assertSame(0.5, $snapshots[8]['fm']['cards'][0]['weight']);
+        $this->assertSame(2.0, $snapshots[9]['fm']['cards'][0]['weight']);
+        $this->assertSame(6.5, $snapshots[9]['fm']['cards'][0]['actual']);
+        $this->assertSame(12.5, $snapshots[9]['fm']['actual']);
+        $this->assertSame(89, $snapshots[9]['fm']['target']);
+        $this->assertSame(1, $snapshots[9]['fm']['cards'][0]['score']);
+        $this->assertSame(0, $snapshots[9]['fm']['cards'][0]['faculty'][0]['score']);
+        $this->assertSame('SEP', $snapshots[9]['fm']['cards'][0]['publications'][0]['request']);
+        $this->assertArrayNotHasKey('source_payload', $snapshots[9]['fm']['cards'][0]['publications'][0]);
+    }
+
+    public function test_performance_students_keep_list_counts_and_warn_about_conflicting_workbook_totals(): void
+    {
+        (require database_path('migrations/2026_09_24_000100_create_student_publication_imports.php'))->up();
+        $title = '</script><script>alert(1)</script>';
+        DB::table('student_publication_imports')->insert(['year' => 2026, 'month' => 9, 'filename' => 'students.xlsx', 'sha256' => str_repeat('a', 64),
+            'summary' => json_encode(['title_counts' => ['CS' => 1, 'BINUS' => 1], 'warnings' => ['Rekap 2, LIST 1'],
+                'report' => ['realization' => ['CS' => ['target' => 5, 'realization' => 2], 'BINUS' => ['target' => 10, 'realization' => 2]]]]),
+            'records' => '[]', 'publication_list' => json_encode([['program' => 'CS', 'name' => 'Student', 'title' => $title, 'private_email' => 'private@example.org']])]);
+        $data = app(PublicationPerformanceDashboard::class)->data();
+        $students = $data['snapshots'][0]['mhs'];
+        $this->assertSame(['2026'], $data['years']);
+        $this->assertSame(1.0, $students['actual']);
+        $this->assertSame(1.0, $students['cards'][0]['actual']);
+        $this->assertSame(['Rekap 2, LIST 1'], $students['warnings']);
+        $this->get('/kpi-publikasi')->assertOk()->assertDontSee($title, false)->assertDontSee('private@example.org');
     }
 
     public function test_excel_display_format_does_not_round_weights_or_formula_results_during_import(): void

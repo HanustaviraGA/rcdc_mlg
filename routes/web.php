@@ -12,7 +12,8 @@ Route::get('/', [LandingController::class, 'home'])->name('home');
 Route::get('/lecturers', [LandingController::class, 'lecturers'])->name('lecturers');
 Route::get('/lecturers/detail/{kode_dosen}', [LandingController::class, 'lecture_detail'])->name('lecture_detail');
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('index');
-Route::get('/kpi-publikasi', [\App\Http\Controllers\PublicationDashboardController::class, 'index'])->name('publication-dashboard');
+Route::get('/kpi-publikasi', [\App\Http\Controllers\PublicationPerformanceController::class, 'index'])->name('publication-dashboard');
+Route::get('/kpi-publikasi-old', [\App\Http\Controllers\PublicationPerformanceController::class, 'legacy'])->name('publication-dashboard.legacy');
 Route::get('/dashboard/kpi-publikasi', function (Request $request) {
     return redirect()->route('publication-dashboard', $request->query(), 301);
 });

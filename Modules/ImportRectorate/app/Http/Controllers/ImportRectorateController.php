@@ -30,8 +30,23 @@ class ImportRectorateController extends Controller
             'mhs_file' => ['nullable', 'file', 'mimes:xlsx', 'max:20480'],
             'year' => ['required', 'integer', 'between:2000,2100'],
             'month' => ['required', 'integer', 'between:1,12'],
+            'column_mapping' => ['nullable', 'array'],
+            'column_mapping.*' => ['nullable', 'string'],
         ]);
-        $summaries = DB::transaction(function () use ($request, $validated, $importer) {
+
+        // Parse column mapping dari JSON string per tipe file
+        $columnMappings = [];
+        foreach (['fm_file', 'mhs_file', 'research_file'] as $type) {
+            $raw = $request->input("column_mapping.$type");
+            if ($raw) {
+                $decoded = json_decode($raw, true);
+                if (is_array($decoded)) {
+                    $columnMappings[$type] = $decoded;
+                }
+            }
+        }
+
+        $summaries = DB::transaction(function () use ($request, $validated, $importer, $columnMappings) {
             $year = (int) $validated['year'];
             $month = (int) $validated['month'];
             $results = [];
@@ -40,8 +55,9 @@ class ImportRectorateController extends Controller
                     continue;
                 }
                 $file = $request->file($type);
+                $mapping = $columnMappings[$type] ?? null;
                 $results[$type] = match ($type) {
-                    'fm_file' => app(PublicationImporter::class)->import($file->getRealPath(), $file->getClientOriginalName(), $year, $month, (int) ceil($month / 3)),
+                    'fm_file' => app(PublicationImporter::class)->import($file->getRealPath(), $file->getClientOriginalName(), $year, $month, (int) ceil($month / 3), columnMapping: $mapping),
                     'mhs_file' => app(StudentPublicationImporter::class)->import($file->getRealPath(), $file->getClientOriginalName(), $year, $month),
                     default => $importer->import($file->getRealPath(), $file->getClientOriginalName(), year: $year, month: $month),
                 };

@@ -24,7 +24,7 @@ class RawPublicationReader
         'tanggal_pelaporan' => ['tanggal pelaporan'], 'notes' => ['notes'], 'prodi_kpi' => ['prodi kpi'],
     ];
 
-    public function read(string $path, int $year): array
+    public function read(string $path, int $year, ?array $userMapping = null): array
     {
         $reader = new Reader((new ReaderConfiguration)->setReturnUnformatted(true));
         $summary = ['sheet' => 'Raw', 'read' => 0, 'excluded_campus' => 0, 'excluded_submitted' => 0,
@@ -44,13 +44,14 @@ class RawPublicationReader
             $summary['sheet'] = isset($sheets['malang']) ? 'MALANG' : 'Raw';
             $reader->changeSheet($sheetIndex);
             $map = null;
+            $headers = [];
             foreach ($reader as $number => $row) {
                 if (! array_filter($row, fn ($cell) => trim((string) $cell) !== '')) {
                     continue;
                 }
                 if ($map === null) {
                     $headers = array_map(fn ($h) => $this->normalize((string) $h), $row);
-                    $map = $this->mapHeaders($headers, $year, isset($sheets['kpi']));
+                    $map = $this->mapHeaders($headers, $year, isset($sheets['kpi']), $userMapping);
 
                     continue;
                 }
@@ -141,16 +142,27 @@ class RawPublicationReader
         return $weight;
     }
 
-    private function mapHeaders(array $headers, int $year, bool $hasKpi = false): array
+    private function mapHeaders(array $headers, int $year, bool $hasKpi = false, ?array $userMapping = null): array
     {
         $map = [];
-        foreach (self::HEADERS + ['status' => ['st'.$year, 'status']] as $field => $aliases) {
+        $allFields = self::HEADERS + ['status' => ['st'.$year, 'status']];
+
+        foreach ($allFields as $field => $aliases) {
+            // Prioritas 1: Gunakan user mapping jika disediakan dan valid
+            if ($userMapping !== null && isset($userMapping[$field]) && is_numeric($userMapping[$field])) {
+                $map[$field] = (int) $userMapping[$field];
+
+                continue;
+            }
+
+            // Prioritas 2: Auto-detect dari aliases
             $matches = array_keys(array_intersect($headers, $aliases));
             if (count($matches) > 1) {
                 $this->invalid("Kolom {$field} ambigu atau duplikat pada sheet publikasi.");
             }
             $map[$field] = $matches[0] ?? null;
         }
+
         $required = ['request_code', 'kode_dosen', 'kampus', 'submitted', 'bobot_asli', 'title', 'jenis', 'tipe_publikasi', 'status'];
         if ($hasKpi) {
             $required = array_merge($required, ['first_author', 'prodi_kpi']);

@@ -11,12 +11,12 @@ class PublicationImporter
 {
     public function __construct(private RawPublicationReader $reader, private WorkbookKpiReader $kpiReader) {}
 
-    public function import(string $path, string $filename, int $year, int $month, int $period, bool $dryRun = false): array
+    public function import(string $path, string $filename, int $year, int $month, int $period, bool $dryRun = false, ?array $columnMapping = null): array
     {
         if ($year < 2000 || $year > 2100 || $month < 1 || $month > 12 || $period !== (int) ceil($month / 3)) {
             throw ValidationException::withMessages(['period' => 'Tahun/bulan tidak valid atau quarter tidak sesuai bulan snapshot.']);
         }
-        $parsed = $this->reader->read($path, $year);
+        $parsed = $this->reader->read($path, $year, $columnMapping);
         $kpi = $this->kpiReader->read($path, $parsed['records']);
         $summary = $parsed['summary'] + ['year' => $year, 'month' => $month, 'period' => $period];
         $summary['kpi'] = $kpi['summary'];
