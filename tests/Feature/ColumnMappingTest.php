@@ -12,7 +12,7 @@ class ColumnMappingTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new ColumnMapperService();
+        $this->service = new ColumnMapperService;
     }
 
     /**
@@ -52,10 +52,11 @@ class ColumnMappingTest extends TestCase
     {
         $config = $this->service->getMappingConfig('mhs_file');
 
-        $this->assertNotEmpty($config['required']);
-        $this->assertArrayHasKey('nim', $config['required']);
-        $this->assertArrayHasKey('nama_mahasiswa', $config['required']);
-        $this->assertArrayHasKey('judul', $config['required']);
+        $this->assertSame([
+            'request_code', 'name', 'code', 'campus', 'submitted', 'type', 'title', 'program',
+        ], array_keys($config['required']));
+        $this->assertArrayNotHasKey('nim', $config['required']);
+        $this->assertArrayHasKey('first_author', $config['optional']);
     }
 
     /**
@@ -120,6 +121,7 @@ class ColumnMappingTest extends TestCase
             'title' => 5,
             'jenis' => 6,
             'tipe_publikasi' => 7,
+            'status' => 8,
         ];
 
         $validation = $this->service->validateMapping($mapping, 'fm_file');
@@ -160,6 +162,7 @@ class ColumnMappingTest extends TestCase
             'title' => 5,
             'jenis' => 6,
             'tipe_publikasi' => 7,
+            'status' => 8,
             // Missing optional fields like fm_author, first_author, dll
         ];
 

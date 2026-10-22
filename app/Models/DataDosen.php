@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class DataDosen extends Model
 {
@@ -23,9 +25,20 @@ class DataDosen extends Model
         return ['is_hidden' => 'boolean'];
     }
 
+    public function scopeCurrentRoster(Builder $query): Builder
+    {
+        if (Schema::hasTable('lecturer_imports')) {
+            $batch = DB::table('lecturer_imports')->where('year', now()->year)->orderByDesc('month')->value('id');
+            $query->whereIn($this->qualifyColumn('kode_dosen'), DB::table('lecturer_snapshot_rows')
+                ->select('kode_dosen')->where('lecturer_import_id', $batch ?? 0));
+        }
+
+        return $query;
+    }
+
     public function scopeVisibleOnWebsite(Builder $query): Builder
     {
-        return $query->where($this->qualifyColumn('is_hidden'), false);
+        return $query->currentRoster()->where($this->qualifyColumn('is_hidden'), false);
     }
 
     protected $fillable = [

@@ -17,7 +17,8 @@ use Modules\Dosen\Http\Controllers\DosenController;
 Route::prefix('backoffice/dosen')->group(function () {
     Route::get('/', [DosenController::class, 'index'])->name('dosen.index');
     Route::post('create', [DosenController::class, 'create'])->name('dosen.create');
-    Route::post('read', [DosenController::class, 'read'])->name('dosen.read');
+    Route::post('read', [DosenController::class, 'read'])->middleware('auth')->name('dosen.read');
+    Route::post('preview', [DosenController::class, 'preview'])->middleware('auth')->name('dosen.preview');
     Route::post('detail', [DosenController::class, 'detail'])->name('dosen.detail');
     Route::put('update', [DosenController::class, 'update'])->name('dosen.update');
     Route::delete('delete', [DosenController::class, 'delete'])->middleware('auth')->name('dosen.delete');

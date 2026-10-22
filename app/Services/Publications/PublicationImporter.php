@@ -2,6 +2,7 @@
 
 namespace App\Services\Publications;
 
+use App\Services\Lecturers\LecturerSnapshots;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -24,7 +25,9 @@ class PublicationImporter
         $summary['warnings'] = array_merge($summary['warnings'], $kpi['summary']['warnings']);
         $metrics = PublicationWorkbookMetrics::summarize(collect($parsed['records']));
         $summary['workbook_totals'] = array_intersect_key($metrics, array_flip(['titles', 'first_author', 'rectorate_scopus', 'rectorate_non_scopus']));
-        $known = DB::table('database_dosen')->pluck('kode_dosen')->all();
+        $known = Schema::hasTable('lecturer_imports')
+            ? app(LecturerSnapshots::class)->rows($year, $month)->keys()->all()
+            : (Schema::hasTable('database_dosen') ? DB::table('database_dosen')->pluck('kode_dosen')->all() : []);
         $summary['unmatched_codes'] = array_values(array_diff(array_unique(array_merge(array_column($parsed['records'], 'kode_dosen'), array_column($kpi['entries'], 'kode_dosen'))), $known));
         if ($dryRun) {
             return $summary;

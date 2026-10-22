@@ -17,30 +17,16 @@
                             <label for="customSearchInput" class="text-muted las la-search position-absolute ms-3 fs-2 mt-1"></label>
                             <input type="search" class="form-control form-control ps-10 bg-gray-100" id="customSearchInput" placeholder="Cari nama">
                         </div>
-                        {{-- <div class=" col-lg-6 d-none d-xl-block">
-                            <p class="mt-4 mb-5 ms-5 text-end">Prodi :</p>
-                        </div> --}}
                     </div>
-                    <div class="col-12 col-xl-2 col-md-6 col-lg-6 d-flex align-items-center ms-3 mt-5 mt-md-0">
-                        <select id="prodi" onchange="init_table()" class="form-control form-control bg-gray-100">
-                            <option value="All" selected>Semua Prodi</option>
-                            {{-- <option value="DI">DI</option>
-                            <option value="CS">CS</option>
-                            <option value="DKV">DKV</option>
-                            <option value="Ilkom">ILKOM</option>
-                            <option value="CBDC">CBDC</option>
-                            <option value="LC">LC</option>
-                            <option value="PR">PR</option>
-                            <option value="BC">BC</option> --}}
-                            @foreach($program as $prodi)
-                                <option value="{{ $prodi['nama_gugus_binaan'] }}">{{ $prodi['nama_gugus_binaan'] }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div data-roleable="false" data-role="editdosen" class="col-12 col-xl-3 col-md-6 col-lg-6 mt-5 my-md-0">
-                        <button type="button" class="btn btn-primary w-100" onclick="$('#modalHakakses').modal('show')" id="toggleFormButton"><i class="las la-plus fs-2"></i> Perbarui Data</button>
+                    <div class="col-12 col-xl-auto d-flex flex-wrap gap-3 align-items-center mt-5 my-xl-0">
+                        <button type="button" class="btn btn-light-primary" onclick="openDosenFilters()" id="dosenFilterButton" aria-haspopup="dialog" aria-controls="modalDosenFilter"><i class="las la-filter fs-2" aria-hidden="true"></i> Filter</button>
+                        <div data-roleable="false" data-role="editdosen">
+                            <button type="button" class="btn btn-primary" onclick="$('#modalHakakses').modal('show')" id="toggleFormButton"><i class="las la-plus fs-2"></i> Perbarui Data</button>
+                        </div>
                     </div>
                 </div>
+                <p id="dosenHistoricalNotice" class="text-muted d-none">Data periode historis hanya dapat dilihat. Edit, hapus, dan pengaturan visibilitas tidak tersedia.</p>
+                <p id="dosenFilterError" class="text-danger d-none" role="alert"></p>
                 <p class="text-muted">Centang <strong>Sembunyikan profil</strong> untuk menyembunyikan dosen dari beranda dan daftar/detail dosen di halaman depan. Hapus centang untuk menampilkannya kembali.</p>
                 <div class="table-responsive border-2 border-top">
                     <table class="table table-striped table-row-bordered align-middle rounded tdFirstCenter" id="tableCourse">
@@ -66,26 +52,113 @@
         </div>
     </div>
 </div>
-<div class="modal fade" id="modalHakakses" tabindex="-1" aria-labelledby="modalHakakses" aria-hidden="true">
-    <div class="modal-dialog">
+<input type="hidden" id="prodi" value="All">
+<input type="hidden" id="dosenFilterYear" value="{{ now()->year }}">
+<input type="hidden" id="dosenFilterMonth" value="">
+<div class="modal fade" id="modalDosenFilter" tabindex="-1" aria-labelledby="dosenFilterTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <form action="javascript:onAdd()" method="post" id="formHakakses" name="formHakakses" autocomplete="off" enctype="multipart/form-data">
+            <form id="formDosenFilter" onsubmit="applyDosenFilters(event)">
                 <div class="modal-header">
-                    <h1 class="modal-title fs-5" id="modalHakakses">Perbarui Data</h1>
+                    <h2 class="modal-title fs-5" id="dosenFilterTitle">Filter Data Dosen</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-5">
+                        <label for="dosenFilterYearInput" class="form-label">Tahun data</label>
+                        <input type="number" id="dosenFilterYearInput" class="form-control" min="2000" max="2100" value="{{ now()->year }}" list="dosenAvailableYears" required>
+                        <datalist id="dosenAvailableYears">
+                            @foreach(($years ?? collect()) as $year)
+                                <option value="{{ $year }}"></option>
+                            @endforeach
+                        </datalist>
+                    </div>
+                    <div class="mb-5">
+                        <label for="dosenFilterMonthInput" class="form-label">Bulan data</label>
+                        <select id="dosenFilterMonthInput" class="form-select">
+                            <option value="">Terbaru dalam tahun terpilih</option>
+                            @foreach([1 => 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'] as $number => $label)
+                                <option value="{{ $number }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label for="dosenFilterProdiInput" class="form-label">Program studi</label>
+                        <select id="dosenFilterProdiInput" class="form-select">
+                            <option value="All">Semua Prodi</option>
+                            @foreach($program as $prodi)
+                                @if($prodi->nama_gugus_binaan)
+                                    <option value="{{ $prodi->nama_gugus_binaan }}">{{ $prodi->nama_gugus_binaan }}</option>
+                                @endif
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light me-auto" onclick="resetDosenFilters()">Reset</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Terapkan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="modalHakakses" tabindex="-1" aria-labelledby="dosenImportTitle" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <form action="javascript:onAdd()" method="post" id="formHakakses" name="formHakakses" autocomplete="off" enctype="multipart/form-data" class="d-flex flex-column overflow-hidden">
+                @csrf
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="dosenImportTitle">Perbarui Data</h1>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="fv-row mb-7 fv-plugins-icon-container">
-                        <label for="" class="required form-label">Data Center (.xlsx)</label>
-                        <input type="file" accept=".xlsx" required id="dosen" name="dosen" class="form-control form-control-outline">
-                        <p class="text-muted mt-3">Membaca sheet Malang (atau FM Malang / FM BINUS Malang) berdasarkan nama kolom. Kolom yang tidak disertakan mempertahankan data sebelumnya.</p>
+                        <div class="row g-3 mb-5">
+                            <div class="col-md-6">
+                                <label for="dosenImportYear" class="required form-label">Tahun</label>
+                                <input type="number" id="dosenImportYear" name="year" class="form-control" min="2000" max="2100" value="{{ now()->year }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="dosenImportMonth" class="required form-label">Bulan</label>
+                                <select id="dosenImportMonth" name="month" class="form-select" required>
+                                    @foreach([1 => 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'] as $number => $label)
+                                        <option value="{{ $number }}" @selected($number === now()->month)>{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <label for="dosen" class="required form-label">Data Center (.xlsx)</label>
+                        <input type="file" accept=".xlsx" required id="dosen" name="dosen" class="form-control form-control-outline" onchange="previewDosenWorkbook()">
+                        <p class="text-muted mt-3">Membaca sheet Malang (atau FM Malang / FM BINUS Malang). Periksa contoh data dan konfirmasikan pemetaan sebelum mengunggah. Hanya Kode Dosen dan Nama Dosen yang wajib dipetakan; kolom opsional boleh tidak dipetakan atau memiliki nilai kosong dan tidak menghalangi unggahan. Kolom opsional yang tidak dipetakan memakai data snapshot periode yang sama atau sebelumnya dalam tahun terpilih, jika tersedia. Unggahan historis tidak mengubah master tahun berjalan.</p>
+                        <p id="dosenPreviewStatus" role="status" aria-live="polite"></p>
+                        <button type="button" id="dosenPreviewRetry" class="btn btn-sm btn-light-primary d-none mb-3" onclick="previewDosenWorkbook()">Coba pratinjau lagi</button>
+                        <div id="dosenMappingPanel" class="d-none">
+                            <p id="dosenSheetInfo" class="fw-bold"></p>
+                            <h2 class="fs-5">Pemetaan kolom</h2>
+                            <div class="table-responsive mb-4" style="max-height: 360px">
+                                <table class="table table-bordered align-middle">
+                                    <thead><tr><th>Kolom tujuan</th><th>Kolom file</th><th>Contoh nilai</th></tr></thead>
+                                    <tbody id="dosenMappingRows"></tbody>
+                                </table>
+                            </div>
+                            <h2 class="fs-5">Pratinjau (maksimal 5 baris)</h2>
+                            <div class="table-responsive mb-4" style="max-height: 260px">
+                                <table class="table table-bordered table-striped">
+                                    <thead><tr id="dosenPreviewHeaders"></tr></thead>
+                                    <tbody id="dosenPreviewRows"></tbody>
+                                </table>
+                            </div>
+                            <p id="dosenMappingStatus" role="status" aria-live="polite"></p>
+                            <button type="button" id="dosenMappingConfirm" class="btn btn-light-primary" onclick="confirmDosenMapping()" disabled>Konfirmasi pemetaan</button>
+                        </div>
                         <pre id="dosenImportSummary" class="mt-3" style="white-space:pre-wrap" aria-live="polite"></pre>
                         <div class="fv-plugins-message-container invalid-feedback"></div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                    <button type="submit" class="btn btn-primary">Unggah</button>
+                    <button type="submit" id="dosenImportSubmit" class="btn btn-primary" disabled>Unggah</button>
                 </div>
             </form>
         </div>
@@ -94,3 +167,4 @@
 @include('dosen::modal')
 <script src="{{ asset('assets/backoffice/plugins/custom/tinymce/tinymce.bundle.js') }}"></script>
 @include('dosen::javascript')
+@include('dosen::import_javascript')

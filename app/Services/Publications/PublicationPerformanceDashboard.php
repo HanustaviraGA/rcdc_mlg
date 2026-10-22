@@ -2,13 +2,14 @@
 
 namespace App\Services\Publications;
 
+use App\Services\Lecturers\LecturerSnapshots;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class PublicationPerformanceDashboard
 {
-    public function __construct(private PublicationDashboard $dashboard) {}
+    public function __construct(private PublicationDashboard $dashboard, private LecturerSnapshots $lecturerSnapshots) {}
 
     public function data(): array
     {
@@ -18,25 +19,48 @@ class PublicationPerformanceDashboard
         $campuses = $this->rows('database_dosen_new')->keyBy('kode_dosen');
         $imports = $this->rows('publication_imports');
         $entries = $this->rows('publication_kpi_entries')->groupBy('publication_import_id');
-        $papers = $this->rows('rectorate_dosen')->filter(function ($row) use ($masters, $campuses) {
+        $rawPapers = $this->rows('rectorate_dosen');
+        $hasLecturerSnapshots = Schema::hasTable('lecturer_imports');
+        $historicalProfilesByPeriod = [];
+        $paperPeriods = $rawPapers->groupBy(fn ($row) => $row->year.'|'.$row->month);
+        if ($hasLecturerSnapshots) {
+            foreach ($paperPeriods->keys() as $period) {
+                [$year, $month] = array_map('intval', explode('|', $period));
+                $historicalProfilesByPeriod[$period] = $this->periodProfiles($year, $month);
+            }
+        }
+        $papers = $rawPapers->filter(function ($row) use ($masters, $campuses, $historicalProfilesByPeriod, $hasLecturerSnapshots) {
             if (! in_array($row->submitted, RawPublicationReader::SUBMITTED, true)) {
                 return false;
             }
             $campus = strtolower(trim($row->kampus ?? ''));
+            $historical = ($historicalProfilesByPeriod[$row->year.'|'.$row->month] ?? collect())->get($row->kode_dosen);
+            // Once snapshots are installed, an empty legacy campus is not
+            // allowed to fall back to the current master roster.
+            $profileCampus = $historical?->campus ?? ($hasLecturerSnapshots ? '' : $campuses->get($row->kode_dosen)->campus ?? '');
 
-            return $campus === 'malang' || ($campus === '' && $masters->has($row->kode_dosen)
-                && str_contains(strtolower($campuses->get($row->kode_dosen)->campus ?? ''), 'malang'));
+            return $campus === 'malang' || ($campus === '' && ($hasLecturerSnapshots
+                ? $historical !== null && str_contains(strtolower($profileCampus), 'malang')
+                : $masters->has($row->kode_dosen) && str_contains(strtolower($profileCampus), 'malang')));
         });
         $snapshots = [];
-        foreach ($papers->groupBy(fn ($row) => $row->year.'|'.$row->month) as $rows) {
-            $latest = $rows->sortByDesc('period')->first();
-            $current = $rows->where('period', $latest->period)->sortByDesc('updated_at')
+        $kpiBatches = $imports->filter(fn ($batch) => $entries->get($batch->id, collect())->isNotEmpty());
+        $periods = $papers->groupBy(fn ($row) => $row->year.'|'.$row->month)->keys()
+            ->merge($kpiBatches->map(fn ($batch) => $batch->year.'|'.$batch->month))->unique();
+        foreach ($periods as $key) {
+            [$year, $month] = array_map('intval', explode('|', $key));
+            $periodRows = $papers->where('year', $year)->where('month', $month);
+            $periodBatches = $imports->where('year', $year)->where('month', $month);
+            $latestPeriod = $periodRows->pluck('period')->merge($kpiBatches->where('year', $year)
+                ->where('month', $month)->pluck('period'))->max();
+            $current = $periodRows->where('period', $latestPeriod)->sortByDesc('updated_at')
                 ->unique(fn ($row) => $row->request_code.'|'.$row->kode_dosen)->values();
-            $batch = $imports->where('year', $latest->year)->where('month', $latest->month)
-                ->where('period', $latest->period)->first();
-            $key = $latest->year.'|'.$latest->month;
-            $snapshots[$key] = ['year' => (int) $latest->year, 'month' => (int) $latest->month,
-                'fm' => $this->facultySnapshot($current, $entries->get($batch->id ?? null, collect()), $faculty, $batch)];
+            $batch = $periodBatches->firstWhere('period', $latestPeriod);
+            // Snapshot tables are optional while older installations and tests are upgraded.
+            $historicalProfiles = $hasLecturerSnapshots ? $this->periodProfiles($year, $month) : collect();
+            $snapshots[$key] = ['year' => $year, 'month' => $month,
+                'fm' => $this->facultySnapshot($current, $entries->get($batch->id ?? null, collect()), $faculty,
+                    $hasLecturerSnapshots ? collect() : $campuses, $historicalProfiles, $batch, ! $hasLecturerSnapshots)];
         }
         foreach ($this->rows('student_publication_imports') as $batch) {
             $key = $batch->year.'|'.$batch->month;
@@ -44,38 +68,57 @@ class PublicationPerformanceDashboard
             $snapshots[$key]['mhs'] = $this->studentSnapshot($batch);
         }
         $snapshots = collect($snapshots)->sortBy(fn ($row) => $row['year'] * 100 + $row['month'])->values();
-        $years = collect($original['years'])->merge($snapshots->pluck('year'))->map(fn ($year) => (string) $year)
+        $years = collect($original['years'])->merge($snapshots->pluck('year'))->push((int) now()->year)->map(fn ($year) => (string) $year)
             ->unique()->sort()->values();
 
-        return ['years' => $years->all(), 'defaultYear' => (string) ($snapshots->last()['year'] ?? $years->last() ?? now()->year),
+        return ['years' => $years->all(), 'defaultYear' => (string) now()->year,
             'snapshots' => $snapshots->all(), 'programs' => collect(ReportPrograms::LABELS)->except('BINUS')->all()];
     }
 
-    private function facultySnapshot(Collection $papers, Collection $entries, Collection $faculty, ?object $batch): array
+    private function facultySnapshot(Collection $papers, Collection $entries, Collection $faculty,
+        Collection $currentProfiles, Collection $historicalProfiles, ?object $batch, bool $allowCurrentFallback): array
     {
         $summary = json_decode($batch->summary ?? '{}', true) ?: [];
         $byLecturer = $papers->groupBy('kode_dosen');
         $byCode = $entries->keyBy('kode_dosen');
-        $members = $byCode->keys()->merge($byLecturer->keys())->unique()->map(function ($code) use ($byCode, $byLecturer, $faculty) {
+        $members = $byCode->keys()->merge($byLecturer->keys())->unique()->map(function ($code) use (
+            $byCode, $byLecturer, $faculty, $currentProfiles, $historicalProfiles, $allowCurrentFallback
+        ) {
             $entry = $byCode->get($code);
             $rows = $byLecturer->get($code, collect());
-            $profile = $faculty->get($code);
+            $current = $faculty->get($code, []);
+            $currentProfile = $currentProfiles->get($code);
+            $historical = $historicalProfiles->get($code);
+            // Once snapshot storage is installed, historical cards must not
+            // fall back to the current roster when that period has no row.
+            $legacy = $allowCurrentFallback ? $current : [];
+            $legacyCampus = $allowCurrentFallback ? $currentProfile?->campus : null;
             $paper = $rows->first();
             $metrics = PublicationWorkbookMetrics::summarize($rows, $entry);
 
-            return ['code' => (string) $code, 'name' => $entry->name ?? $profile['name'] ?? $paper->fm_author ?? $code,
-                'program' => ReportPrograms::code($entry->program ?? $paper->prodi_kpi ?? $profile['program'] ?? $paper->dept ?? 'Lainnya'),
-                'rank' => $entry->academic_rank ?? $profile['rank'] ?? $paper->jja ?? null,
-                'faculty' => $entry->faculty_type ?? $profile['faculty_detail'] ?? null,
+            // KPI workbook fields and publication-row fields are authoritative. The
+            // lecturer snapshot is only the period-appropriate profile fallback;
+            // current master data must not rewrite historical cards.
+            return ['code' => (string) $code,
+                'name' => $this->profileValue($entry?->name, $paper?->fm_author, $historical?->nama_dosen,
+                    $legacy['name'] ?? null, (string) $code),
+                'program' => ReportPrograms::code($this->profileValue($entry?->program, $paper?->prodi_kpi, $paper?->dept,
+                    $historical?->nama_gugus_binaan, $historical?->nama_program, $legacy['program'] ?? null, 'Lainnya')),
+                'rank' => $this->profileValue($entry?->academic_rank, $paper?->jja, $historical?->jja, $legacy['rank'] ?? null),
+                'faculty' => $this->profileValue($entry?->faculty_type, $historical?->tipe_faculty, $legacy['faculty_detail'] ?? null),
+                'campus' => $this->profileValue($paper?->kampus, $historical?->campus, $legacyCampus),
                 'nonScopus' => $metrics['non_scopus'], 'scopus' => $metrics['scopus'],
                 'firstAuthor' => $metrics['first_author'], 'score' => $metrics['score']];
         })->values();
         $metadata = $summary['report'] ?? [];
-        $programs = $members->pluck('program')->merge($papers->map(fn ($row) => ReportPrograms::code($row->prodi_kpi ?? $row->dept)))
+        $memberPrograms = $members->pluck('program', 'code');
+        $paperProgram = fn ($row) => ReportPrograms::code($this->profileValue($row->prodi_kpi ?? null, $row->dept ?? null,
+            $memberPrograms->get($row->kode_dosen), 'Lainnya'));
+        $programs = $members->pluck('program')->merge($papers->map($paperProgram))
             ->merge(array_keys($metadata['realization'] ?? []))->reject(fn ($code) => ! $code || $code === 'BINUS')->unique();
-        $cards = $programs->map(function ($program) use ($members, $papers, $metadata) {
+        $cards = $programs->map(function ($program) use ($members, $papers, $metadata, $paperProgram) {
             $roster = $members->where('program', $program)->values();
-            $rows = $papers->filter(fn ($row) => ReportPrograms::code($row->prodi_kpi ?? $row->dept) === $program);
+            $rows = $papers->filter(fn ($row) => $paperProgram($row) === $program);
             $scopus = $rows->filter(PublicationWorkbookMetrics::isScopusTitle(...));
             $actual = $metadata['realization'][$program]['realization'] ?? $scopus->sum('bobot_asli');
 
@@ -135,6 +178,24 @@ class PublicationPerformanceDashboard
     {
         return ['updatedAt' => $batch->updated_at ?? null, 'filename' => isset($batch->filename) ? basename($batch->filename) : null,
             'warnings' => array_values(array_filter($summary['warnings'] ?? [], 'is_string'))];
+    }
+
+    private function profileValue(?string ...$values): ?string
+    {
+        foreach ($values as $value) {
+            if ($value !== null && trim($value) !== '') {
+                return $value;
+            }
+        }
+
+        return null;
+    }
+
+    private function periodProfiles(int $year, int $month): Collection
+    {
+        $batch = $this->lecturerSnapshots->batch($year, $month);
+
+        return $batch ? $this->lecturerSnapshots->rows($year, (int) $batch->month) : collect();
     }
 
     private function rows(string $table): Collection

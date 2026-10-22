@@ -47,8 +47,9 @@ function initialize(source) {
     const $ = id => document.getElementById(id);
     const params = new URLSearchParams(window.location.search);
     const requestedYears = [...params.getAll('years[]'), ...(params.get('year')?.split(',') ?? [])].filter(year => source.years.includes(year));
+    const defaultYear = String(source.defaultYear);
     const state = {
-        years: requestedYears.length ? [...new Set(requestedYears)].sort() : [source.defaultYear],
+        years: requestedYears.length ? [...new Set(requestedYears)].sort() : [defaultYear],
         indicator: Object.hasOwn(indicators, params.get('indicator')) ? params.get('indicator') : 'fm',
         quarter: /^Q[1-4]$/.test(params.get('quarter')) ? params.get('quarter') : 'all',
         program: '',
@@ -151,7 +152,7 @@ function initialize(source) {
     }
 
     function reset() {
-        state.years = [source.defaultYear]; state.indicator = 'fm'; state.quarter = 'all'; state.program = '';
+        state.years = [defaultYear]; state.indicator = 'fm'; state.quarter = 'all'; state.program = '';
         $('performanceYears').open = false;
         render();
     }

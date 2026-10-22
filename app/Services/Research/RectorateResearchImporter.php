@@ -2,6 +2,7 @@
 
 namespace App\Services\Research;
 
+use App\Services\Lecturers\LecturerSnapshots;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -10,7 +11,7 @@ class RectorateResearchImporter
 {
     public function __construct(private RectorateResearchReader $reader) {}
 
-    public function import(string $path, string $filename, bool $dryRun = false, ?int $year = null, ?int $month = null): array
+    public function import(string $path, string $filename, bool $dryRun = false, ?int $year = null, ?int $month = null, ?array $columnMapping = null): array
     {
         if (($year === null) !== ($month === null)) {
             throw ValidationException::withMessages(['month' => 'Tahun dan bulan laporan harus diisi bersama.']);
@@ -20,10 +21,14 @@ class RectorateResearchImporter
         if ($year < 2000 || $year > 2100 || $month < 1 || $month > 12) {
             throw ValidationException::withMessages(['month' => 'Tahun/bulan laporan tidak valid.']);
         }
-        $parsed = $this->reader->read($path);
+        $parsed = $this->reader->read($path, $columnMapping);
         $summary = $parsed['summary'] + compact('year', 'month');
-        $master = Schema::hasTable('database_dosen_new') ? 'database_dosen_new' : 'database_dosen';
-        $known = Schema::hasTable($master) ? DB::table($master)->pluck('kode_dosen')->map(fn ($code) => strtoupper(trim($code)))->all() : [];
+        $known = Schema::hasTable('lecturer_imports')
+            ? app(LecturerSnapshots::class)->rows($year, $month)->keys()->all()
+            : (Schema::hasTable('database_dosen_new')
+                ? DB::table('database_dosen_new')->pluck('kode_dosen')
+                : (Schema::hasTable('database_dosen') ? DB::table('database_dosen')->pluck('kode_dosen') : collect()))
+                ->map(fn ($code) => strtoupper(trim($code)))->all();
         $fm = array_filter($parsed['records'], fn ($row) => strtoupper($row['kategori_fm_eksternal_mahasiswa'] ?? '') === 'FM');
         $summary['unmatched_fm_codes'] = array_values(array_diff(array_unique(array_column($fm, 'kode_dosen_nim')), $known));
         if ($dryRun) {
@@ -34,7 +39,7 @@ class RectorateResearchImporter
         }
         $sha256 = hash_file('sha256', $path);
 
-        return DB::transaction(function () use ($parsed, $summary, $filename, $sha256, $year, $month) {
+        return DB::transaction(function () use ($parsed, $summary, $filename, $sha256, $year, $month, $columnMapping) {
             $snapshot = compact('year', 'month');
             // Lock the monthly snapshot before checking or replacing its contents.
             DB::table('research_imports')->upsert([$snapshot + [
@@ -42,8 +47,15 @@ class RectorateResearchImporter
                 'summary' => json_encode($summary, JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now(),
             ]], ['year', 'month'], ['year']);
             $batch = DB::table('research_imports')->where($snapshot)->lockForUpdate()->first();
-            if ($batch->sha256 === $sha256 && DB::table('rectorate_research')->where('research_import_id', $batch->id)->exists()) {
-                return json_decode($batch->summary, true) + ['import_id' => $batch->id, 'already_imported' => true];
+            // Explicit mappings can change the imported data even when the file is identical.
+            if ($columnMapping === null && $batch->sha256 === $sha256 && DB::table('rectorate_research')->where('research_import_id', $batch->id)->exists()) {
+                // The roster may have changed since the original upload; retain the rows but
+                // refresh the stored and returned unmatched-code diagnostics.
+                DB::table('research_imports')->where('id', $batch->id)->update([
+                    'summary' => json_encode($summary, JSON_THROW_ON_ERROR), 'updated_at' => now(),
+                ]);
+
+                return $summary + ['import_id' => $batch->id, 'already_imported' => true];
             }
             DB::table('research_imports')->where('id', $batch->id)->update([
                 'filename' => basename($filename), 'sha256' => $sha256, 'sheet' => $summary['sheet'],

@@ -45,9 +45,9 @@
                     <input class="form-control" id="research_file" name="research_file" type="file" accept=".xlsx">
                     <div class="form-text">Mengutamakan sheet MALANG, lalu Detail, dengan Lokasi Kampus = Binus @Malang. Tahun Anggaran mengikuti isi file; tahun dan bulan laporan mengikuti pilihan di atas.</div>
                 </div>
-                <p class="text-muted">Maksimal 20 MB per file. Pilih minimal satu file. Setiap file perlu dikonfirmasi pemetaan kolomnya sebelum upload.</p>
+                <p class="text-muted">Maksimal 20 MB per file. Pilih minimal satu file. Petakan semua kolom wajib dan konfirmasi pemetaan setiap file, lalu klik Upload dan import. Kolom opsional boleh kosong dan tidak menghalangi import. Gunakan tombol Buka preview / pemetaan untuk membuka kembali preview; mengganti file membatalkan konfirmasi sebelumnya.</p>
                 <div class="d-flex flex-wrap gap-3">
-                    <button class="btn btn-primary" id="monthly-import-submit" type="submit">
+                    <button class="btn btn-primary" id="monthly-import-submit" type="submit" disabled>
                         <i class="bi bi-cloud-upload me-1"></i>Upload dan import
                     </button>
                     <a class="btn btn-light-primary" href="{{ url('/dashboard/perhitungankpi') }}">Data KPI dosen</a>

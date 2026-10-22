@@ -21,18 +21,21 @@ class ColumnMappingController extends Controller
         $validated = $request->validate([
             'file' => ['required', 'file', 'mimes:xlsx', 'max:20480'],
             'type' => ['required', 'in:fm_file,mhs_file,research_file'],
+            'year' => ['nullable', 'integer', 'between:2000,2100'],
         ]);
 
         $file = $validated['file'];
         $type = $validated['type'];
 
-        $preview = $this->mapperService->preview($file->getRealPath());
+        $preview = $this->mapperService->preview($file->getRealPath(), $type);
 
-        if (!$preview['success']) {
+        if (! $preview['success']) {
             return response()->json($preview, 422);
         }
 
-        $suggestedMapping = $this->mapperService->suggestMapping($preview['headers'], $type);
+        $suggestedMapping = $this->mapperService->suggestMapping($preview['headers'], $type, (int) ($validated['year'] ?? now()->year));
+        $config = $this->mapperService->getMappingConfig($type);
+        $hasKpi = $type === 'fm_file' && in_array('KPI', array_map(fn ($sheet) => strtoupper(trim($sheet)), $preview['sheets'] ?? []), true);
 
         return response()->json([
             'success' => true,
@@ -43,7 +46,8 @@ class ColumnMappingController extends Controller
             'headers' => $preview['headers'],
             'preview_data' => $preview['preview_data'],
             'suggested_mapping' => $suggestedMapping,
-            'mapping_config' => $this->mapperService->getMappingConfig($type),
+            'mapping_config' => $config,
+            'has_kpi' => $hasKpi,
         ]);
     }
 }

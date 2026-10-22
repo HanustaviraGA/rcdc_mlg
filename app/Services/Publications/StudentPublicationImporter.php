@@ -2,6 +2,7 @@
 
 namespace App\Services\Publications;
 
+use App\Services\ColumnMapping\ColumnMapperService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -9,7 +10,7 @@ class StudentPublicationImporter
 {
     public function __construct(private ReportWorkbookReader $reader) {}
 
-    public function import(string $path, string $filename, int $year, int $month, bool $dryRun = false): array
+    public function import(string $path, string $filename, int $year, int $month, bool $dryRun = false, ?array $columnMapping = null): array
     {
         if ($year < 2000 || $year > 2100 || $month < 1 || $month > 12) {
             $this->invalid('Tahun/bulan laporan tidak valid.');
@@ -23,24 +24,14 @@ class StudentPublicationImporter
         $headerRow = array_key_first($rows);
         $headers = array_map($this->normalize(...), $rows[$headerRow] ?? []);
         unset($rows[$headerRow]);
-        $aliases = ['request_code' => 'requestcode', 'name' => 'fm author', 'code' => 'kode dosen',
-            'campus' => 'kampus', 'submitted' => 'submitted', 'type' => 'tipe publikasi',
-            'title' => 'title', 'program' => 'prodi mhs', 'first_author' => 'first author'];
-        $map = [];
-        foreach ($aliases as $field => $header) {
-            $matches = array_keys($headers, $header, true);
-            if (count($matches) !== 1) {
-                $this->invalid("Kolom {$header} wajib ada satu kali pada sheet {$sheet}.");
-            }
-            $map[$field] = $matches[0];
-        }
+        $map = app(ColumnMapperService::class)->resolveMapping($headers, 'mhs_file', $columnMapping);
         $summary = ['sheet' => $sheet, 'year' => $year, 'month' => $month, 'read' => count($rows),
             'excluded_campus' => 0, 'excluded_submitted' => 0, 'duplicates' => 0, 'warnings' => []];
         $records = [];
         foreach ($rows as $number => $cells) {
             $row = [];
             foreach ($map as $field => $index) {
-                $row[$field] = $cells[$index] ?? '';
+                $row[$field] = $index === null ? '' : ($cells[$index] ?? '');
             }
             if (strtoupper($row['campus']) !== 'MALANG') {
                 $summary['excluded_campus']++;

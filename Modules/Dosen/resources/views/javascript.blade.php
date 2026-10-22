@@ -14,9 +14,41 @@
         init_table();
     });
 
+    function openDosenFilters() {
+        $('#dosenFilterYearInput').val($('#dosenFilterYear').val());
+        $('#dosenFilterMonthInput').val($('#dosenFilterMonth').val());
+        $('#dosenFilterProdiInput').val($('#prodi').val());
+        $('#modalDosenFilter').modal('show');
+    }
+
+    function applyDosenFilters(event) {
+        event.preventDefault();
+        if (!document.getElementById('formDosenFilter').reportValidity()) return;
+        $('#dosenFilterYear').val($('#dosenFilterYearInput').val());
+        $('#dosenFilterMonth').val($('#dosenFilterMonthInput').val());
+        $('#prodi').val($('#dosenFilterProdiInput').val());
+        $('#modalDosenFilter').modal('hide');
+        init_table();
+    }
+
+    function resetDosenFilters() {
+        $('#dosenFilterYearInput').val('{{ now()->year }}');
+        $('#dosenFilterMonthInput').val('');
+        $('#dosenFilterProdiInput').val('All');
+    }
+
+    function isDosenHistoricalPeriod() {
+        return String($('#dosenFilterYear').val()) !== '{{ now()->year }}' || $('#dosenFilterMonth').val() !== '';
+    }
+
     function init_table(){
         blockPage();
         var prodi = $('#prodi').val();
+        const year = $('#dosenFilterYear').val();
+        const month = $('#dosenFilterMonth').val();
+        const historical = isDosenHistoricalPeriod();
+        $('#dosenFilterError').addClass('d-none').text('');
+        $('#dosenHistoricalNotice').toggleClass('d-none', !historical);
         let roles = (SUPER.get_role_access('editdosen'));
         var col =[
             {
@@ -45,7 +77,7 @@
                         'aria-label': 'Sembunyikan profil ' + full.nama_dosen,
                         title: 'Centang untuk menyembunyikan profil dari halaman depan',
                         onchange: 'onDosenVisibilityChange(this)'
-                    }).attr('checked', data ? 'checked' : null).prop('outerHTML');
+                    }).attr('checked', data ? 'checked' : null).attr('disabled', historical ? 'disabled' : null).prop('outerHTML');
                 }
             },
             {
@@ -105,8 +137,9 @@
             {
                 data: null,
                 orderable: false,
-                visible: true,
+                visible: !historical,
                 render: function (data, type, full, meta) {
+                    if (historical) return '';
                     var btn_aksi = '';
                     // btn_aksi += `<button data-id="`+full.id_kol+`" onclick="onEdit(this)" class="btn btn-light btn-sm btn-active-light-warning">Edit</button>`;
                     // btn_aksi += `<button data-id="`+full.id_kol+`" onclick="onDetail(this)" class="btn btn-light btn-sm btn-active-light-primary" style="margin-left: 5px !important">Detail</button>`;
@@ -148,6 +181,8 @@
                 data: function (d) {
                     d.search.value = $('#customSearchInput').val();
                     d.prodi = prodi;
+                    d.year = year;
+                    d.month = month;
                 },
                 error: function(xhr, status, error) {
                     if (xhr.status === 419 || xhr.status === 401) {
@@ -158,9 +193,7 @@
                         });
                         setLogout();
                     } else {
-                        // Handle other error cases
-                        // For example, you can display an error message to the user
-                        console.error(error);
+                        $('#dosenFilterError').removeClass('d-none').text(xhr.responseJSON?.message || 'Data periode gagal dimuat.');
                     }
                 }
             },
@@ -168,8 +201,10 @@
         }, {
             stateKey: 'dosen.tableCourse',
             stateSignature: {
-                version: 2,
-                prodi: prodi
+                version: 3,
+                prodi: prodi,
+                year: year,
+                month: month
             }
         });
         unblockPage();
@@ -184,6 +219,11 @@
     }
 
     function onDosenVisibilityChange(element) {
+        if (isDosenHistoricalPeriod()) {
+            element.checked = !element.checked;
+            element.disabled = true;
+            return;
+        }
         const checkbox = $(element);
         const hidden = element.checked;
         checkbox.prop('disabled', true);
@@ -205,6 +245,7 @@
     }
 
     function onDestroy(element) {
+        if (isDosenHistoricalPeriod()) return;
         const row = getRowDataFromElement(element);
         if (!row) return;
         SUPER.confirm({
@@ -418,6 +459,7 @@
     }
 
     function onEdit(element) {
+        if (isDosenHistoricalPeriod()) return;
         const data = getRowDataFromElement(element);
         if (!data) {
             return;
@@ -433,7 +475,9 @@
             url: '{{ route('dosen.detail') }}',
             type: 'POST',
             data: {
-                kode_dosen: data.kode_dosen
+                kode_dosen: data.kode_dosen,
+                year: $('#dosenFilterYear').val(),
+                month: $('#dosenFilterMonth').val()
             },
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
@@ -593,43 +637,5 @@
             }
         });
     });
-
-    function onAdd(){
-        blockPage();
-        var formData = new FormData();
-        formData.append('dosen', $('#dosen')[0].files[0]);
-        $.ajax({
-            url: "{{ route('dosen.read') }}",
-            type: "POST",
-            data: formData,
-            contentType: false,     // Important
-            processData: false,     // Important
-            headers:{
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Accept': 'application/json'
-            },  
-            success: function (response) {
-                $('#formHakakses').trigger('reset');
-                unblockPage();
-                SUPER.showMessage({
-                    success: true,
-                    message: response.message,
-                    title: 'Berhasil'
-                });
-                const summary = response.summary;
-                $('#dosenImportSummary').text(response.message + '\nKolom tidak disertakan (data lama dipertahankan): ' + summary.preserved_columns.join(', ')
-                    + '\nKolom belum dikenali: ' + (summary.unknown_columns.join(', ') || 'Tidak ada'));
-                init_table();
-                // $('#image_pic').empty().html(response.html);
-                // window.open(response.link);
-                // $("#image_pic object").attr("data", response.data);
-            },
-            error: function (xhr) {
-                const errors = xhr.responseJSON?.errors;
-                $('#dosenImportSummary').text(errors ? Object.values(errors).flat().join('\n') : (xhr.responseJSON?.message || 'Upload gagal. Silakan coba kembali.'));
-            },
-            complete: function () { unblockPage(); }
-        });
-    }
 
 </script>

@@ -15,8 +15,8 @@ class PerhitunganKPIController extends Controller
         $rows = $kpi->rows();
 
         return loadPage('perhitungankpi::index', [
-            'rows' => $rows,
-            'years' => $rows->pluck('year')->filter()->unique()->sortDesc()->values(),
+            'rows' => $kpi->filter($rows, ['year' => (int) now()->year]),
+            'years' => $rows->pluck('year')->filter()->push((int) now()->year)->unique()->sortDesc()->values(),
             'programs' => $rows->pluck('program')->unique()->sort()->values(),
         ]);
     }
@@ -30,6 +30,9 @@ class PerhitunganKPIController extends Controller
             'prodi' => ['nullable', 'string', 'max:255'],
             'search' => ['nullable', 'string', 'max:255'],
         ]);
+        if (! $request->has('year')) {
+            $filters['year'] = (int) now()->year;
+        }
         $rows = $kpi->filter($kpi->rows(), $filters);
 
         return response()->json([

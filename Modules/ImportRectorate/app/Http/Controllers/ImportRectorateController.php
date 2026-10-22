@@ -38,11 +38,14 @@ class ImportRectorateController extends Controller
         $columnMappings = [];
         foreach (['fm_file', 'mhs_file', 'research_file'] as $type) {
             $raw = $request->input("column_mapping.$type");
-            if ($raw) {
+            if ($raw !== null && $raw !== '') {
                 $decoded = json_decode($raw, true);
-                if (is_array($decoded)) {
-                    $columnMappings[$type] = $decoded;
+                if (! is_array($decoded) || json_last_error() !== JSON_ERROR_NONE || ! str_starts_with(ltrim($raw), '{')) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        "column_mapping.$type" => 'Pemetaan kolom harus berupa objek JSON yang valid.',
+                    ]);
                 }
+                $columnMappings[$type] = $decoded;
             }
         }
 
@@ -58,8 +61,8 @@ class ImportRectorateController extends Controller
                 $mapping = $columnMappings[$type] ?? null;
                 $results[$type] = match ($type) {
                     'fm_file' => app(PublicationImporter::class)->import($file->getRealPath(), $file->getClientOriginalName(), $year, $month, (int) ceil($month / 3), columnMapping: $mapping),
-                    'mhs_file' => app(StudentPublicationImporter::class)->import($file->getRealPath(), $file->getClientOriginalName(), $year, $month),
-                    default => $importer->import($file->getRealPath(), $file->getClientOriginalName(), year: $year, month: $month),
+                    'mhs_file' => app(StudentPublicationImporter::class)->import($file->getRealPath(), $file->getClientOriginalName(), $year, $month, columnMapping: $mapping),
+                    default => $importer->import($file->getRealPath(), $file->getClientOriginalName(), year: $year, month: $month, columnMapping: $mapping),
                 };
             }
 

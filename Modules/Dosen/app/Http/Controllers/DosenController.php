@@ -7,9 +7,13 @@ use App\Models\AttributeDosen;
 use App\Models\DataDosen;
 use App\Models\Dosen;
 use App\Models\IdentitasDosen;
+use App\Services\Lecturers\LecturerSnapshots;
+use App\Services\Lecturers\LecturerWorkbook;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class DosenController extends Controller
 {
@@ -21,8 +25,23 @@ class DosenController extends Controller
     public function index()
     {
         $program = DataDosen::select('nama_gugus_binaan')->distinct()->orderBy('nama_gugus_binaan', 'ASC')->get();
+        if (Schema::hasTable('lecturer_snapshot_rows')) {
+            $program = $program->concat(DB::table('lecturer_snapshot_rows')->select('nama_gugus_binaan')->distinct()->get())
+                ->unique('nama_gugus_binaan')->sortBy('nama_gugus_binaan')->values();
+        }
+        $years = app(LecturerSnapshots::class)->years();
 
-        return loadPage('dosen::index', compact('program'));
+        return loadPage('dosen::index', compact('program', 'years'));
+    }
+
+    private function period(Request $request): array
+    {
+        $validated = $request->validate([
+            'year' => ['nullable', 'integer', 'between:2000,2100'],
+            'month' => ['nullable', 'integer', 'between:1,12'],
+        ]);
+
+        return [(int) ($validated['year'] ?? now()->year), isset($validated['month']) ? (int) $validated['month'] : null];
     }
 
     /**
@@ -32,7 +51,8 @@ class DosenController extends Controller
      */
     public function init_table(Request $request)
     {
-        $query = DataDosen::query();
+        [$year, $month] = $this->period($request);
+        $query = app(LecturerSnapshots::class)->query($year, $month);
         // $query->leftJoin('identitas_dosen', 'identitas_dosen.kode_dosen', '=', 'database_dosen.kode_dosen');
         // $query->select('database_dosen.*', 'identitas_dosen.email_dosen', 'identitas_dosen.telp_dosen');
         if ($request->filled('prodi') && $request->input('prodi') !== 'All') {
@@ -98,13 +118,29 @@ class DosenController extends Controller
         }
     }
 
-    public function read(Request $request, \App\Services\Lecturers\LecturerWorkbook $workbook)
+    public function read(Request $request, LecturerWorkbook $workbook)
     {
-        $request->validate(['dosen' => ['required', 'file', 'mimes:xlsx', 'max:20480']]);
-        $summary = $workbook->import($request->file('dosen')->getRealPath());
+        abort_unless(auth()->check(), 403);
+        $validated = $request->validate([
+            'dosen' => ['required', 'file', 'mimes:xlsx', 'max:20480'],
+            'year' => ['required', 'integer', 'between:2000,2100'],
+            'month' => ['required', 'integer', 'between:1,12'],
+            'column_mapping' => ['required', 'json'],
+            'header_row' => ['required', 'integer', 'min:1', 'max:1000'],
+        ]);
+        $mapping = json_decode($validated['column_mapping'], true);
+        if (! is_array($mapping)) {
+            throw ValidationException::withMessages(['column_mapping' => 'Format pemetaan kolom tidak valid.']);
+        }
+        $file = $request->file('dosen');
+        $summary = $workbook->import($file->getRealPath(), (int) $validated['year'], (int) $validated['month'],
+            $mapping, (int) $validated['header_row'], $file->getClientOriginalName());
+
+        $masterMessage = $summary['updated_current_master']
+            ? ' Master tahun berjalan diperbarui.' : ' Master tahun berjalan tidak diubah.';
 
         return response()->json(['success' => true, 'summary' => $summary,
-            'message' => "Import {$summary['sheet']} selesai: {$summary['selected']} dosen, {$summary['mapped_columns']} kolom; {$summary['created']} baru, {$summary['updated']} diperbarui."]);
+            'message' => "Import {$summary['sheet']} periode {$summary['month']}/{$summary['year']} selesai: {$summary['selected']} dosen, {$summary['mapped_columns']} kolom; {$summary['created']} baru, {$summary['updated']} diperbarui.".$masterMessage]);
     }
 
     public function detail(Request $request)
@@ -114,7 +150,8 @@ class DosenController extends Controller
             return response()->json(['message' => 'Kode dosen tidak ditemukan'], 422);
         }
 
-        $dosen = DataDosen::where('kode_dosen', $kodeDosen)->first();
+        [$year, $month] = $this->period($request);
+        $dosen = app(LecturerSnapshots::class)->query($year, $month)->where('kode_dosen', $kodeDosen)->first();
         $identitas = IdentitasDosen::where('kode_dosen', $kodeDosen)->first();
         $attributes = AttributeDosen::where('kode_dosen', $kodeDosen)
             ->get(['attribute_dosen', 'attribute_icon']);
@@ -126,7 +163,15 @@ class DosenController extends Controller
         ], 200);
     }
 
-    public function headers(Request $request, \App\Services\Lecturers\LecturerWorkbook $workbook)
+    public function preview(Request $request, LecturerWorkbook $workbook)
+    {
+        abort_unless(auth()->check(), 403);
+        $request->validate(['dosen' => ['required', 'file', 'mimes:xlsx', 'max:20480']]);
+
+        return response()->json($workbook->preview($request->file('dosen')->getRealPath()));
+    }
+
+    public function headers(Request $request, LecturerWorkbook $workbook)
     {
         $request->validate(['dosen' => ['required', 'file', 'mimes:xlsx', 'max:20480']]);
         $parsed = $workbook->read($request->file('dosen')->getRealPath());

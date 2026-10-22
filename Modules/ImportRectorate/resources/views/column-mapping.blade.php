@@ -54,14 +54,15 @@
                     <div id="cm-validation-banner" class="px-5 pt-4" hidden>
                         <div id="cm-validation-errors" class="alert alert-danger mb-3" hidden>
                             <h6 class="alert-heading mb-2">
-                                <i class="bi bi-x-circle me-1"></i>Kolom wajib belum dipetakan:
+                                <i class="bi bi-x-circle me-1"></i>Pemetaan perlu diperbaiki:
                             </h6>
                             <ul id="cm-validation-error-list" class="mb-0 ps-3"></ul>
                         </div>
-                        <div id="cm-validation-warnings" class="alert alert-warning mb-3" hidden>
+                        <div id="cm-validation-warnings" class="alert alert-info mb-3" hidden>
                             <h6 class="alert-heading mb-2">
-                                <i class="bi bi-exclamation-triangle me-1"></i>Kolom opsional tidak ditemukan:
+                                <i class="bi bi-info-circle me-1"></i>Kolom opsional belum dipetakan (tidak menghalangi import):
                             </h6>
+                            <p class="mb-2">Boleh dibiarkan kosong jika tidak tersedia. Data tambahan ini tidak akan diisi dari kolom file.</p>
                             <ul id="cm-validation-warning-list" class="mb-0 ps-3"></ul>
                         </div>
                         <div id="cm-validation-ok" class="alert alert-success mb-3" hidden>
@@ -74,7 +75,8 @@
                         <h6 class="fw-bold mb-3">Pemetaan Kolom Sistem → Kolom File</h6>
                         <p class="text-muted small mb-4">
                             Sistem secara otomatis mendeteksi kolom yang sesuai. Ubah pemetaan jika ada kolom yang tidak cocok.
-                            Kolom dengan tanda <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Wajib</span> harus dipetakan.
+                            Kolom dengan tanda <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Wajib</span> harus dipetakan ke kolom sumber yang berbeda.
+                            Kolom opsional boleh tidak dipetakan. Konfirmasi pemetaan, lalu klik <strong>Upload dan import</strong> pada halaman utama.
                         </p>
 
                         <div class="table-responsive">
@@ -121,7 +123,7 @@
                         <i class="bi bi-hourglass-split me-1"></i>Periksa mapping sebelum melanjutkan
                     </span>
                     <button type="button" class="btn btn-primary" id="cm-confirm-btn" disabled>
-                        <i class="bi bi-check2-circle me-1"></i>Konfirmasi dan Lanjutkan Upload
+                        <i class="bi bi-check2-circle me-1"></i>Konfirmasi pemetaan
                     </button>
                 </div>
             </div>

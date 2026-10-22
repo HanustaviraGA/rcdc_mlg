@@ -2,6 +2,7 @@
 
 namespace App\Services\Reports;
 
+use App\Services\Lecturers\LecturerSnapshots;
 use App\Services\Publications\PublicationWorkbookMetrics;
 use App\Services\Publications\ReportPrograms;
 use App\Services\Publications\ReportWorkbookReader;
@@ -28,13 +29,17 @@ class MonthlyPublicationReport
         $warnings = array_merge($warnings, $fmSummary['warnings'] ?? [], $mhsSummary['warnings'] ?? []);
         $papers = $fm ? DB::table('rectorate_dosen')->where('publication_import_id', $fm->id)->get() : collect();
         $entries = $fm && Schema::hasTable('publication_kpi_entries') ? DB::table('publication_kpi_entries')->where('publication_import_id', $fm->id)->get()->keyBy('kode_dosen') : collect();
-        $master = Schema::hasTable('database_dosen_new') ? DB::table('database_dosen_new')->get()->keyBy('kode_dosen') : collect();
-        $old = Schema::hasTable('database_dosen') ? DB::table('database_dosen')->get()->keyBy('kode_dosen') : collect();
-        $codes = ($master->isNotEmpty() ? $master : $old)->keys()->merge($entries->keys())->merge($papers->pluck('kode_dosen'))->unique();
+        $snapshotMode = Schema::hasTable('lecturer_imports');
+        $snapshots = app(LecturerSnapshots::class);
+        $periodRoster = $snapshotMode ? $snapshots->rows($year, $month) : collect();
+        $legacyMode = ! $snapshotMode;
+        $master = $legacyMode && Schema::hasTable('database_dosen_new') ? DB::table('database_dosen_new')->get()->keyBy('kode_dosen') : collect();
+        $old = $legacyMode && Schema::hasTable('database_dosen') ? DB::table('database_dosen')->get()->keyBy('kode_dosen') : collect();
+        $codes = ($periodRoster->isNotEmpty() ? $periodRoster : ($legacyMode ? ($master->isNotEmpty() ? $master : $old) : collect()))->keys()->merge($entries->keys())->merge($papers->pluck('kode_dosen'))->unique();
         $faculty = [];
         foreach ($codes as $code) {
-            $profile = $master->get($code);
-            $legacy = $old->get($code);
+            $profile = $snapshotMode ? $periodRoster->get($code) : $master->get($code);
+            $legacy = $legacyMode ? $old->get($code) : null;
             $entry = $entries->get($code);
             $rows = $papers->where('kode_dosen', $code);
             $metrics = PublicationWorkbookMetrics::summarize($rows, $entry);

@@ -2,6 +2,7 @@
 
 namespace App\Services\Publications;
 
+use App\Services\ColumnMapping\ColumnMapperService;
 use Aspera\Spreadsheet\XLSX\Reader;
 use Aspera\Spreadsheet\XLSX\ReaderConfiguration;
 use DateTimeImmutable;
@@ -11,18 +12,6 @@ use Illuminate\Validation\ValidationException;
 class RawPublicationReader
 {
     public const SUBMITTED = ['Non Scopus FM', 'Scopus FM'];
-
-    private const HEADERS = [
-        'request_code' => ['requestcode', 'request code'], 'author' => ['author'],
-        'fm_author' => ['fm author'], 'kode_dosen' => ['kode dosen'], 'jja' => ['jja'],
-        'pendidikan' => ['pendidikan'], 'type' => ['type'], 's_f' => ['s/f'],
-        'dept' => ['dept'], 'kampus' => ['kampus'], 'first_author' => ['first author'],
-        'sumber_paper' => ['skema', 'sumber paper'], 'bobot_asli' => ['bobot'],
-        'submitted' => ['submitted'], 'jenis' => ['jenis'], 'tipe_publikasi' => ['tipe publikasi'],
-        'title' => ['title'], 'scopus_year' => ['scopus year'], 'source_title' => ['source title'],
-        'quartile_jurnal' => ['quartile jurnal'], 'publisher' => ['publisher'],
-        'tanggal_pelaporan' => ['tanggal pelaporan'], 'notes' => ['notes'], 'prodi_kpi' => ['prodi kpi'],
-    ];
 
     public function read(string $path, int $year, ?array $userMapping = null): array
     {
@@ -51,7 +40,11 @@ class RawPublicationReader
                 }
                 if ($map === null) {
                     $headers = array_map(fn ($h) => $this->normalize((string) $h), $row);
-                    $map = $this->mapHeaders($headers, $year, isset($sheets['kpi']), $userMapping);
+                    $map = $this->mapHeaders($headers, $year, $userMapping);
+                    $missingOptional = array_keys(array_filter($map, fn ($index) => $index === null));
+                    if ($missingOptional) {
+                        $summary['warnings'][] = 'Kolom opsional tidak dipetakan: '.implode(', ', $missingOptional).'. Import tetap dilanjutkan; nilai terkait belum tersedia.';
+                    }
 
                     continue;
                 }
@@ -142,38 +135,25 @@ class RawPublicationReader
         return $weight;
     }
 
-    private function mapHeaders(array $headers, int $year, bool $hasKpi = false, ?array $userMapping = null): array
+    private function mapHeaders(array $headers, int $year, ?array $userMapping = null): array
     {
-        $map = [];
-        $allFields = self::HEADERS + ['status' => ['st'.$year, 'status']];
-
-        foreach ($allFields as $field => $aliases) {
-            // Prioritas 1: Gunakan user mapping jika disediakan dan valid
-            if ($userMapping !== null && isset($userMapping[$field]) && is_numeric($userMapping[$field])) {
-                $map[$field] = (int) $userMapping[$field];
-
-                continue;
+        // Without a confirmed mapping, only this period's status header is valid.
+        // With a mapping, arbitrary header names are accepted and omitted optional
+        // fields remain empty instead of being silently auto-detected again.
+        if ($userMapping === null) {
+            $statusHeaders = array_keys(array_intersect($headers, ['st'.$year, 'status']));
+            if (count($statusHeaders) !== 1) {
+                $this->invalid("Kolom status harus Status atau St{$year} dan tersedia tepat satu kali; periksa tahun import.");
             }
-
-            // Prioritas 2: Auto-detect dari aliases
-            $matches = array_keys(array_intersect($headers, $aliases));
-            if (count($matches) > 1) {
-                $this->invalid("Kolom {$field} ambigu atau duplikat pada sheet publikasi.");
-            }
-            $map[$field] = $matches[0] ?? null;
-        }
-
-        $required = ['request_code', 'kode_dosen', 'kampus', 'submitted', 'bobot_asli', 'title', 'jenis', 'tipe_publikasi', 'status'];
-        if ($hasKpi) {
-            $required = array_merge($required, ['first_author', 'prodi_kpi']);
-        }
-        foreach ($required as $field) {
-            if ($map[$field] === null) {
-                $this->invalid("Kolom {$field} tidak ditemukan pada sheet publikasi. Kolom status harus Status atau St{$year}; periksa tahun import.");
+            $headers[$statusHeaders[0]] = 'status';
+            foreach ($headers as $index => $header) {
+                if ($index !== $statusHeaders[0] && preg_match('/^st\d{4}$/', $header)) {
+                    $headers[$index] = '';
+                }
             }
         }
 
-        return $map;
+        return app(ColumnMapperService::class)->resolveMapping($headers, 'fm_file', $userMapping);
     }
 
     private function normalize(string $value): string

@@ -19,7 +19,7 @@
                 <a class="portal-link" href="{{ route('research-gallery.index') }}">Jelajahi Research Gallery <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
             </div>
             <div class="stamps" aria-label="Cakupan dashboard">
-                <div class="stamp"><b id="performanceLatestYear">{{ $performance['defaultYear'] }}</b><span>Tahun publikasi terbaru</span></div>
+                <div class="stamp"><b id="performanceLatestYear">{{ $performance['defaultYear'] }}</b><span>Tahun pilihan awal</span></div>
                 <div class="stamp"><b id="performanceProgramCount">&mdash;</b><span>Program studi pada periode terpilih</span></div>
                 <div class="stamp"><b class="pd-stamp-period" id="performanceCutoff">&mdash;</b><span>Data kumulatif sampai periode ini</span></div>
             </div>
@@ -92,7 +92,7 @@
         </div>
         <p class="pd-scope" id="performanceScope" role="status"></p>
         <div class="pd-department-grid" id="performanceDepartments"></div>
-        <div class="pd-empty" id="performanceEmpty" hidden><span class="pd-empty-icon"><i class="bi bi-bar-chart" aria-hidden="true"></i></span><h3 id="performanceEmptyTitle">Data belum tersedia</h3><p id="performanceEmptyText"></p><button class="pd-button" type="button" id="performanceEmptyReset">Kembali ke publikasi terbaru</button></div>
+        <div class="pd-empty" id="performanceEmpty" hidden><span class="pd-empty-icon"><i class="bi bi-bar-chart" aria-hidden="true"></i></span><h3 id="performanceEmptyTitle">Data belum tersedia</h3><p id="performanceEmptyText"></p><button class="pd-button" type="button" id="performanceEmptyReset">Kembali ke tahun berjalan</button></div>
     </section>
 
     <details class="pd-source-note" id="performanceSourceNotes"><summary><i class="bi bi-info-circle" aria-hidden="true"></i> Sumber dan catatan perhitungan <i class="bi bi-chevron-down" aria-hidden="true"></i></summary><div id="performanceNotes"></div></details>

@@ -662,21 +662,19 @@ class PublicationDashboardTest extends TestCase
         $this->assertSame(0, DB::table('publication_imports')->count());
     }
 
-    public function test_kpi_workbook_requires_first_author_and_program_source_columns(): void
+    public function test_kpi_workbook_accepts_missing_optional_first_author_and_program_source_columns(): void
     {
         foreach (['First Author', 'Prodi KPI'] as $missing) {
             $header = array_values(array_filter(self::HEADER, fn ($h) => $h !== $missing));
             $row = $this->row();
             unset($row[$missing]);
             $file = $this->workbook(['MALANG' => [$header, array_values($row)], 'KPI' => [self::KPI_HEADER, array_values($this->kpiRow())]]);
-            try {
-                app(PublicationImporter::class)->import($file, 'missing.xlsx', 2026, 9, 3);
-                $this->fail('Workbook must contain the fields used in its summaries.');
-            } catch (ValidationException $e) {
-                $this->assertStringContainsString(str_replace(' ', '_', strtolower($missing)), $e->getMessage());
-            }
+            $summary = app(PublicationImporter::class)->import($file, 'missing.xlsx', 2026, 9, 3);
+            $this->assertSame(1, $summary['selected']);
+            $this->assertNull(DB::table('rectorate_dosen')->value(str_replace(' ', '_', strtolower($missing))));
+            $this->assertSame(1, DB::table('publication_kpi_entries')->count());
         }
-        $this->assertSame(0, DB::table('publication_imports')->count());
+        $this->assertSame(1, DB::table('publication_imports')->count());
     }
 
     private function kpiRow(array $overrides = []): array

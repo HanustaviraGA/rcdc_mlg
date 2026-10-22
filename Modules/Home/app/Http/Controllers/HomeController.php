@@ -16,10 +16,10 @@ class HomeController extends Controller
      */
     public function index()
     {
-        $jumlah_fm = \DB::table('v_statistik_prodi')->select(\DB::raw('SUM(jml_fm) as total_fm'))->get();
-        $total_fm = $jumlah_fm[0]->total_fm;
-        $fm = \DB::table('v_statistik_prodi')
-        ->get();
+        $fm = \Schema::hasTable('lecturer_imports')
+            ? DataDosen::query()->currentRoster()->select('nama_gugus_binaan', \DB::raw('COUNT(*) as jml_fm'))->groupBy('nama_gugus_binaan')->get()
+            : \DB::table('v_statistik_prodi')->get();
+        $total_fm = $fm->sum('jml_fm');
         // dd($fm);
         // exit;
         $array_nama = [];
@@ -38,7 +38,7 @@ class HomeController extends Controller
      */
     public function init_table()
     {
-        $query = DataDosen::query();
+        $query = DataDosen::query()->currentRoster();
         $query->limit(5);
         $query->inRandomOrder();
         $query = $query->get();

@@ -19,7 +19,9 @@ class LandingController extends Controller
     {
         Auth::logout();
         $dosen = DataDosen::visibleOnWebsite()->limit(6)->inRandomOrder()->get();
-        $prodi = \DB::table('v_statistik_prodi')->get();
+        $prodi = \Schema::hasTable('lecturer_imports')
+            ? DataDosen::query()->currentRoster()->select('nama_gugus_binaan', \DB::raw('COUNT(*) as jml_fm'))->groupBy('nama_gugus_binaan')->get()
+            : \DB::table('v_statistik_prodi')->get();
         $prodiLabels = [];
         $prodiCounts = [];
         foreach ($prodi as $item) {
@@ -48,7 +50,7 @@ class LandingController extends Controller
         $umkmClusterData = $umkmClusterRows->pluck('total')->values();
 
         $jjaCounts = [];
-        $jjaRows = DataDosen::query()
+        $jjaRows = DataDosen::query()->currentRoster()
             ->select('jja')
             ->whereNotNull('jja')
             ->where('jja', '!=', '')
@@ -65,7 +67,7 @@ class LandingController extends Controller
         $jjaData = array_values($jjaCounts);
 
         $pendidikanCounts = [];
-        $pendidikanRows = DataDosen::query()
+        $pendidikanRows = DataDosen::query()->currentRoster()
             ->select('pendidikan')
             ->whereNotNull('pendidikan')
             ->where('pendidikan', '!=', '')

@@ -6,6 +6,7 @@ use App\Models\DataDosen;
 use Aspera\Spreadsheet\XLSX\Reader;
 use DateTimeInterface;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class LecturerWorkbook
@@ -31,8 +32,113 @@ class LecturerWorkbook
         'tax_status' => 'Tax Status', 'status_pernikahan' => 'Status Pernikahan', 'note' => 'NOTE',
     ];
 
-    public function read(string $path): array
+    private const REQUIRED_FIELDS = ['kode_dosen', 'nama_dosen'];
+
+    public function preview(string $path): array
     {
+        $reader = new Reader;
+        try {
+            $reader->open($path);
+            $sheet = $this->selectSheet($reader);
+            $reader->changeSheet($sheet['index']);
+            $candidates = [];
+            foreach ($reader as $number => $row) {
+                $row = array_map($this->cell(...), $row);
+                if (! array_filter($row, fn ($value) => $value !== '')) {
+                    continue;
+                }
+                $candidates[] = ['number' => (int) $number, 'cells' => $row];
+                if (count($candidates) >= 30) {
+                    break;
+                }
+            }
+            if (! $candidates) {
+                $this->invalid('Sheet dosen kosong.');
+            }
+            $header = $candidates[0];
+            foreach ($candidates as $candidate) {
+                if (in_array('kode dosen', array_map($this->normalize(...), $candidate['cells']), true)) {
+                    $header = $candidate;
+                    break;
+                }
+            }
+            $mapping = [];
+            foreach (self::HEADERS as $field => $label) {
+                $matches = array_keys(array_map($this->normalize(...), $header['cells']), $this->normalize($label), true);
+                if (count($matches) === 1) {
+                    $mapping[$field] = $matches[0];
+                }
+            }
+            $required = array_intersect_key(self::HEADERS, array_flip(self::REQUIRED_FIELDS));
+
+            return [
+                'sheet' => $sheet['name'], 'header_row' => $header['number'], 'headers' => array_values($header['cells']),
+                'preview_data' => array_values(array_map(fn ($row) => array_values($row['cells']), array_slice(array_filter($candidates, fn ($row) => $row['number'] > $header['number']), 0, 5))),
+                'mapping_config' => ['required' => $required, 'optional' => array_diff_key(self::HEADERS, $required)],
+                'suggested_mapping' => $mapping,
+            ];
+        } finally {
+            $reader->close();
+        }
+    }
+
+    private function cell(mixed $value): string
+    {
+        return $value instanceof DateTimeInterface ? $value->format('Y-m-d') : trim((string) $value);
+    }
+
+    private function selectSheet(Reader $reader): array
+    {
+        $sheets = [];
+        foreach ($reader->getSheets() as $index => $sheet) {
+            $sheets[$this->normalize($sheet->getName())] = ['index' => $index, 'name' => $sheet->getName()];
+        }
+        $selected = $sheets['malang'] ?? $sheets['fm malang'] ?? $sheets['fm binus malang'] ?? null;
+        if ($selected === null) {
+            $this->invalid('Sheet Malang, FM Malang, atau FM BINUS Malang tidak ditemukan.');
+        }
+
+        return $selected;
+    }
+
+    private function userMap(array $mapping, array $headers): array
+    {
+        // An unselected optional field is absent, not an invalid column index.
+        foreach ($mapping as $field => $index) {
+            if (array_key_exists($field, self::HEADERS) && ! in_array($field, self::REQUIRED_FIELDS, true)
+                && ($index === null || $index === '')) {
+                unset($mapping[$field]);
+            }
+        }
+        $errors = [];
+        foreach ($mapping as $field => $index) {
+            if (! array_key_exists($field, self::HEADERS)) {
+                $errors["column_mapping.$field"] = 'Kolom sistem tidak dikenal.';
+            } elseif (! is_int($index) || $index < 0 || ! array_key_exists($index, $headers)) {
+                $errors["column_mapping.$field"] = 'Sumber kolom tidak valid.';
+            }
+        }
+        $indices = array_filter($mapping, is_int(...));
+        if (count(array_unique($indices)) !== count($indices)) {
+            $errors['column_mapping'] = 'Setiap kolom file hanya boleh dipetakan ke satu kolom tujuan.';
+        }
+        foreach (self::REQUIRED_FIELDS as $field) {
+            if (! isset($mapping[$field]) || $mapping[$field] === '') {
+                $errors["column_mapping.$field"] = 'Kolom '.self::HEADERS[$field].' wajib dipetakan.';
+            }
+        }
+        if ($errors) {
+            throw ValidationException::withMessages($errors);
+        }
+
+        return $mapping;
+    }
+
+    public function read(string $path, ?array $columnMapping = null, ?int $headerRow = null): array
+    {
+        if ($columnMapping !== null && ($headerRow === null || $headerRow < 1 || $headerRow > 1000)) {
+            throw ValidationException::withMessages(['header_row' => 'Baris header pemetaan tidak valid.']);
+        }
         $reader = new Reader;
         $records = [];
         $map = null;
@@ -40,14 +146,7 @@ class LecturerWorkbook
         $duplicates = 0;
         try {
             $reader->open($path);
-            $sheets = [];
-            foreach ($reader->getSheets() as $index => $sheet) {
-                $sheets[$this->normalize($sheet->getName())] = ['index' => $index, 'name' => $sheet->getName()];
-            }
-            $sheet = $sheets['malang'] ?? $sheets['fm malang'] ?? $sheets['fm binus malang'] ?? null;
-            if ($sheet === null) {
-                $this->invalid('Sheet Malang, FM Malang, atau FM BINUS Malang tidak ditemukan.');
-            }
+            $sheet = $this->selectSheet($reader);
             $reader->changeSheet($sheet['index']);
             foreach ($reader as $number => $row) {
                 $row = array_map(fn ($value) => $value instanceof DateTimeInterface ? $value->format('Y-m-d') : trim((string) $value), $row);
@@ -56,10 +155,15 @@ class LecturerWorkbook
                 }
                 if ($map === null) {
                     $normalized = array_map($this->normalize(...), $row);
-                    if (! in_array('kode dosen', $normalized, true)) {
+                    if ($columnMapping !== null ? (int) $number !== $headerRow : ! in_array('kode dosen', $normalized, true)) {
                         continue;
                     }
-                    $headers = array_values(array_filter($row, fn ($value) => $value !== ''));
+                    $headers = $row;
+                    if ($columnMapping !== null) {
+                        $map = $this->userMap($columnMapping, $row);
+
+                        continue;
+                    }
                     $map = [];
                     foreach (self::HEADERS as $field => $label) {
                         $matches = array_keys($normalized, $this->normalize($label), true);
@@ -102,7 +206,7 @@ class LecturerWorkbook
             $this->invalid('Sheet dosen tidak berisi data atau header Kode Dosen tidak ditemukan.');
         }
         $mapped = array_intersect_key(self::HEADERS, $map);
-        $unknown = array_values(array_filter($headers, fn ($header) => ! in_array($this->normalize($header), array_map($this->normalize(...), self::HEADERS), true)));
+        $unknown = array_values(array_filter($headers, fn ($header, $index) => $header !== '' && ! in_array($index, $map, true), ARRAY_FILTER_USE_BOTH));
 
         return ['records' => array_values($records), 'summary' => [
             'sheet' => $sheet['name'], 'selected' => count($records), 'duplicates' => $duplicates,
@@ -111,20 +215,66 @@ class LecturerWorkbook
         ]];
     }
 
-    public function import(string $path): array
+    public function import(string $path, ?int $year = null, ?int $month = null, ?array $columnMapping = null, ?int $headerRow = null, ?string $filename = null): array
     {
-        $parsed = $this->read($path);
+        if ($year === null && $month === null && Schema::hasTable('lecturer_imports')) {
+            $year = (int) now()->year;
+            $month = (int) now()->month;
+        }
+        if (($year === null) !== ($month === null) || ($year !== null && ($year < 2000 || $year > 2100 || $month < 1 || $month > 12))) {
+            $this->invalid('Tahun dan bulan update tidak valid.');
+        }
+        $parsed = $this->read($path, $columnMapping, $headerRow);
 
-        return DB::transaction(function () use ($parsed) {
+        return DB::transaction(function () use ($parsed, $year, $month, $columnMapping, $filename) {
             $created = 0;
-            foreach ($parsed['records'] as $record) {
-                // Only supplied columns are updated; missing optional columns retain existing data.
-                // Re-importing must not restore deleted profiles or reset their visibility.
-                $model = DataDosen::withTrashed()->updateOrCreate(['kode_dosen' => $record['kode_dosen']], $record);
-                $created += (int) $model->wasRecentlyCreated;
+            $updateMaster = $year === null;
+            if ($year !== null) {
+                if (! Schema::hasTable('lecturer_imports')) {
+                    $this->invalid('Migrasi snapshot dosen belum dijalankan.');
+                }
+                $snapshot = compact('year', 'month');
+                DB::table('lecturer_imports')->upsert([$snapshot + [
+                    'filename' => basename($filename ?? 'dosen.xlsx'), 'sheet' => $parsed['summary']['sheet'],
+                    'column_mapping' => json_encode($columnMapping), 'created_at' => now(), 'updated_at' => now(),
+                ]], ['year', 'month'], ['filename', 'sheet', 'column_mapping', 'updated_at']);
+                $batch = DB::table('lecturer_imports')->where($snapshot)->lockForUpdate()->first();
+                // Reimports preserve optional columns from this same snapshot, never from a later year/month.
+                $previous = DB::table('lecturer_snapshot_rows')->where('lecturer_import_id', $batch->id)->get()->keyBy('kode_dosen');
+                if ($previous->isEmpty()) {
+                    $prior = app(LecturerSnapshots::class)->batch($year, $month - 1);
+                    $previous = $prior ? DB::table('lecturer_snapshot_rows')->where('lecturer_import_id', $prior->id)->get()->keyBy('kode_dosen') : collect();
+                }
+                $existing = DB::table('lecturer_snapshot_rows')->where('lecturer_import_id', $batch->id)->pluck('kode_dosen')->all();
+                DB::table('lecturer_snapshot_rows')->where('lecturer_import_id', $batch->id)->delete();
+                foreach ($parsed['records'] as $record) {
+                    $old = (array) $previous->get($record['kode_dosen'], (object) []);
+                    $data = array_replace(array_intersect_key($old, self::HEADERS), $record);
+                    DB::table('lecturer_snapshot_rows')->insert($data + [
+                        'lecturer_import_id' => $batch->id, 'is_hidden' => $old['is_hidden'] ?? false,
+                        'deleted_at' => $old['deleted_at'] ?? null, 'created_at' => now(), 'updated_at' => now(),
+                    ]);
+                    $created += (int) ! in_array($record['kode_dosen'], $existing, true);
+                }
+                $updateMaster = $year === (int) now()->year && ! DB::table('lecturer_imports')->where('year', $year)->where('month', '>', $month)->exists();
+            }
+            if ($updateMaster) {
+                $masterCreated = 0;
+                $masterRecords = $year === null ? $parsed['records'] : DB::table('lecturer_snapshot_rows')
+                    ->where('lecturer_import_id', $batch->id)->get()
+                    ->map(fn ($row) => array_intersect_key((array) $row, self::HEADERS))->all();
+                foreach ($masterRecords as $record) {
+                    // Never restore deleted profiles or reset global visibility on import.
+                    $model = DataDosen::withTrashed()->updateOrCreate(['kode_dosen' => $record['kode_dosen']], $record);
+                    $masterCreated += (int) $model->wasRecentlyCreated;
+                }
+                if ($year === null) {
+                    $created = $masterCreated;
+                }
             }
 
-            return $parsed['summary'] + ['created' => $created, 'updated' => count($parsed['records']) - $created];
+            return $parsed['summary'] + ['year' => $year, 'month' => $month, 'created' => $created,
+                'updated' => count($parsed['records']) - $created, 'updated_current_master' => $updateMaster];
         });
     }
 

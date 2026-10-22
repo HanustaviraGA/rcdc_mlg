@@ -2,6 +2,7 @@
 
 namespace App\Services\Publications;
 
+use App\Services\Lecturers\LecturerSnapshots;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -10,8 +11,11 @@ class ImportedLecturerKpi
 {
     public function rows(): Collection
     {
-        $masters = $this->table('database_dosen')->keyBy('kode_dosen');
-        $details = $this->table('database_dosen_new')->keyBy('kode_dosen');
+        $snapshotMode = Schema::hasTable('lecturer_imports');
+        $legacyMode = ! $snapshotMode;
+        $masters = $legacyMode ? $this->table('database_dosen')->keyBy('kode_dosen') : collect();
+        $details = $legacyMode ? $this->table('database_dosen_new')->keyBy('kode_dosen') : collect();
+        $rosters = app(LecturerSnapshots::class);
         // Keep each monthly snapshot separate: cumulative files must never be summed across months.
         $imports = $this->table('publication_imports')->keyBy('id');
         $researchImports = $this->table('research_imports')->keyBy('id');
@@ -56,10 +60,13 @@ class ImportedLecturerKpi
         $rows = collect();
         foreach ($snapshots as $snapshot => $data) {
             [$year, $month] = array_map('intval', explode('-', $snapshot));
+            $roster = $snapshotMode && $year > 0 ? $rosters->rows($year, $month > 0 ? $month : null) : collect();
             $papers = collect($data['papers'] ?? [])->sortByDesc('updated_at')
                 ->unique(fn ($row) => $row->request_code.'|'.$row->kode_dosen)->groupBy('kode_dosen');
             $entries = collect($data['entries'] ?? [])->keyBy('kode_dosen');
             $grants = collect($data['grants'] ?? [])->groupBy('kode_dosen_nim');
+            // Keep the original participant population: a roster enriches imported participants,
+            // but must not create KPI rows for lecturers with no activity in this snapshot.
             $codes = $entries->keys()->merge($papers->keys())->merge($grants->keys())->unique();
             foreach ($codes as $code) {
                 $entry = $entries->get($code);
@@ -67,21 +74,22 @@ class ImportedLecturerKpi
                 $research = $grants->get($code, collect());
                 $paper = $publications->first();
                 $grant = $research->first();
-                $master = $masters->get($code);
-                $detail = $details->get($code);
+                $profile = $roster->get($code);
+                $master = $legacyMode ? $masters->get($code) : null;
+                $detail = $legacyMode ? $details->get($code) : null;
                 $metrics = PublicationWorkbookMetrics::summarize($publications, $entry);
                 $hasPublication = $entry !== null || $publications->isNotEmpty();
-                $program = $this->filled($entry->program ?? null, $paper->prodi_kpi ?? null, $grant->prodi_di_kpi ?? null,
-                    $detail->nama_gugus_binaan ?? null, $master->jurusan_dosen ?? null, $paper->dept ?? null, $grant->prodi_jur_binaan ?? null);
-                $rank = $this->filled($entry->academic_rank ?? null, $paper->jja ?? null, $detail->jja ?? null, $master->jja_dosen ?? null);
-                $faculty = $this->filled($entry->faculty_type ?? null, $detail->tipe_faculty ?? null, $master->ft_dosen ?? null);
+                $program = $this->filled($entry->program ?? null, $profile->nama_gugus_binaan ?? null, $paper->prodi_kpi ?? null,
+                    $grant->prodi_di_kpi ?? null, $detail->nama_gugus_binaan ?? null, $master->jurusan_dosen ?? null, $paper->dept ?? null, $grant->prodi_jur_binaan ?? null);
+                $rank = $this->filled($entry->academic_rank ?? null, $profile->jja ?? null, $paper->jja ?? null, $detail->jja ?? null, $master->jja_dosen ?? null);
+                $faculty = $this->filled($entry->faculty_type ?? null, $profile->tipe_faculty ?? null, $detail->tipe_faculty ?? null, $master->ft_dosen ?? null);
                 $score = $metrics['score'];
                 $scoreSource = $entry ? 'RTTO' : null;
                 // Legacy files without a KPI sheet retain the existing calculation, scoped to this month.
                 if ($entries->isEmpty() && $publications->isNotEmpty()) {
                     $scoring = app(PublicationScore::class);
                     $education = $scoring->education($paper->pendidikan ?? null)
-                        ?? $scoring->education($detail->pendidikan ?? null) ?? $scoring->education($master->pendidikan_dosen ?? null);
+                        ?? $scoring->education($profile->pendidikan ?? null) ?? $scoring->education($detail->pendidikan ?? null) ?? $scoring->education($master->pendidikan_dosen ?? null);
                     $rule = $scoring->rule($scoring->faculty($faculty), $scoring->rank($rank), $education);
                     $adjusted = $publications->map(function ($row) {
                         $row = clone $row;
@@ -96,7 +104,7 @@ class ImportedLecturerKpi
                 }
                 $rows->push([
                     'year' => $year ?: null, 'month' => $month ?: null, 'code' => (string) $code,
-                    'name' => $this->filled($entry->name ?? null, $detail->nama_dosen ?? null, $master->nama_dosen ?? null, $paper->fm_author ?? null, $grant->nama ?? null) ?? $code,
+                    'name' => $this->filled($entry->name ?? null, $profile->nama_dosen ?? null, $detail->nama_dosen ?? null, $master->nama_dosen ?? null, $paper->fm_author ?? null, $grant->nama ?? null) ?? $code,
                     'program' => ReportPrograms::code($program) ?: 'Belum tercatat',
                     'program_name' => $program, 'rank' => $rank, 'faculty' => $faculty,
                     'non_scopus' => $hasPublication ? $metrics['non_scopus'] : null,

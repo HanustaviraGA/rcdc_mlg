@@ -3,22 +3,22 @@
 namespace App\Services\ColumnMapping;
 
 use Aspera\Spreadsheet\XLSX\Reader;
-use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 
 class ColumnMapperService
 {
     /**
      * Baca header dari file Excel dan berikan preview data
      */
-    public function preview(string $path): array
+    public function preview(string $path, ?string $importType = null): array
     {
-        $reader = new Reader();
+        $reader = new Reader;
         $sheets = [];
         $previewData = [];
 
         try {
             $reader->open($path);
-            
+
             // Ambil semua sheets
             foreach ($reader->getSheets() as $index => $sheet) {
                 $sheets[$this->normalize($sheet->getName())] = [
@@ -28,7 +28,7 @@ class ColumnMapperService
             }
 
             // Cari sheet yang tersedia
-            $sheetToRead = $this->selectBestSheet($sheets);
+            $sheetToRead = $this->selectBestSheet($sheets, $importType);
 
             if ($sheetToRead === null) {
                 return [
@@ -39,22 +39,23 @@ class ColumnMapperService
             }
 
             $reader->changeSheet($sheets[$sheetToRead]['index']);
-            
+
             $rowCount = 0;
             $headers = null;
 
             foreach ($reader as $number => $cells) {
                 // Skip empty rows
-                if (!array_filter($cells, fn($cell) => trim((string) $cell) !== '')) {
+                if (! array_filter($cells, fn ($cell) => trim((string) $cell) !== '')) {
                     continue;
                 }
 
                 // Ambil headers dari baris pertama yang tidak kosong
                 if ($headers === null) {
                     $headers = array_map(
-                        fn($cell) => trim((string) $cell),
+                        fn ($cell) => trim((string) $cell),
                         $cells
                     );
+
                     continue;
                 }
 
@@ -76,6 +77,7 @@ class ColumnMapperService
             return [
                 'success' => true,
                 'sheet' => $sheets[$sheetToRead]['name'],
+                'sheets' => array_values(array_column($sheets, 'name')),
                 'headers' => $headers ?? [],
                 'preview_data' => $previewData,
                 'total_columns' => count($headers ?? []),
@@ -101,65 +103,161 @@ class ColumnMapperService
     /**
      * Validasi mapping columns
      */
-    public function validateMapping(array $mapping, string $importType): array
+    public function validateMapping(array $mapping, string $importType, ?int $headerCount = null): array
     {
         $config = $this->getMappingConfig($importType);
+        if ($config === []) {
+            return ['valid' => false, 'errors' => ['type' => 'Tipe import tidak dikenal.'], 'warnings' => []];
+        }
         $errors = [];
         $warnings = [];
+        $fields = array_merge($config['required'], $config['optional']);
+        $required = $config['required'];
 
-        // Cek required fields
-        foreach ($config['required'] as $field => $label) {
-            if (!isset($mapping[$field]) || $mapping[$field] === '' || $mapping[$field] === null) {
+        foreach ($mapping as $field => $index) {
+            if (! array_key_exists($field, $fields)) {
+                $errors[$field] = "Kolom sistem '{$field}' tidak dikenal.";
+
+                continue;
+            }
+            if ($index === '' || $index === null) {
+                continue;
+            }
+            if (! (is_int($index) || (is_string($index) && ctype_digit($index))) || (int) $index < 0) {
+                $errors[$field] = "Pemetaan '{$fields[$field]}' harus berupa indeks kolom yang valid.";
+
+                continue;
+            }
+            if ($headerCount !== null && (int) $index >= $headerCount) {
+                $errors[$field] = "Pemetaan '{$fields[$field]}' berada di luar kolom file.";
+            }
+        }
+
+        $used = [];
+        foreach ($mapping as $field => $index) {
+            if ($index === '' || $index === null || ! isset($fields[$field])
+                || ! (is_int($index) || (is_string($index) && ctype_digit($index)))) {
+                continue;
+            }
+            $index = (int) $index;
+            if (isset($used[$index]) && $used[$index] !== $field) {
+                $errors[$field] = "Kolom sumber {$index} sudah dipetakan ke '{$fields[$used[$index]]}'.";
+            } else {
+                $used[$index] = $field;
+            }
+        }
+
+        foreach ($required as $field => $label) {
+            if (! array_key_exists($field, $mapping) || $mapping[$field] === '' || $mapping[$field] === null) {
                 $errors[$field] = "Kolom '{$label}' wajib dipetakan";
             }
         }
-
-        // Cek optional fields
         foreach ($config['optional'] as $field => $label) {
-            if (!isset($mapping[$field]) || $mapping[$field] === '' || $mapping[$field] === null) {
-                $warnings[$field] = "Kolom '{$label}' tidak ditemukan - data akan kosong";
+            if (! array_key_exists($field, $mapping) || $mapping[$field] === '' || $mapping[$field] === null) {
+                $warnings[$field] = "Kolom '{$label}' tidak dipetakan - data akan kosong";
             }
         }
 
-        return [
-            'valid' => empty($errors),
-            'errors' => $errors,
-            'warnings' => $warnings,
-        ];
+        return ['valid' => empty($errors), 'errors' => $errors, 'warnings' => $warnings];
+    }
+
+    /**
+     * Resolve a confirmed mapping against a workbook header row.
+     * A supplied mapping is authoritative: an omitted optional field stays null
+     * rather than silently switching back to automatic header detection.
+     */
+    public function resolveMapping(array $headers, string $importType, ?array $mapping = null): array
+    {
+        $config = $this->getMappingConfig($importType);
+        if ($config === []) {
+            throw ValidationException::withMessages(['rectorate' => 'Tipe import tidak dikenal.']);
+        }
+        $normalized = array_map(fn ($header) => $this->normalize((string) $header), $headers);
+        $fields = array_merge($config['required'], $config['optional']);
+        $resolved = [];
+        $source = $mapping === null ? null : array_map(
+            fn ($index) => $index === '' ? null : $index,
+            $mapping
+        );
+        if ($source !== null) {
+            $validation = $this->validateMapping($source, $importType, count($headers));
+            if (! $validation['valid']) {
+                throw ValidationException::withMessages(['rectorate' => implode(' ', $validation['errors'])]);
+            }
+        }
+        foreach ($fields as $field => $label) {
+            if ($source !== null && array_key_exists($field, $source)) {
+                // The complete user mapping was validated before normalization.
+                $index = $source[$field];
+                $resolved[$field] = $index === null ? null : (int) $index;
+
+                continue;
+            }
+            if ($source !== null) {
+                $resolved[$field] = null;
+
+                continue;
+            }
+            $matches = [];
+            foreach (array_unique(array_merge([$label], $config['aliases'][$field] ?? [])) as $alias) {
+                foreach (array_keys($normalized, $this->normalize((string) $alias), true) as $index) {
+                    $matches[$index] = true;
+                }
+            }
+            if (count($matches) > 1) {
+                throw ValidationException::withMessages(['rectorate' => "Kolom '{$label}' ambigu atau duplikat pada file."]);
+            }
+            $resolved[$field] = $matches === [] ? null : (int) array_key_first($matches);
+        }
+
+        $validation = $this->validateMapping($resolved, $importType, count($headers));
+        if (! $validation['valid']) {
+            throw ValidationException::withMessages(['rectorate' => implode(' ', $validation['errors'])]);
+        }
+
+        return $resolved;
     }
 
     /**
      * Suggest mapping berdasarkan fuzzy matching
      */
-    public function suggestMapping(array $headers, string $importType): array
+    public function suggestMapping(array $headers, string $importType, ?int $year = null): array
     {
         $config = $this->getMappingConfig($importType);
         $mapping = [];
+        if ($config === []) {
+            return [];
+        }
+        if ($importType === 'fm_file') {
+            $config['aliases']['status'] = ['status', 'st'.($year ?? now()->year)];
+        }
 
         // Normalize headers
         $normalizedHeaders = array_map($this->normalize(...), $headers);
 
         // Coba match untuk semua fields (required + optional)
         $allFields = array_merge($config['required'], $config['optional']);
-        
+
+        // Reserve exact matches first, so an optional fuzzy guess never steals
+        // the source column of a required field (and column zero stays valid).
+        $used = [];
         foreach ($allFields as $field => $label) {
-            $normalizedLabel = $this->normalize($label);
-            $aliases = $config['aliases'][$field] ?? [];
-            
-            // Exact match
+            $aliases = array_unique(array_merge([$label], $config['aliases'][$field] ?? []));
             foreach ($aliases as $alias) {
                 $key = array_search($this->normalize($alias), $normalizedHeaders, true);
-                if ($key !== false) {
+                if ($key !== false && ! isset($used[$key])) {
                     $mapping[$field] = $key;
+                    $used[$key] = true;
                     break;
                 }
             }
-
-            // Fuzzy match jika exact match tidak ditemukan
-            if (empty($mapping[$field])) {
-                $bestMatch = $this->fuzzyMatchHeader($label, $headers);
+        }
+        foreach ($allFields as $field => $label) {
+            if (! array_key_exists($field, $mapping) && $field !== 'status') {
+                $bestMatch = $this->fuzzyMatchHeader($label, array_diff_key($headers, $used));
                 if ($bestMatch !== null) {
                     $mapping[$field] = $bestMatch;
+                    $used[$bestMatch] = true;
                 }
             }
         }
@@ -179,7 +277,7 @@ class ColumnMapperService
         foreach ($headers as $index => $header) {
             $headerNorm = $this->normalize($header);
             $score = $this->levenshteinSimilarity($targetNorm, $headerNorm);
-            
+
             if ($score > $bestScore && $score >= 0.6) {
                 $bestScore = $score;
                 $bestIndex = $index;
@@ -196,7 +294,7 @@ class ColumnMapperService
     {
         $distance = levenshtein($a, $b);
         $maxLength = max(strlen($a), strlen($b));
-        
+
         if ($maxLength === 0) {
             return 1.0;
         }
@@ -207,10 +305,14 @@ class ColumnMapperService
     /**
      * Pilih sheet terbaik berdasarkan nama
      */
-    private function selectBestSheet(array $sheets): ?string
+    private function selectBestSheet(array $sheets, ?string $importType = null): ?string
     {
-        $preferences = ['malang', 'raw', 'detail', 'data'];
-        
+        $preferences = match ($importType) {
+            'research_file' => ['malang', 'detail'],
+            'fm_file', 'mhs_file' => ['malang', 'raw'],
+            default => ['malang', 'raw', 'detail', 'data'],
+        };
+
         foreach ($preferences as $pref) {
             if (isset($sheets[$pref])) {
                 return $pref;
@@ -246,6 +348,13 @@ class ColumnMapperService
                 'status' => 'Status (Status / St{tahun})',
             ],
             'optional' => [
+                'author' => 'Author',
+                's_f' => 'S/F',
+                'dept' => 'Dept',
+                'sumber_paper' => 'Sumber Paper',
+                'scopus_year' => 'Scopus Year',
+                'source_title' => 'Source Title',
+                'notes' => 'Notes',
                 'fm_author' => 'FM Author',
                 'jja' => 'JJA',
                 'pendidikan' => 'Pendidikan',
@@ -263,13 +372,21 @@ class ColumnMapperService
                 'submitted' => ['submitted', 'tipe laporan'],
                 'bobot_asli' => ['bobot', 'bobot asli', 'bobot kontribusi'],
                 'title' => ['title', 'judul'],
-                'jenis' => ['jenis', 'tipe'],
-                'tipe_publikasi' => ['tipe publikasi', 'publikasi', 'tipe'],
+                'jenis' => ['jenis'],
+                'tipe_publikasi' => ['tipe publikasi', 'publikasi'],
+                'type' => ['type'],
+                'author' => ['author'],
+                's_f' => ['s/f'],
+                'dept' => ['dept'],
+                'sumber_paper' => ['skema', 'sumber paper'],
+                'scopus_year' => ['scopus year'],
+                'source_title' => ['source title'],
+                'notes' => ['notes'],
                 'fm_author' => ['fm author', 'fm_author'],
                 'first_author' => ['first author', 'first_author'],
                 'quartile_jurnal' => ['quartile', 'quartile jurnal', 'q'],
                 'publisher' => ['publisher', 'penerbit'],
-                'tanggal_pelaporan' => ['tanggal', 'date', 'tgl'],
+                'tanggal_pelaporan' => ['tanggal pelaporan', 'tanggal', 'date', 'tgl'],
                 'prodi_kpi' => ['prodi', 'prodi kpi'],
                 'status' => ['status', 'st2024', 'st2025', 'st2026', 'st2027'],
             ],
@@ -283,26 +400,28 @@ class ColumnMapperService
     {
         return [
             'required' => [
-                'nim' => 'NIM',
-                'nama_mahasiswa' => 'Nama Mahasiswa',
-                'judul' => 'Judul',
-                'tahun' => 'Tahun',
+                'request_code' => 'Request Code',
+                'name' => 'Nama Mahasiswa / FM Author',
+                'code' => 'Kode Dosen (Mahasiswa)',
+                'campus' => 'Kampus',
+                'submitted' => 'Submitted',
+                'type' => 'Tipe Publikasi',
+                'title' => 'Judul / Title',
+                'program' => 'Program Studi Mahasiswa',
             ],
             'optional' => [
-                'prodi' => 'Program Studi',
-                'dosen_pembimbing' => 'Dosen Pembimbing',
-                'sumber_publikasi' => 'Sumber Publikasi',
-                'link_publikasi' => 'Link Publikasi',
+                'first_author' => 'First Author',
             ],
             'aliases' => [
-                'nim' => ['nim', 'nomor induk mahasiswa'],
-                'nama_mahasiswa' => ['nama', 'nama mahasiswa', 'nama_mhs'],
-                'judul' => ['judul', 'title', 'nama karya'],
-                'tahun' => ['tahun', 'year', 'thn'],
-                'prodi' => ['prodi', 'program studi', 'program studi'],
-                'dosen_pembimbing' => ['dosen', 'pembimbing', 'dosen pembimbing'],
-                'sumber_publikasi' => ['sumber', 'publikasi', 'tempat publikasi'],
-                'link_publikasi' => ['link', 'url', 'website'],
+                'request_code' => ['requestcode', 'request code'],
+                'name' => ['fm author', 'mhs author', 'nama mahasiswa', 'nama'],
+                'code' => ['kode dosen', 'kode_dosen'],
+                'campus' => ['kampus', 'campus'],
+                'submitted' => ['submitted', 'tipe laporan'],
+                'type' => ['tipe publikasi'],
+                'title' => ['title', 'judul', 'nama karya'],
+                'program' => ['prodi mhs', 'prodi', 'program studi'],
+                'first_author' => ['first author', 'first_author'],
             ],
         ];
     }
@@ -323,15 +442,9 @@ class ColumnMapperService
                 'lokasi_kampus' => 'Lokasi Kampus',
             ],
             'optional' => [
-                'nidn' => 'NIDN',
-                'kategori_fm_eksternal_mahasiswa' => 'Kategori FM/eksternal/Mahasiswa',
-                'sumber_dana' => 'Sumber Dana',
-                'dana_disetujui' => 'Dana Disetujui',
-                'tanggal_mulai' => 'Tanggal Mulai',
-                'tanggal_selesai' => 'Tanggal Selesai',
-                'program_hibah' => 'Program Hibah',
-                'skema' => 'SKEMA',
-                'sdgs' => 'SDGs',
+                ...array_diff_key(\App\Services\Research\RectorateResearchReader::HEADERS, array_flip([
+                    'tahun_anggaran', 'kd_prop', 'kode_dosen_nim', 'nama', 'peran', 'judul', 'lokasi_kampus',
+                ])),
             ],
             'aliases' => [
                 'tahun_anggaran' => ['tahun anggaran', 'tahun', 'budget year'],

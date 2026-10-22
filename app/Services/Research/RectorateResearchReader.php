@@ -2,6 +2,7 @@
 
 namespace App\Services\Research;
 
+use App\Services\ColumnMapping\ColumnMapperService;
 use Aspera\Spreadsheet\XLSX\Reader;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -37,7 +38,7 @@ class RectorateResearchReader
         'evidence' => 'Evidence',
     ];
 
-    public function read(string $path): array
+    public function read(string $path, ?array $columnMapping = null): array
     {
         $reader = new Reader;
         $rows = [];
@@ -63,7 +64,7 @@ class RectorateResearchReader
                 }
                 if ($map === null) {
                     $headers = array_map($this->normalize(...), $cells);
-                    $map = $this->headers($headers);
+                    $map = app(ColumnMapperService::class)->resolveMapping($headers, 'research_file', $columnMapping);
 
                     continue;
                 }
@@ -202,25 +203,6 @@ class RectorateResearchReader
         }
 
         return null;
-    }
-
-    private function headers(array $headers): array
-    {
-        $map = [];
-        foreach (self::HEADERS as $field => $label) {
-            $matches = array_keys($headers, $this->normalize($label), true);
-            if (count($matches) > 1) {
-                $this->invalid("Kolom {$label} duplikat pada sheet hibah terpilih.");
-            }
-            $map[$field] = $matches[0] ?? null;
-        }
-        foreach (['tahun_anggaran', 'kd_prop', 'kode_dosen_nim', 'nama', 'peran', 'judul', 'lokasi_kampus'] as $field) {
-            if ($map[$field] === null) {
-                $this->invalid('Kolom '.self::HEADERS[$field].' tidak ditemukan pada sheet hibah terpilih.');
-            }
-        }
-
-        return $map;
     }
 
     private function normalize(string $value): string
