@@ -1963,6 +1963,30 @@ section,
   background: linear-gradient(135deg, var(--background-color) 0%, color-mix(in srgb, var(--accent-color), transparent 95%) 100%);
 }
 
+.certifications .certification-grid.community-charts {
+  display: block;
+}
+
+.certifications > .section-title h2 {
+  font-size: 24px;
+  line-height: 1.3;
+}
+
+.certifications .community-chart-card {
+  min-width: 0;
+}
+
+.certifications .community-chart-frame {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  height: 260px;
+}
+
+.certifications .community-chart-frame canvas {
+  max-width: 100%;
+}
+
 .service-details .portfolio-showcase.certifications {
   padding: 0;
   background: none;

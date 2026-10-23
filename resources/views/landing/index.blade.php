@@ -487,8 +487,12 @@
 
         <div class="row align-items-center mb-5 content">
           <div class="col-lg-12" data-aos="fade-right" data-aos-delay="200">
-            <h2>UMKM Partnership</h2>
-            <p>BINUS@Malang memiliki hubungan yang kuat dengan UMKM sebagai bentuk pengabdian kepada masyarakat.</p>
+            <h2>Capaian Prodi</h2>
+            <p>Jumlah FM dan kegiatan pengabdian kepada masyarakat per prodi di BINUS Malang.</p>
+            <p class="mt-3 fs-6" id="communityChartPeriod">{{ $communityDevelopment['periodLabel'] }}
+              @if($communityDevelopment['isDemo']) &middot; Data contoh untuk pratinjau @endif
+              &middot; <a href="{{ route('publication-dashboard', $communityDevelopment['selectedPeriod'] ? ['community_period' => $communityDevelopment['selectedPeriod']] : []) }}#communityDevelopment">Lihat rekapitulasi capaian prodi <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+            </p>
           </div>
           {{-- <div class="col-lg-6" data-aos="fade-left" data-aos-delay="300">
             <div class="badge-highlight">
@@ -501,31 +505,37 @@
           </div> --}}
         </div>
 
-        <div class="certification-grid" data-aos="fade-up" data-aos-delay="400">
+        <div class="certification-grid community-charts" data-aos="fade-up" data-aos-delay="400">
           <div class="row gy-4">
             <div class="col-lg-6 col-md-12" data-aos="fade-up" data-aos-delay="100">
-              <div class="team-card compact">
+              <div class="team-card compact community-chart-card">
                 <div class="member-summary">
-                  <h5>Tahun Bergabung</h5>
-                  <div class="mt-3">
-                    <canvas id="chart-umkm-year" height="260"></canvas>
+                  <h5 id="communityFacultyChartHeading">Jumlah FM per Prodi</h5>
+                  <p class="visually-hidden" id="communityFacultyChartDescription">@foreach($communityDevelopment['programs'] as $program) {{ $program['code'] }}: {{ $program['faculty'] === null ? 'belum tersedia' : $program['faculty'].' FM' }}; @endforeach</p>
+                  <div class="mt-3 community-chart-frame">
+                    <canvas id="chart-community-fm" height="260" role="img" aria-labelledby="communityFacultyChartHeading" aria-describedby="communityFacultyChartDescription communityChartPeriod"></canvas>
                   </div>
                 </div>
               </div>
             </div>
 
             <div class="col-lg-6 col-md-12" data-aos="fade-up" data-aos-delay="200">
-              <div class="team-card compact">
+              <div class="team-card compact community-chart-card">
                 <div class="member-summary">
-                  <h5>Cluster UMKM</h5>
-                  <div class="mt-3">
-                    <canvas id="chart-umkm-cluster" height="260"></canvas>
+                  <h5 id="communityActivitiesChartHeading">Jumlah Kegiatan per Prodi</h5>
+                  <p class="visually-hidden" id="communityActivitiesChartDescription">@foreach($communityDevelopment['programs'] as $program) {{ $program['code'] }}: {{ $program['activities'] === null ? 'belum tersedia' : $program['activities'].' kegiatan' }}; @endforeach</p>
+                  <div class="mt-3 community-chart-frame">
+                    <canvas id="chart-community-activities" height="260" role="img" aria-labelledby="communityActivitiesChartHeading" aria-describedby="communityActivitiesChartDescription communityChartPeriod"></canvas>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        @if(collect($communityDevelopment['programs'])->contains(fn ($program) => $program['faculty'] === null || $program['activities'] === null))
+          <p class="text-muted small mt-3">Nilai yang belum tersedia tidak ditampilkan pada grafik.</p>
+        @endif
 
         {{-- <div class="achievements-banner" data-aos="zoom-in" data-aos-delay="700">
           <div class="row text-center">
@@ -941,35 +951,28 @@
         }
       );
 
+      const communityPrograms = {{ Illuminate\Support\Js::from(array_map(fn ($program) => array_intersect_key($program, array_flip(['code', 'faculty', 'activities'])), $communityDevelopment['programs'])) }};
+      const communityLabels = communityPrograms.map(program => program.code);
       buildChart(
-        'chart-umkm-year',
-        @json($umkmYearLabels),
-        @json($umkmYearData),
+        'chart-community-fm',
+        communityLabels,
+        communityPrograms.map(program => program.faculty),
         'bar',
         {
-          plugins: {
-            legend: {
-              display: false
-            }
-          },
+          plugins: { legend: { display: false } },
           scales: {
-            y: {
-              beginAtZero: true
-            }
+            y: { beginAtZero: true }
           }
         }
       );
-
       buildChart(
-        'chart-umkm-cluster',
-        @json($umkmClusterLabels),
-        @json($umkmClusterData),
+        'chart-community-activities',
+        communityLabels,
+        communityPrograms.map(program => program.activities),
         'doughnut',
         {
           plugins: {
-            legend: {
-              position: 'bottom'
-            }
+            legend: { position: 'bottom' }
           }
         }
       );

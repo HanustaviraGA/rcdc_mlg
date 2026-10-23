@@ -162,14 +162,14 @@ class CommunityDevelopmentImportTest extends TestCase
     public function test_confirmed_mapping_is_authoritative_when_headers_and_columns_move(): void
     {
         $path = $this->makeWorkbook([
-            'Rasio' => [['Title line'], ['My activities', 'My program', 'My faculty'], [3, 'EBC', 1]],
-            'Keterlibatan' => [['Title line'], ['ID', 'Reported', 'Other activities', 'Grade'], ['D1', 2, 999, 6]],
+            'Rasio' => [['Title line'], ['My activities', 'My program', 'My faculty', 'My ratio'], [3, 'EBC', 1, 3]],
+            'Keterlibatan' => [['Title line'], ['ID', 'Reported', 'Other activities', 'Grade', 'My status'], ['D1', 2, 999, 6, 'Sudah PkM']],
         ]);
-        $mapping = ['rasio' => ['program' => 1, 'faculty' => 2, 'activities' => 0], 'keterlibatan' => ['kode_dosen' => 0, 'reported_activities' => 1, 'score' => 3]];
+        $mapping = ['rasio' => ['program' => 1, 'faculty' => 2, 'activities' => 0, 'ratio' => 3], 'keterlibatan' => ['kode_dosen' => 0, 'reported_activities' => 1, 'score' => 3, 'status' => 4]];
         $summary = app(CommunityDevelopmentWorkbook::class)->import($path, '2025/2026', 'Ganjil', $mapping, ['rasio' => 2, 'keterlibatan' => 2], 'moved.xlsx');
         $this->assertSame(1, $summary['selected']);
         $this->assertSame(2, DB::table('community_development_lecturers')->sole()->reported_activities);
-        $this->assertNull(DB::table('community_development_lecturers')->sole()->status);
+        $this->assertSame('Sudah PkM', DB::table('community_development_lecturers')->sole()->status);
         $this->assertSame(3, app(CommunityDevelopmentDashboard::class)->data()['totals']['activities']);
     }
 
@@ -177,12 +177,14 @@ class CommunityDevelopmentImportTest extends TestCase
     {
         $mapper = new class extends ColumnMapperService
         {
+            public bool $requireScore = false;
+
             public function getMappingConfig(string $importType, ?int $year = null): array
             {
                 $config = parent::getMappingConfig($importType, $year);
-                if ($importType === 'pkm_involvement') {
-                    $config['required']['score'] = $config['optional']['score'];
-                    unset($config['optional']['score']);
+                if ($importType === 'pkm_involvement' && ! $this->requireScore) {
+                    $config['optional']['score'] = $config['required']['score'];
+                    unset($config['required']['score']);
                 }
 
                 return $config;
@@ -194,6 +196,9 @@ class CommunityDevelopmentImportTest extends TestCase
         $mapping = json_decode($payload['column_mapping'], true);
         unset($mapping['keterlibatan']['score']);
         $payload['column_mapping'] = json_encode($mapping);
+        $this->postJson(route('importpkm.upload'), $payload)->assertOk();
+        $this->assertNull(DB::table('community_development_lecturers')->first()->score);
+        $mapper->requireScore = true;
         $this->postJson(route('importpkm.upload'), $payload)->assertUnprocessable()->assertJsonValidationErrors('column_mapping.keterlibatan');
     }
 

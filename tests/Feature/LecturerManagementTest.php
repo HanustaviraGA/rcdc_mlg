@@ -152,6 +152,36 @@ class LecturerManagementTest extends TestCase
         $this->assertSame(['D001'], $response->viewData('dosen')->pluck('kode_dosen')->all());
     }
 
+    public function test_home_community_charts_use_the_latest_academic_period_recap(): void
+    {
+        Schema::create('v_statistik_prodi', function (Blueprint $table) {
+            $table->string('nama_gugus_binaan');
+            $table->integer('jml_fm');
+        });
+        (require database_path('migrations/2026_10_23_000000_create_community_development_imports.php'))->up();
+        foreach (['Ganjil', 'Genap'] as $semester) {
+            $id = DB::table('community_development_imports')->insertGetId([
+                'year_start' => 2025, 'semester' => $semester, 'filename' => $semester.'.xlsx',
+                'column_mapping' => '{}', 'header_rows' => '{}', 'created_at' => now(), 'updated_at' => now(),
+            ]);
+            DB::table('community_development_programs')->insert([
+                ['import_id' => $id, 'program_key' => 'cs', 'source_program' => 'CS', 'faculty' => $semester === 'Genap' ? 37 : 12,
+                    'activities' => $semester === 'Genap' ? 91 : 20, 'source_row' => 2],
+                ['import_id' => $id, 'program_key' => 'pr', 'source_program' => 'PR', 'faculty' => null, 'activities' => 0, 'source_row' => 3],
+            ]);
+        }
+        // No UMKM table is needed: these figures must come from the PKM recap.
+        $response = $this->get(route('home'))->assertOk()
+            ->assertSee('Capaian Prodi')->assertSee('Jumlah FM per Prodi')->assertSee('Jumlah Kegiatan per Prodi')
+            ->assertSee('2025/2026 Genap')->assertSee('Nilai yang belum tersedia tidak ditampilkan pada grafik.')
+            ->assertDontSee('UMKM Partnership')->assertDontSee('Tahun Bergabung')->assertDontSee('Cluster UMKM');
+        $data = $response->viewData('communityDevelopment');
+        $this->assertFalse($data['isDemo']);
+        $this->assertSame([37, null], array_column($data['programs'], 'faculty'));
+        $this->assertSame([91, 0], array_column($data['programs'], 'activities'));
+        $response->assertSee('href="'.route('publication-dashboard', ['community_period' => $data['selectedPeriod']]).'#communityDevelopment"', false);
+    }
+
     public function test_detail_combines_both_sources_limits_to_three_and_links_to_filtered_gallery(): void
     {
         $this->systemProject('S1', 'D999', 2025, [['ID' => 'D001', 'name' => 'Visible Lecturer']]);

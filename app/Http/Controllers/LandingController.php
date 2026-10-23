@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AttributeDosen;
 use App\Models\Comdevs;
 use App\Models\DataDosen;
+use App\Services\CommunityDevelopment\CommunityDevelopmentDashboard;
 use App\Services\Research\ResearchGallery;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
@@ -29,25 +30,7 @@ class LandingController extends Controller
             $prodiCounts[] = $item->jml_fm;
         }
 
-        $umkmYearRows = \DB::table('umkm_partnership')
-            ->select('tahun_bergabung', \DB::raw('COUNT(*) as total'))
-            ->whereNotNull('tahun_bergabung')
-            ->where('tahun_bergabung', '!=', '')
-            ->groupBy('tahun_bergabung')
-            ->orderBy('tahun_bergabung', 'ASC')
-            ->get();
-        $umkmYearLabels = $umkmYearRows->pluck('tahun_bergabung')->values();
-        $umkmYearData = $umkmYearRows->pluck('total')->values();
-
-        $umkmClusterRows = \DB::table('umkm_partnership')
-            ->select('cluster', \DB::raw('COUNT(*) as total'))
-            ->whereNotNull('cluster')
-            ->where('cluster', '!=', '')
-            ->groupBy('cluster')
-            ->orderBy('cluster', 'ASC')
-            ->get();
-        $umkmClusterLabels = $umkmClusterRows->pluck('cluster')->values();
-        $umkmClusterData = $umkmClusterRows->pluck('total')->values();
+        $communityDevelopment = app(CommunityDevelopmentDashboard::class)->data();
 
         $jjaCounts = [];
         $jjaRows = DataDosen::query()->currentRoster()
@@ -98,10 +81,7 @@ class LandingController extends Controller
             'jjaData',
             'pendidikanLabels',
             'pendidikanData',
-            'umkmYearLabels',
-            'umkmYearData',
-            'umkmClusterLabels',
-            'umkmClusterData'
+            'communityDevelopment'
         ));
     }
 
