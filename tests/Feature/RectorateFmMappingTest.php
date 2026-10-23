@@ -104,7 +104,7 @@ class RectorateFmMappingTest extends TestCase
     #[DataProvider('emptyOptionalMappings')]
     public function test_optional_mapping_can_be_omitted_null_or_empty_even_with_populated_matching_headers(mixed $empty): void
     {
-        $optional = app(ColumnMapperService::class)->getMappingConfig('fm_file')['optional'];
+        $optional = array_diff_key(app(ColumnMapperService::class)->getMappingConfig('fm_file')['optional'], ['request_code' => true]);
         $this->assertEqualsCanonicalizing(array_keys(self::OPTIONAL_VALUES), array_keys($optional));
         $file = $this->fmWorkbook(
             array_merge(self::REQUIRED_HEADERS, array_values($optional)),
@@ -175,7 +175,7 @@ class RectorateFmMappingTest extends TestCase
         return [
             'missing required' => [array_diff_key(self::REQUIRED_MAPPING, ['status' => true])],
             'null required' => [array_replace(self::REQUIRED_MAPPING, ['title' => null])],
-            'empty required' => [array_replace(self::REQUIRED_MAPPING, ['request_code' => ''])],
+            'empty required' => [array_replace(self::REQUIRED_MAPPING, ['title' => ''])],
             'negative index' => [array_replace(self::REQUIRED_MAPPING, ['title' => -1])],
             'out of range index' => [array_replace(self::REQUIRED_MAPPING, ['title' => 9])],
             'non-numeric index' => [array_replace(self::REQUIRED_MAPPING, ['title' => 'A'])],
@@ -222,7 +222,8 @@ class RectorateFmMappingTest extends TestCase
         ])->assertOk()->assertJsonPath('success', true)->assertJsonPath('has_kpi', true);
 
         $this->assertSame($headers, $response->json('headers'));
-        $this->assertSame(array_keys(self::REQUIRED_MAPPING), array_keys($response->json('mapping_config.required')));
+        $this->assertSame(array_keys(array_diff_key(self::REQUIRED_MAPPING, ['request_code' => true])), array_keys($response->json('mapping_config.required')));
+        $this->assertArrayHasKey('request_code', $response->json('mapping_config.optional'));
         $this->assertArrayHasKey('first_author', $response->json('mapping_config.optional'));
         $this->assertArrayHasKey('prodi_kpi', $response->json('mapping_config.optional'));
         $this->assertSame(0, DB::table('publication_imports')->count());
@@ -250,6 +251,101 @@ class RectorateFmMappingTest extends TestCase
         $this->assertSame(0, DB::table('publication_imports')->count());
         $this->assertSame(0, DB::table('rectorate_dosen')->count());
         $this->assertSame(0, DB::table('publication_kpi_entries')->count());
+    }
+
+    public function test_optional_request_code_can_be_unmapped_without_merging_different_titles(): void
+    {
+        $first = array_replace(self::REQUIRED_ROW, [5 => 'First publication']);
+        $second = array_replace(self::REQUIRED_ROW, [5 => 'Second publication']);
+        $file = $this->makeWorkbook(['MALANG' => [self::REQUIRED_HEADERS, $first, $second, $first]]);
+        $this->actingAs((new User)->forceFill(['id' => 1]));
+        foreach ([[], ['request_code' => null], ['request_code' => '']] as $optional) {
+            $mapping = array_diff_key(self::REQUIRED_MAPPING, ['request_code' => true]) + $optional;
+            $parsed = app(RawPublicationReader::class)->read($file, 2026, $mapping);
+            $this->assertSame(2, $parsed['summary']['selected']);
+            $this->assertSame(2, $parsed['summary']['publications']);
+            $this->assertSame(1, $parsed['summary']['duplicates']);
+            $this->assertSame([null, null], array_column($parsed['records'], 'request_code'));
+            $this->postJson(route('importrectorate.upload'), [
+                'year' => 2026, 'month' => 9, 'fm_file' => $this->upload($file),
+                'column_mapping' => ['fm_file' => json_encode($mapping, JSON_THROW_ON_ERROR)],
+            ])->assertOk()->assertJsonPath('summaries.fm_file.selected', 2);
+            $this->assertSame(2, DB::table('rectorate_dosen')->whereNull('request_code')->count());
+        }
+    }
+
+    public function test_mapped_blank_request_codes_and_automatic_mapping_without_request_header_are_accepted(): void
+    {
+        $row = array_replace(self::REQUIRED_ROW, [0 => '', 4 => '0', 5 => '0']);
+        $parsed = app(RawPublicationReader::class)->read($this->fmWorkbook(self::REQUIRED_HEADERS, $row), 2026, self::REQUIRED_MAPPING);
+        $this->assertNull($parsed['records'][0]['request_code']);
+        $this->assertSame(0.0, $parsed['records'][0]['bobot_asli']);
+        $this->assertSame('0', $parsed['records'][0]['title']);
+        $headers = array_slice(self::REQUIRED_HEADERS, 1);
+        $file = $this->makeWorkbook(['MALANG' => [$headers, array_slice(self::REQUIRED_ROW, 1)]]);
+        $summary = $this->import($file);
+        $this->assertSame(1, $summary['selected']);
+        $this->assertNull(DB::table('rectorate_dosen')->sole()->request_code);
+    }
+
+    public function test_missing_required_value_reports_the_confirmed_source_column_and_preserves_existing_data(): void
+    {
+        $file = $this->fmWorkbook(self::REQUIRED_HEADERS);
+        $this->import($file, self::REQUIRED_MAPPING);
+        $before = DB::table('rectorate_dosen')->get();
+        $batch = DB::table('publication_imports')->sole();
+        $invalidFile = $this->fmWorkbook($this->arbitraryHeaders(9), array_replace(self::REQUIRED_ROW, [5 => '']));
+        $this->actingAs((new User)->forceFill(['id' => 1]));
+        $response = $this->postJson(route('importrectorate.upload'), [
+            'year' => 2026, 'month' => 9, 'fm_file' => $this->upload($invalidFile),
+            'column_mapping' => ['fm_file' => json_encode(array_diff_key(self::REQUIRED_MAPPING, ['request_code' => true]), JSON_THROW_ON_ERROR)],
+        ])->assertUnprocessable()->assertJsonValidationErrors('rectorate');
+        $this->assertStringContainsString('Baris 2: Title (title) kosong pada kolom F (Custom column 5).', $response->json('errors.rectorate.0'));
+        $this->assertEquals($before, DB::table('rectorate_dosen')->get());
+        $this->assertEquals($batch, DB::table('publication_imports')->sole());
+    }
+
+    public function test_changing_required_fields_in_mapping_service_is_enough_to_change_reader_validation(): void
+    {
+        $this->app->instance(ColumnMapperService::class, new class extends ColumnMapperService
+        {
+            public function getMappingConfig(string $importType, ?int $year = null): array
+            {
+                $config = parent::getMappingConfig($importType, $year);
+                foreach (['status', 'bobot_asli'] as $field) {
+                    $config['optional'][$field] = $config['required'][$field];
+                    unset($config['required'][$field]);
+                }
+
+                return $config;
+            }
+        });
+        $mapping = array_diff_key(self::REQUIRED_MAPPING, array_flip(['status', 'bobot_asli', 'request_code']));
+        $file = $this->fmWorkbook(self::REQUIRED_HEADERS);
+        $record = app(RawPublicationReader::class)->read($file, 2026, $mapping)['records'][0];
+        $this->assertNull($record['status']);
+        $this->assertNull($record['bobot_asli']);
+        $this->assertNull($record['request_code']);
+        $this->assertSame(1, $this->import($file, $mapping)['selected']);
+    }
+
+    public function test_configured_status_alias_is_used_for_both_suggestions_and_automatic_import(): void
+    {
+        $mapper = new class extends ColumnMapperService
+        {
+            public function getMappingConfig(string $importType, ?int $year = null): array
+            {
+                $config = parent::getMappingConfig($importType, $year);
+                $config['aliases']['status'] = ['Publication State'];
+
+                return $config;
+            }
+        };
+        $this->app->instance(ColumnMapperService::class, $mapper);
+        $headers = array_replace(self::REQUIRED_HEADERS, [8 => 'Publication State']);
+        $this->assertSame(8, $mapper->suggestMapping($headers, 'fm_file', 2026)['status']);
+        $record = app(RawPublicationReader::class)->read($this->fmWorkbook($headers), 2026)['records'][0];
+        $this->assertSame('Accepted', $record['status']);
     }
 
     private function import(string $file, ?array $mapping = null): array

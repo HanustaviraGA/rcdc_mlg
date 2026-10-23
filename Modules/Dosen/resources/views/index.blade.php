@@ -2,26 +2,27 @@
     <div class=" col-12" id="tableCourseContainer">
         <div class="card card-bordered">
             <div class="card-body">
-                <div class="row mb-5">
-                    <div class="col-12 col-xl d-flex align-items-center justify-content-between ">
-                        <div class=" d-flex align-items-center">
-                            <p> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                    <path d="M15 2.28572V3.71428C15 4.97322 11.8646 6 8 6C4.13541 6 1 4.97322 1 3.71428V2.28572C1 1.02678 4.13541 0 8 0C11.8646 0 15 1.02678 15 2.28572ZM15 5.5V8.71428C15 9.97322 11.8646 11 8 11C4.13541 11 1 9.97322 1 8.71428V5.5C2.50391 6.53572 5.2565 7.01788 8 7.01788C10.7435 7.01788 13.4961 6.53572 15 5.5ZM15 10.5V13.7143C15 14.9732 11.8646 16 8 16C4.13541 16 1 14.9732 1 13.7143V10.5C2.50391 11.5357 5.2565 12.0179 8 12.0179C10.7435 12.0179 13.4961 11.5357 15 10.5Z" fill="black" />
-                                </svg></p>
-                            <h3 class="mt-1 mb-5 ms-5">Dosen</h3>
-                        </div>
-                        <div class=" col-lg-6 d-none d-xl-block">
-                            <p class="mt-4 mb-5 ms-5 text-end">Pencarian :</p>
-                        </div>
-                        <div class="col-12 col-xl-4 col-md-6 col-lg-6 d-flex align-items-center ms-5 mt-5 mt-md-0">
-                            <label for="customSearchInput" class="text-muted las la-search position-absolute ms-3 fs-2 mt-1"></label>
-                            <input type="search" class="form-control form-control ps-10 bg-gray-100" id="customSearchInput" placeholder="Cari nama">
+                <div class="dosen-toolbar mb-5">
+                    <div class="d-flex align-items-center flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path d="M15 2.28572V3.71428C15 4.97322 11.8646 6 8 6C4.13541 6 1 4.97322 1 3.71428V2.28572C1 1.02678 4.13541 0 8 0C11.8646 0 15 1.02678 15 2.28572ZM15 5.5V8.71428C15 9.97322 11.8646 11 8 11C4.13541 11 1 9.97322 1 8.71428V5.5C2.50391 6.53572 5.2565 7.01788 8 7.01788C10.7435 7.01788 13.4961 6.53572 15 5.5ZM15 10.5V13.7143C15 14.9732 11.8646 16 8 16C4.13541 16 1 14.9732 1 13.7143V10.5C2.50391 11.5357 5.2565 12.0179 8 12.0179C10.7435 12.0179 13.4961 11.5357 15 10.5Z" fill="black" />
+                        </svg>
+                        <h3 class="mb-0 ms-3">Dosen</h3>
+                    </div>
+                    <div class="dosen-search d-flex align-items-center">
+                        <label for="customSearchInput" class="visually-hidden">Pencarian nama dosen</label>
+                        <div class="position-relative flex-grow-1" style="min-width: 0">
+                            <i class="text-muted las la-search position-absolute top-50 translate-middle-y ms-3 fs-2" aria-hidden="true"></i>
+                            <input type="search" class="form-control ps-10 bg-gray-100" id="customSearchInput" placeholder="Cari nama dosen">
                         </div>
                     </div>
-                    <div class="col-12 col-xl-auto d-flex flex-wrap gap-3 align-items-center mt-5 my-xl-0">
+                    <div class="dosen-toolbar-actions d-flex flex-wrap gap-3 align-items-center">
                         <button type="button" class="btn btn-light-primary" onclick="openDosenFilters()" id="dosenFilterButton" aria-haspopup="dialog" aria-controls="modalDosenFilter"><i class="las la-filter fs-2" aria-hidden="true"></i> Filter</button>
                         <div data-roleable="false" data-role="editdosen">
-                            <button type="button" class="btn btn-primary" onclick="$('#modalHakakses').modal('show')" id="toggleFormButton"><i class="las la-plus fs-2"></i> Perbarui Data</button>
+                            <button type="button" class="btn btn-primary text-nowrap" onclick="$('#modalDosenEducation').modal('show')" id="dosenEducationButton" aria-haspopup="dialog" aria-controls="modalDosenEducation"><i class="las la-graduation-cap fs-2" aria-hidden="true"></i> Update Status Pendidikan</button>
+                        </div>
+                        <div data-roleable="false" data-role="editdosen">
+                            <button type="button" class="btn btn-primary text-nowrap" onclick="$('#modalHakakses').modal('show')" id="toggleFormButton"><i class="las la-plus fs-2"></i> Update Data Center</button>
                         </div>
                     </div>
                 </div>
@@ -33,7 +34,7 @@
                         <thead>
                             <tr class="fw-bolder text-dark">
                                 <th style="width: 100px !important;">Kode Dosen</th>
-                                <th>Sembunyikan profil</th>
+                                <th>Visibilitas</th>
                                 <th style="width: 400px !important;">Nama Dosen</th>
                                 <th style="width: 200px !important;">Program Studi</th>
                                 <th>Faculty Type</th>
@@ -52,6 +53,17 @@
         </div>
     </div>
 </div>
+<style>
+    .dosen-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    .dosen-search { flex: 1 1 20rem; min-width: 0; }
+    .dosen-toolbar-actions { margin-left: auto; }
+    @media (max-width: 575.98px) {
+        .dosen-search { flex-basis: 100%; }
+        .dosen-toolbar-actions { width: 100%; margin-left: 0; }
+        .dosen-toolbar-actions > [data-role="editdosen"] { width: 100%; }
+        .dosen-toolbar-actions > [data-role="editdosen"] > button { width: 100%; }
+    }
+</style>
 <input type="hidden" id="prodi" value="All">
 <input type="hidden" id="dosenFilterYear" value="{{ now()->year }}">
 <input type="hidden" id="dosenFilterMonth" value="">
@@ -130,7 +142,7 @@
                         </div>
                         <label for="dosen" class="required form-label">Data Center (.xlsx)</label>
                         <input type="file" accept=".xlsx" required id="dosen" name="dosen" class="form-control form-control-outline" onchange="previewDosenWorkbook()">
-                        <p class="text-muted mt-3">Membaca sheet Malang (atau FM Malang / FM BINUS Malang). Periksa contoh data dan konfirmasikan pemetaan sebelum mengunggah. Hanya Kode Dosen dan Nama Dosen yang wajib dipetakan; kolom opsional boleh tidak dipetakan atau memiliki nilai kosong dan tidak menghalangi unggahan. Kolom opsional yang tidak dipetakan memakai data snapshot periode yang sama atau sebelumnya dalam tahun terpilih, jika tersedia. Unggahan historis tidak mengubah master tahun berjalan.</p>
+                        <p class="text-muted mt-3">Membaca sheet Malang (atau FM Malang / FM BINUS Malang). Periksa contoh data dan konfirmasikan pemetaan sebelum mengunggah. Hanya Kode Dosen dan Nama Dosen yang wajib dipetakan; kolom opsional boleh tidak dipetakan atau memiliki nilai kosong dan tidak menghalangi unggahan. Setelah validasi berhasil, seluruh data dosen pada tahun dan bulan terpilih diganti dengan isi file sesuai pemetaan terbaru. Dosen yang tidak ada dalam file dihapus dari periode tersebut; kolom yang tidak dipetakan dikosongkan. Data periode lain tetap tersimpan. Unggahan historis tidak mengubah master tahun berjalan.</p>
                         <p id="dosenPreviewStatus" role="status" aria-live="polite"></p>
                         <button type="button" id="dosenPreviewRetry" class="btn btn-sm btn-light-primary d-none mb-3" onclick="previewDosenWorkbook()">Coba pratinjau lagi</button>
                         <div id="dosenMappingPanel" class="d-none">
@@ -165,6 +177,8 @@
     </div>
 </div>
 @include('dosen::modal')
+@include('dosen::education_import')
 <script src="{{ asset('assets/backoffice/plugins/custom/tinymce/tinymce.bundle.js') }}"></script>
 @include('dosen::javascript')
 @include('dosen::import_javascript')
+@include('dosen::education_import_javascript')

@@ -19,6 +19,8 @@ Route::prefix('backoffice/dosen')->group(function () {
     Route::post('create', [DosenController::class, 'create'])->name('dosen.create');
     Route::post('read', [DosenController::class, 'read'])->middleware('auth')->name('dosen.read');
     Route::post('preview', [DosenController::class, 'preview'])->middleware('auth')->name('dosen.preview');
+    Route::post('education/preview', [DosenController::class, 'previewEducation'])->middleware('auth')->name('dosen.education.preview');
+    Route::post('education/import', [DosenController::class, 'importEducation'])->middleware('auth')->name('dosen.education.import');
     Route::post('detail', [DosenController::class, 'detail'])->name('dosen.detail');
     Route::put('update', [DosenController::class, 'update'])->name('dosen.update');
     Route::delete('delete', [DosenController::class, 'delete'])->middleware('auth')->name('dosen.delete');

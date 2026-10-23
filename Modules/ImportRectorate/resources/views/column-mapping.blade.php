@@ -76,7 +76,7 @@
                         <p class="text-muted small mb-4">
                             Sistem secara otomatis mendeteksi kolom yang sesuai. Ubah pemetaan jika ada kolom yang tidak cocok.
                             Kolom dengan tanda <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Wajib</span> harus dipetakan ke kolom sumber yang berbeda.
-                            Kolom opsional boleh tidak dipetakan. Konfirmasi pemetaan, lalu klik <strong>Upload dan import</strong> pada halaman utama.
+                            Kolom opsional boleh tidak dipetakan. Konfirmasi pemetaan, lalu klik tombol <strong>Upload dan import</strong> pada jenis data yang sesuai di halaman utama.
                         </p>
 
                         <div class="table-responsive">

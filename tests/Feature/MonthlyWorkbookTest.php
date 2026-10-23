@@ -42,7 +42,7 @@ class MonthlyWorkbookTest extends TestCase
 
     public function test_lecturer_mapping_preserves_missing_columns_and_phone_leading_zero(): void
     {
-        DataDosen::create(['kode_dosen' => 'D1', 'nama_dosen' => 'Old', 'agama' => 'Preserved']);
+        DataDosen::create(['kode_dosen' => 'D1', 'nama_dosen' => 'Old', 'note' => 'Preserved']);
         $path = $this->makeWorkbook(['Data All' => [['Kode Dosen', 'Nama Dosen'], ['OTHER', 'Not Malang']], ' MALANG ' => [
             [' no hp2 ', 'Nama Dosen', 'Kode Dosen', 'Campus'], ['081234567890', 'New', 'd1', 'Binus Malang'],
         ]]);
@@ -50,7 +50,7 @@ class MonthlyWorkbookTest extends TestCase
         $this->assertSame(4, $summary['mapped_columns']);
         $this->assertSame(1, $summary['selected']);
         $this->assertSame('081234567890', DataDosen::find('D1')->no_hp_2);
-        $this->assertSame('Preserved', DataDosen::find('D1')->agama);
+        $this->assertSame('Preserved', DataDosen::find('D1')->note);
         $this->assertSame(1, DataDosen::count());
     }
 

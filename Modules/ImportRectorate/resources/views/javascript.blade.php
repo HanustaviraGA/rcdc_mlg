@@ -4,7 +4,8 @@
     if (!root) return;
 
     const form = root.querySelector('form');
-    const button = root.querySelector('#monthly-import-submit');
+    const uploadButtons = [...form.querySelectorAll('[data-import-file]')];
+    const periodInputs = [form.querySelector('[name="year"]'), form.querySelector('[name="month"]')];
     const errors = root.querySelector('#monthly-import-errors');
     const fileInputs = [...form.querySelectorAll('input[type="file"]')];
     const modal = document.getElementById('column-mapping-modal');
@@ -61,8 +62,10 @@
     }
 
     function updateUploadButton() {
-        const selected = fileInputs.filter(input => input.files.length);
-        button.disabled = uploading || !selected.length || selected.some(input => !selectedState(input)?.mapping);
+        uploadButtons.forEach(button => {
+            const input = fileInputs.find(input => input.name === button.dataset.importFile);
+            button.disabled = uploading || !input?.files.length || !selectedState(input)?.mapping;
+        });
     }
 
     function closePreview() {
@@ -372,31 +375,34 @@
         event.preventDefault();
         if (uploading) return;
         errors.hidden = true;
-        const selected = fileInputs.filter(input => input.files.length);
-        if (!selected.length) {
-            showError('Pilih minimal satu file untuk diupload.');
+        const button = event.submitter;
+        const input = fileInputs.find(input => input.name === button?.dataset.importFile);
+        if (!input?.files.length) {
+            showError('Pilih file dan gunakan tombol Upload dan import pada jenis data yang ingin diunggah.');
             return;
         }
-        if (selected.some(input => !selectedState(input)?.mapping)) {
-            showError('Konfirmasi pemetaan setiap file terlebih dahulu melalui tombol Buka preview / pemetaan.');
+        const state = selectedState(input);
+        if (!state?.mapping) {
+            showError('Konfirmasi pemetaan file ini terlebih dahulu melalui tombol Buka preview / pemetaan.');
             updateUploadButton();
             return;
         }
+        const formData = new FormData();
+        formData.append('_token', csrfToken);
+        periodInputs.forEach(input => formData.append(input.name, input.value));
+        // Each request contains only the source chosen with its own upload button.
+        formData.append(input.name, state.file);
+        formData.append(`column_mapping[${input.name}]`, JSON.stringify(state.mapping));
+        const originalLabel = button.innerHTML;
         uploading = true;
         closePreview();
         bootstrap.Modal.getOrCreateInstance(modal).hide();
         root.querySelector('#monthly-import-summary').replaceChildren();
         button.textContent = 'Memproses import...';
+        periodInputs.forEach(input => { input.disabled = true; });
         fileInputs.forEach(input => { input.disabled = true; updateFileInputBadge(input); });
         updateUploadButton();
         try {
-            const formData = new FormData(form);
-            // Disabled file controls are omitted by FormData(form), so append explicitly.
-            selected.forEach(input => {
-                const state = selectedState(input);
-                formData.append(input.name, state.file);
-                formData.append(`column_mapping[${input.name}]`, JSON.stringify(state.mapping));
-            });
             const response = await fetch(form.action, {
                 method: 'POST', headers: { 'Accept': 'application/json' }, body: formData,
             });
@@ -406,14 +412,15 @@
             }
             root.querySelector('#monthly-import-summary').innerHTML = data.summary_html;
             root.querySelector('#monthly-import-history').innerHTML = data.history_html;
-            fileInputs.forEach(input => { input.value = ''; });
-            files.clear();
+            input.value = '';
+            files.delete(input.name);
         } catch (error) {
             showError(error.message);
         } finally {
             uploading = false;
+            periodInputs.forEach(input => { input.disabled = false; });
             fileInputs.forEach(input => { input.disabled = false; updateFileInputBadge(input); });
-            button.textContent = 'Upload dan import';
+            button.innerHTML = originalLabel;
             updateUploadButton();
         }
     });

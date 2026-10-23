@@ -3,6 +3,7 @@
 namespace App\Services\Research;
 
 use App\Services\ColumnMapping\ColumnMapperService;
+use App\Services\Imports\ImportPolicy;
 use Aspera\Spreadsheet\XLSX\Reader;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -42,6 +43,9 @@ class RectorateResearchReader
     {
         $reader = new Reader;
         $rows = [];
+        $mapper = app(ColumnMapperService::class);
+        $sourceHeaders = [];
+        $policy = new ImportPolicy('rectorate_hibah', 'research_file');
         $summary = ['sheet' => 'Detail', 'campus' => self::CAMPUS, 'read' => 0, 'excluded_campus' => 0,
             'duplicates' => 0, 'missing' => [], 'invalid_values' => [], 'years' => [], 'roles' => []];
         try {
@@ -63,8 +67,9 @@ class RectorateResearchReader
                     continue;
                 }
                 if ($map === null) {
+                    $sourceHeaders = $cells;
                     $headers = array_map($this->normalize(...), $cells);
-                    $map = app(ColumnMapperService::class)->resolveMapping($headers, 'research_file', $columnMapping);
+                    $map = $mapper->resolveMapping($headers, 'research_file', $columnMapping);
 
                     continue;
                 }
@@ -79,20 +84,26 @@ class RectorateResearchReader
                     $value = $index === null ? '' : ($cells[$index] ?? '');
                     $record[$field] = in_array($value, ['', '-'], true) ? null : $value;
                 }
-                foreach (['tahun_anggaran', 'kd_prop', 'kode_dosen_nim', 'nama', 'peran', 'judul'] as $required) {
-                    if ($record[$required] === null) {
-                        $this->invalid("Baris {$number}: ".self::HEADERS[$required].' wajib diisi.');
-                    }
+                $validation = $mapper->validateRow($record, 'research_file', (int) $number, $map, $sourceHeaders);
+                if (! $validation['valid']) {
+                    $policy->accept(implode(' ', $validation['errors']));
                 }
-                if (! preg_match('/^(20\d{2}|2100)$/', $record['tahun_anggaran'])) {
-                    $this->invalid("Baris {$number}: Tahun Anggaran harus berupa tahun 2000–2100.");
+                if ($policy->force && ($record['kd_prop'] === null || $record['kode_dosen_nim'] === null)) {
+                    $policy->skip("Baris {$number}: Kd. Prop atau Kode Dosen/NIM kosong.");
+
+                    continue;
+                }
+                if (! preg_match('/^(20\d{2}|2100)$/', $record['tahun_anggaran'] ?? '')) {
+                    $policy->skip("Baris {$number}: Tahun Anggaran harus berupa tahun 2000–2100.");
+
+                    continue;
                 }
                 $record['lokasi_kampus'] = self::CAMPUS;
                 $record['kd_prop'] = strtoupper($record['kd_prop']);
                 $record['kode_dosen_nim'] = strtoupper($record['kode_dosen_nim']);
                 $record['budget_year'] = (int) $record['tahun_anggaran'];
                 $record['project_key'] = hash('sha256', $record['tahun_anggaran'].'|'.$record['kd_prop']);
-                $record['row_key'] = hash('sha256', $record['project_key'].'|'.$record['kode_dosen_nim'].'|'.$this->normalize($record['peran']));
+                $record['row_key'] = hash('sha256', $record['project_key'].'|'.$record['kode_dosen_nim'].'|'.$this->normalize($record['peran'] ?? ''));
                 $issues = [];
                 foreach (['dana_disetujui' => 'approved_amount', 'hibah_internal_binus' => 'internal_amount', 'hibah_per_prodi' => 'program_amount'] as $original => $target) {
                     $record[$target] = $this->amount($record[$original]);
@@ -122,7 +133,9 @@ class RectorateResearchReader
                     $comparison = $record;
                     unset($comparison['no']);
                     if ($previous !== $comparison) {
-                        $this->invalid("Baris {$number}: identitas proyek/peneliti/peran duplikat dengan isi berbeda.");
+                        $policy->skip("Baris {$number}: identitas proyek/peneliti/peran duplikat dengan isi berbeda; data pertama dipakai.");
+
+                        continue;
                     }
                     $summary['duplicates']++;
 
@@ -154,7 +167,7 @@ class RectorateResearchReader
         $summary['researchers'] = count(array_unique(array_column($rows, 'kode_dosen_nim')));
         ksort($summary['years']);
 
-        return ['records' => array_values($rows), 'summary' => $summary];
+        return ['records' => array_values($rows), 'summary' => $policy->summary($summary)];
     }
 
     public function amount(?string $value): ?string

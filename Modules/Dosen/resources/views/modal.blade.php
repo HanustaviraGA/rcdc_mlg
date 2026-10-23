@@ -49,8 +49,12 @@
                                             <td data-field="jja">-</td>
                                         </tr>
                                         <tr>
-                                            <th>Pendidikan</th>
+                                            <th>Pendidikan Terakhir</th>
                                             <td data-field="pendidikan">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Status Pendidikan</th>
+                                            <td data-field="status_pendidikan">-</td>
                                         </tr>
                                         <tr>
                                             <th>Jurusan</th>
@@ -68,7 +72,7 @@
                                             <th>No HP</th>
                                             <td data-field="no_hp">-</td>
                                         </tr>
-                                        <tr>
+                                        <tr style="display: none;">
                                             <th>Alamat</th>
                                             <td data-field="alamat">-</td>
                                         </tr>
@@ -76,15 +80,15 @@
                                             <th>Status</th>
                                             <td data-field="status">-</td>
                                         </tr>
-                                        <tr>
+                                        <tr style="display: none;">
                                             <th>Campus</th>
                                             <td data-field="campus">-</td>
                                         </tr>
-                                        <tr>
+                                        <tr style="display: none;">
                                             <th>Lokasi</th>
                                             <td data-field="lokasi">-</td>
                                         </tr>
-                                        <tr>
+                                        <tr style="display: none;">
                                             <th>Tgl Mulai Mengajar</th>
                                             <td data-field="tgl_mulai_mengajar">-</td>
                                         </tr>

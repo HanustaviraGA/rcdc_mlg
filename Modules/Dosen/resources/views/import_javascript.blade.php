@@ -17,9 +17,9 @@
         return errors ? Object.values(errors).flat().join('\n') : (xhr.responseJSON?.message || fallback);
     }
 
-    function getDosenColumnMapping() {
+    function getDosenColumnMapping(prefix = 'dosen') {
         const mapping = {};
-        document.querySelectorAll('#dosenMappingRows select').forEach(function (select) {
+        document.querySelectorAll('#' + prefix + 'MappingRows select').forEach(function (select) {
             if (select.value !== '') mapping[select.dataset.field] = Number(select.value);
         });
         return mapping;
@@ -68,16 +68,19 @@
         return value === null || value === undefined ? '' : String(value);
     }
 
-    function renderDosenWorkbookPreview(preview) {
-        const mappingRows = document.getElementById('dosenMappingRows');
-        const previewHeaders = document.getElementById('dosenPreviewHeaders');
-        const previewRows = document.getElementById('dosenPreviewRows');
+    function renderDosenWorkbookPreview(preview, options = {}) {
+        const prefix = options.prefix || 'dosen';
+        const state = options.state || dosenImportState;
+        const updateControls = options.updateControls || updateDosenImportControls;
+        const mappingRows = document.getElementById(prefix + 'MappingRows');
+        const previewHeaders = document.getElementById(prefix + 'PreviewHeaders');
+        const previewRows = document.getElementById(prefix + 'PreviewRows');
         mappingRows.replaceChildren();
         previewHeaders.replaceChildren();
         previewRows.replaceChildren();
-        document.getElementById('dosenSheetInfo').textContent = 'Sheet: ' + preview.sheet + ' · Baris header: ' + preview.header_row;
+        document.getElementById(prefix + 'SheetInfo').textContent = 'Sheet: ' + preview.sheet + ' · Baris header: ' + preview.header_row;
 
-        const required = { ...preview.mapping_config.required, kode_dosen: 'Kode Dosen', nama_dosen: 'Nama Dosen' };
+        const required = { ...preview.mapping_config.required, ...(options.required || { kode_dosen: 'Kode Dosen', nama_dosen: 'Nama Dosen' }) };
         const fields = { ...required, ...preview.mapping_config.optional };
         const samples = preview.preview_data.slice(0, 5);
         Object.entries(fields).forEach(function ([field, label]) {
@@ -104,9 +107,9 @@
                 exampleCell.textContent = values.find(value => value !== '') || '—';
             };
             select.addEventListener('change', function () {
-                dosenImportState.confirmed = false;
+                state.confirmed = false;
                 updateExample();
-                updateDosenImportControls();
+                updateControls();
             });
             updateExample();
             selectCell.appendChild(select);
@@ -130,7 +133,7 @@
             });
             previewRows.appendChild(row);
         });
-        $('#dosenMappingPanel').removeClass('d-none');
+        $('#' + prefix + 'MappingPanel').removeClass('d-none');
     }
 
     function previewDosenWorkbook() {
@@ -231,7 +234,9 @@
                 }
                 const summary = response.summary || {};
                 let message = response.message || 'Data dosen berhasil diunggah.';
-                if (Array.isArray(summary.preserved_columns)) message += '\nKolom tidak disertakan (memakai snapshot sebelumnya dalam tahun yang sama jika tersedia): ' + (summary.preserved_columns.join(', ') || 'Tidak ada');
+                if (summary.force_import) message += '\nForce import aktif. ' + (summary.skipped_rows || 0) + ' baris dilewati.';
+                if (Array.isArray(summary.warnings) && summary.warnings.length) message += '\n' + summary.warnings.join('\n');
+                if (Array.isArray(summary.unmapped_columns)) message += '\nKolom tidak dipetakan (dikosongkan pada periode ini): ' + (summary.unmapped_columns.join(', ') || 'Tidak ada');
                 if (Array.isArray(summary.unknown_columns)) message += '\nKolom belum dikenali: ' + (summary.unknown_columns.join(', ') || 'Tidak ada');
                 document.getElementById('dosenImportSummary').textContent = message;
                 SUPER.showMessage({ success: true, title: 'Berhasil', message: response.message || 'Data dosen berhasil diunggah.' });

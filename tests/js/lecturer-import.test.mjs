@@ -174,12 +174,13 @@ test('historical upload success retains the current table filter instead of swit
     h.context.Option = class { constructor(label, value) { this.label = label; this.value = value; } };
     h.context.confirmDosenMapping();
     h.context.onAdd();
-    h.requests[0].options.success({ success: true, summary: {} });
+    h.requests[0].options.success({ success: true, summary: { unmapped_columns: ['JJA', 'Email 1'] } });
     h.requests[0].options.complete();
     assert.equal(years.options[0].value, '2025');
     assert.equal(h.context.dosenImportState.confirmed, false);
     assert.equal(h.element('dosenImportSubmit').disabled, true);
     assert.equal(h.element('dosenImportYear').value, '2025');
+    assert.match(h.element('dosenImportSummary').textContent, /Kolom tidak dipetakan \(dikosongkan pada periode ini\): JJA, Email 1/);
 });
 
 test('reopening the backoffice page does not redeclare lexical state or accept an old response', () => {

@@ -3,6 +3,7 @@
 namespace App\Services\Lecturers;
 
 use App\Models\DataDosen;
+use App\Services\Imports\ImportPolicy;
 use Aspera\Spreadsheet\XLSX\Reader;
 use DateTimeInterface;
 use Illuminate\Support\Facades\DB;
@@ -11,28 +12,42 @@ use Illuminate\Validation\ValidationException;
 
 class LecturerWorkbook
 {
+    // public const HEADERS = [
+    //     'kode_dosen' => 'Kode Dosen', 'fakultas_internal' => 'Fakultas Internal',
+    //     'nama_gugus_binaan' => 'Program Studi', 'nama_program' => 'Nama Program',
+    //     'lokasi' => 'Lokasi', 'campus' => 'Campus', 'nama_gugus_binaan_eksternal' => 'Nama Gugus Binaan Eksternal',
+    //     'acad_career' => 'Acad Career', 'nama_dosen' => 'Nama Dosen', 'tipe' => 'Tipe',
+    //     'nama_tipe_dosen_detail' => 'Nama Tipe Dosen Detail', 'status' => 'Status',
+    //     'effdate_dosen_cuti' => 'Effdate Dosen Cuti', 'remun' => 'Remun', 'homebase_remun' => 'Homebase Remun',
+    //     'jenis_registrasi' => 'Jenis Registrasi', 'nomor_nidn_nupn' => 'Nomor Nidn/Nupn',
+    //     'university_registered_nidn' => 'University Registered NIDN', 'pendidikan' => 'Pendidikan',
+    //     'alumni' => 'Alumni', 'jurusan' => 'Jurusan', 'jja' => 'JJA', 'tmt_jja' => 'Tmt JJA',
+    //     'university_registered_jja' => 'University Registered JJA', 'nomor_sk_jja' => 'Nomor SK JJA',
+    //     'jka' => 'JKA', 'tmt_jka' => 'Tmt JKA', 'toefl' => 'TOEFL', 'status_serdos' => 'Status Serdos',
+    //     'jenis_kelamin' => 'Jenis Kelamin', 'tanggal_lahir' => 'Tanggal Lahir', 'usia' => 'Usia',
+    //     'agama' => 'Agama', 'alamat' => 'Alamat', 'no_telp' => 'No Telp', 'no_hp' => 'No HP',
+    //     'no_hp_2' => 'No HP2', 'email_1' => 'Email 1', 'email_2' => 'Email 2',
+    //     'tgl_mulai_mengajar' => 'Tgl Mulai Mengajar', 'kewarganegaraan' => 'Kewarganegaraan',
+    //     'bn_id' => 'Binusian ID', 'nama_kelompok_rumpun_ilmu' => 'Nama Kelompok Rumpun Ilmu',
+    //     'nama_rumpun_ilmu' => 'Nama Rumpun Ilmu', 'tipe_faculty' => 'Tipe Faculty',
+    //     'tax_status' => 'Tax Status', 'status_pernikahan' => 'Status Pernikahan', 'note' => 'NOTE',
+    // ];
+
     public const HEADERS = [
-        'kode_dosen' => 'Kode Dosen', 'fakultas_internal' => 'Fakultas Internal',
-        'nama_gugus_binaan' => 'Nama Gugus Binaan', 'nama_program' => 'Nama Program',
-        'lokasi' => 'Lokasi', 'campus' => 'Campus', 'nama_gugus_binaan_eksternal' => 'Nama Gugus Binaan Eksternal',
-        'acad_career' => 'Acad Career', 'nama_dosen' => 'Nama Dosen', 'tipe' => 'Tipe',
+        'kode_dosen' => 'Kode Dosen', 'nama_gugus_binaan' => 'Program Studi', 'nama_program' => 'Nama Program',
+        'lokasi' => 'Lokasi', 'campus' => 'Campus', 'nama_dosen' => 'Nama Dosen', 'tipe' => 'Tipe',
         'nama_tipe_dosen_detail' => 'Nama Tipe Dosen Detail', 'status' => 'Status',
-        'effdate_dosen_cuti' => 'Effdate Dosen Cuti', 'remun' => 'Remun', 'homebase_remun' => 'Homebase Remun',
-        'jenis_registrasi' => 'Jenis Registrasi', 'nomor_nidn_nupn' => 'Nomor Nidn/Nupn',
-        'university_registered_nidn' => 'University Registered NIDN', 'pendidikan' => 'Pendidikan',
-        'alumni' => 'Alumni', 'jurusan' => 'Jurusan', 'jja' => 'JJA', 'tmt_jja' => 'Tmt JJA',
-        'university_registered_jja' => 'University Registered JJA', 'nomor_sk_jja' => 'Nomor SK JJA',
-        'jka' => 'JKA', 'tmt_jka' => 'Tmt JKA', 'toefl' => 'TOEFL', 'status_serdos' => 'Status Serdos',
-        'jenis_kelamin' => 'Jenis Kelamin', 'tanggal_lahir' => 'Tanggal Lahir', 'usia' => 'Usia',
-        'agama' => 'Agama', 'alamat' => 'Alamat', 'no_telp' => 'No Telp', 'no_hp' => 'No HP',
+        'effdate_dosen_cuti' => 'Effdate Dosen Cuti', 'jenis_registrasi' => 'Jenis Registrasi', 'nomor_nidn_nupn' => 'Nomor NIDN/NUPN',
+        'pendidikan' => 'Pendidikan', 'jja' => 'JJA', 'tmt_jja' => 'Tmt JJA',
+        'jka' => 'JKA', 'tmt_jka' => 'Tmt JKA', 'jenis_kelamin' => 'Jenis Kelamin', 'tanggal_lahir' => 'Tanggal Lahir', 'usia' => 'Usia',
+        'no_telp' => 'No Telp', 'no_hp' => 'No HP',
         'no_hp_2' => 'No HP2', 'email_1' => 'Email 1', 'email_2' => 'Email 2',
-        'tgl_mulai_mengajar' => 'Tgl Mulai Mengajar', 'kewarganegaraan' => 'Kewarganegaraan',
         'bn_id' => 'Binusian ID', 'nama_kelompok_rumpun_ilmu' => 'Nama Kelompok Rumpun Ilmu',
         'nama_rumpun_ilmu' => 'Nama Rumpun Ilmu', 'tipe_faculty' => 'Tipe Faculty',
-        'tax_status' => 'Tax Status', 'status_pernikahan' => 'Status Pernikahan', 'note' => 'NOTE',
+        'note' => 'NOTE',
     ];
 
-    private const REQUIRED_FIELDS = ['kode_dosen', 'nama_dosen'];
+    private const REQUIRED_FIELDS = ['kode_dosen', 'nama_dosen', 'nama_gugus_binaan', 'jja', 'tipe_faculty', 'status', 'pendidikan'];
 
     public function preview(string $path): array
     {
@@ -144,6 +159,7 @@ class LecturerWorkbook
         $map = null;
         $headers = [];
         $duplicates = 0;
+        $policy = new ImportPolicy('dosen_data_center', 'dosen');
         try {
             $reader->open($path);
             $sheet = $this->selectSheet($reader);
@@ -177,6 +193,9 @@ class LecturerWorkbook
                     if (! isset($map['nama_dosen'])) {
                         $this->invalid('Kolom Nama Dosen tidak ditemukan.');
                     }
+                    if ($policy->force) {
+                        $map = $this->userMap($map, $headers);
+                    }
 
                     continue;
                 }
@@ -185,13 +204,20 @@ class LecturerWorkbook
                     $record[$field] = ($row[$index] ?? '') === '' ? null : $row[$index];
                 }
                 $code = strtoupper(trim($record['kode_dosen'] ?? ''));
-                if ($code === '' || ! $record['nama_dosen']) {
-                    $this->invalid("Baris {$number}: Kode Dosen dan Nama Dosen wajib diisi.");
+                if ($code === '') {
+                    $policy->skip("Baris {$number}: Kode Dosen kosong.");
+
+                    continue;
+                }
+                if ($record['nama_dosen'] === null) {
+                    $policy->accept("Baris {$number}: Nama Dosen kosong.");
                 }
                 $record['kode_dosen'] = $code;
                 if (isset($records[$code])) {
                     if ($records[$code] !== $record) {
-                        $this->invalid("Baris {$number}: kode dosen {$code} duplikat dengan isi berbeda.");
+                        $policy->skip("Baris {$number}: kode dosen {$code} duplikat dengan isi berbeda; data pertama dipakai.");
+
+                        continue;
                     }
                     $duplicates++;
 
@@ -208,11 +234,11 @@ class LecturerWorkbook
         $mapped = array_intersect_key(self::HEADERS, $map);
         $unknown = array_values(array_filter($headers, fn ($header, $index) => $header !== '' && ! in_array($index, $map, true), ARRAY_FILTER_USE_BOTH));
 
-        return ['records' => array_values($records), 'summary' => [
+        return ['records' => array_values($records), 'summary' => $policy->summary([
             'sheet' => $sheet['name'], 'selected' => count($records), 'duplicates' => $duplicates,
             'headers' => $headers, 'mapped_columns' => count($mapped), 'unknown_columns' => $unknown,
-            'preserved_columns' => array_values(array_diff_key(self::HEADERS, $map)),
-        ]];
+            'unmapped_columns' => array_values(array_diff_key(self::HEADERS, $map)),
+        ])];
     }
 
     public function import(string $path, ?int $year = null, ?int $month = null, ?array $columnMapping = null, ?int $headerRow = null, ?string $filename = null): array
@@ -228,6 +254,7 @@ class LecturerWorkbook
 
         return DB::transaction(function () use ($parsed, $year, $month, $columnMapping, $filename) {
             $created = 0;
+            $removed = 0;
             $updateMaster = $year === null;
             if ($year !== null) {
                 if (! Schema::hasTable('lecturer_imports')) {
@@ -239,20 +266,19 @@ class LecturerWorkbook
                     'column_mapping' => json_encode($columnMapping), 'created_at' => now(), 'updated_at' => now(),
                 ]], ['year', 'month'], ['filename', 'sheet', 'column_mapping', 'updated_at']);
                 $batch = DB::table('lecturer_imports')->where($snapshot)->lockForUpdate()->first();
-                // Reimports preserve optional columns from this same snapshot, never from a later year/month.
-                $previous = DB::table('lecturer_snapshot_rows')->where('lecturer_import_id', $batch->id)->get()->keyBy('kode_dosen');
-                if ($previous->isEmpty()) {
-                    $prior = app(LecturerSnapshots::class)->batch($year, $month - 1);
-                    $previous = $prior ? DB::table('lecturer_snapshot_rows')->where('lecturer_import_id', $prior->id)->get()->keyBy('kode_dosen') : collect();
-                }
                 $existing = DB::table('lecturer_snapshot_rows')->where('lecturer_import_id', $batch->id)->pluck('kode_dosen')->all();
+                $hasEducationStatus = Schema::hasColumn('lecturer_snapshot_rows', 'status_pendidikan');
+                // Education status comes from its own import for this same period.
+                $educationStatuses = $hasEducationStatus
+                    ? DB::table('lecturer_snapshot_rows')->where('lecturer_import_id', $batch->id)->pluck('status_pendidikan', 'kode_dosen')
+                    : collect();
+                $removed = count(array_diff($existing, array_column($parsed['records'], 'kode_dosen')));
+                // A validated workbook replaces the complete period; unmapped fields stay null.
                 DB::table('lecturer_snapshot_rows')->where('lecturer_import_id', $batch->id)->delete();
                 foreach ($parsed['records'] as $record) {
-                    $old = (array) $previous->get($record['kode_dosen'], (object) []);
-                    $data = array_replace(array_intersect_key($old, self::HEADERS), $record);
-                    DB::table('lecturer_snapshot_rows')->insert($data + [
-                        'lecturer_import_id' => $batch->id, 'is_hidden' => $old['is_hidden'] ?? false,
-                        'deleted_at' => $old['deleted_at'] ?? null, 'created_at' => now(), 'updated_at' => now(),
+                    $education = $hasEducationStatus ? ['status_pendidikan' => $educationStatuses->get($record['kode_dosen'])] : [];
+                    DB::table('lecturer_snapshot_rows')->insert($record + $education + [
+                        'lecturer_import_id' => $batch->id, 'created_at' => now(), 'updated_at' => now(),
                     ]);
                     $created += (int) ! in_array($record['kode_dosen'], $existing, true);
                 }
@@ -262,7 +288,7 @@ class LecturerWorkbook
                 $masterCreated = 0;
                 $masterRecords = $year === null ? $parsed['records'] : DB::table('lecturer_snapshot_rows')
                     ->where('lecturer_import_id', $batch->id)->get()
-                    ->map(fn ($row) => array_intersect_key((array) $row, self::HEADERS))->all();
+                    ->map(fn ($row) => array_intersect_key((array) $row, self::HEADERS + ['status_pendidikan' => 'Status Pendidikan']))->all();
                 foreach ($masterRecords as $record) {
                     // Never restore deleted profiles or reset global visibility on import.
                     $model = DataDosen::withTrashed()->updateOrCreate(['kode_dosen' => $record['kode_dosen']], $record);
@@ -274,7 +300,7 @@ class LecturerWorkbook
             }
 
             return $parsed['summary'] + ['year' => $year, 'month' => $month, 'created' => $created,
-                'updated' => count($parsed['records']) - $created, 'updated_current_master' => $updateMaster];
+                'updated' => count($parsed['records']) - $created, 'removed' => $removed, 'updated_current_master' => $updateMaster];
         });
     }
 

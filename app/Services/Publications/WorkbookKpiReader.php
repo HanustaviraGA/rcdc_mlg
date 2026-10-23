@@ -2,9 +2,9 @@
 
 namespace App\Services\Publications;
 
+use App\Services\Imports\ImportPolicy;
 use Aspera\Spreadsheet\XLSX\Reader;
 use Aspera\Spreadsheet\XLSX\ReaderConfiguration;
-use Illuminate\Validation\ValidationException;
 
 class WorkbookKpiReader
 {
@@ -19,6 +19,7 @@ class WorkbookKpiReader
         $reader = new Reader((new ReaderConfiguration)->setReturnUnformatted(true));
         $entries = [];
         $summary = ['available' => false, 'lecturers' => 0, 'missing_rtto' => 0, 'differences' => [], 'warnings' => []];
+        $policy = new ImportPolicy('rectorate_fm');
         try {
             $reader->open($path);
             $sheets = [];
@@ -42,7 +43,10 @@ class WorkbookKpiReader
                     foreach (self::HEADERS as $field => $header) {
                         $matches = array_keys($headers, $header, true);
                         if (count($matches) !== 1) {
-                            $this->invalid("Header {$header} pada sheet KPI harus ada tepat satu kali.");
+                            $policy->accept("Header {$header} pada sheet KPI harus ada tepat satu kali. Sheet KPI dilewati.");
+                            $summary['available'] = false;
+
+                            return ['entries' => [], 'summary' => $policy->summary($summary)];
                         }
                         $map[$field] = $matches[0];
                     }
@@ -55,7 +59,9 @@ class WorkbookKpiReader
                 }
                 $entry['kode_dosen'] = strtoupper($entry['kode_dosen']);
                 if ($entry['kode_dosen'] === '' || isset($entries[$entry['kode_dosen']])) {
-                    $this->invalid("Baris KPI {$number}: Kode Dosen kosong atau duplikat.");
+                    $policy->skip("Baris KPI {$number}: Kode Dosen kosong atau duplikat.");
+
+                    continue;
                 }
                 foreach (['rtto_non_scopus', 'rtto_scopus', 'rtto_score'] as $field) {
                     $value = str_replace(',', '.', $entry[$field]);
@@ -66,7 +72,10 @@ class WorkbookKpiReader
                     }
                     if (! is_numeric($value) || ! is_finite((float) $value) || (float) $value < 0
                         || ($field === 'rtto_score' && ((float) $value > 6 || floor((float) $value) !== (float) $value))) {
-                        $this->invalid("Baris KPI {$number}: {$field} harus angka nol atau positif; skor KPI harus bilangan bulat 0–6. Sel rumus harus memiliki hasil tersimpan yang valid.");
+                        $policy->accept("Baris KPI {$number}: {$field} harus angka nol atau positif; skor KPI harus bilangan bulat 0–6. Nilai tidak valid dikosongkan.");
+                        $entry[$field] = null;
+
+                        continue;
                     }
                     $entry[$field] = (float) $value;
                 }
@@ -87,7 +96,8 @@ class WorkbookKpiReader
                 $entries[$entry['kode_dosen']] = $entry;
             }
             if (! $entries) {
-                $this->invalid('Sheet KPI tidak berisi dosen. Data sebelumnya tetap tersimpan.');
+                $policy->accept('Sheet KPI tidak berisi dosen.');
+                $summary['available'] = false;
             }
         } finally {
             $reader->close();
@@ -100,11 +110,6 @@ class WorkbookKpiReader
             $summary['warnings'][] = $summary['missing_rtto'].' dosen memiliki data RTTO kosong. Nilai kosong tetap ditampilkan sebagai belum tersedia.';
         }
 
-        return ['entries' => array_values($entries), 'summary' => $summary];
-    }
-
-    private function invalid(string $message): never
-    {
-        throw ValidationException::withMessages(['rectorate' => $message]);
+        return ['entries' => array_values($entries), 'summary' => $policy->summary($summary)];
     }
 }

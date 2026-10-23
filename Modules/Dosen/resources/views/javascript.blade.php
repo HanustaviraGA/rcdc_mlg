@@ -284,6 +284,7 @@
         setValue('tipe_faculty', data.tipe_faculty);
         setValue('jja', data.jja);
         setValue('pendidikan', data.pendidikan);
+        setValue('status_pendidikan', data.status_pendidikan);
         setValue('jurusan', data.jurusan);
         setValue('jenis_kelamin', data.jenis_kelamin);
         setValue('email_1', data.email_1);

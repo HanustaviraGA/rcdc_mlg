@@ -5,6 +5,7 @@
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/publication-kpi.css') }}?v={{ filemtime(public_path('css/publication-kpi.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/publication-performance.css') }}?v={{ filemtime(public_path('css/publication-performance.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/community-development.css') }}?v={{ filemtime(public_path('css/community-development.css')) }}">
 @endpush
 @section('content')
 <section class="portal-hero">
@@ -107,6 +108,8 @@
             <button class="pd-button" id="performancePrint" type="button"><i class="bi bi-printer" aria-hidden="true"></i> Cetak dashboard</button>
         </div>
     </div>
+
+    @include('dashboard.community_development', ['community' => $communityDevelopment])
 </div>
 
 <dialog class="pd-dialog" id="performanceDetail" aria-labelledby="performanceDetailTitle">
@@ -124,4 +127,6 @@
 @push('scripts')
     <script>window.publicationPerformance = {{ Illuminate\Support\Js::from($performance) }};</script>
     <script type="module" src="{{ asset('js/publication-performance.js') }}?v={{ filemtime(public_path('js/publication-performance.js')) }}"></script>
+    <script>window.communityDevelopment = {{ Illuminate\Support\Js::from($communityDevelopment) }};</script>
+    <script type="module" src="{{ asset('js/community-development.js') }}?v={{ filemtime(public_path('js/community-development.js')) }}"></script>
 @endpush

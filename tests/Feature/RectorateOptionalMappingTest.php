@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use App\Services\Publications\StudentPublicationImporter;
 use App\Services\Research\RectorateResearchImporter;
 use App\Services\Research\RectorateResearchReader;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Tests\Support\CreatesWorkbook;
@@ -31,6 +33,46 @@ class RectorateOptionalMappingTest extends TestCase
     {
         $this->removeWorkbooks();
         parent::tearDown();
+    }
+
+    public function test_separate_student_and_research_uploads_preserve_other_sources_for_the_same_month(): void
+    {
+        $this->actingAs((new User)->forceFill(['id' => 1]));
+        $studentValues = $this->studentValues();
+        $researchValues = $this->researchValues();
+        $studentPath = $this->arbitraryWorkbook('MALANG', $studentValues);
+        $researchPath = $this->arbitraryWorkbook('Detail', $researchValues);
+        $upload = fn (string $type, string $path, string $filename, array $values) => $this->postJson(route('importrectorate.upload'), [
+            'year' => 2026, 'month' => 9,
+            $type => new UploadedFile($path, $filename, null, null, true),
+            'column_mapping' => [$type => json_encode(array_flip(array_keys($values)), JSON_THROW_ON_ERROR)],
+        ]);
+
+        $response = $upload('mhs_file', $studentPath, 'students.xlsx', $studentValues)
+            ->assertOk()->assertJsonPath('summaries.mhs_file.selected', 1);
+        $this->assertSame(['mhs_file'], array_keys($response->json('summaries')));
+        $this->assertSame(0, DB::table('research_imports')->count());
+        $students = DB::table('student_publication_imports')->sole();
+
+        $response = $upload('research_file', $researchPath, 'research.xlsx', $researchValues)
+            ->assertOk()->assertJsonPath('summaries.research_file.selected', 1);
+        $this->assertSame(['research_file'], array_keys($response->json('summaries')));
+        $this->assertEquals($students, DB::table('student_publication_imports')->sole());
+        $research = DB::table('research_imports')->sole();
+        $researchRows = DB::table('rectorate_research')->get();
+
+        $invalidPath = $this->makeWorkbook(['MALANG' => [['Wrong header']]]);
+        $upload('mhs_file', $invalidPath, 'invalid.xlsx', $studentValues)->assertUnprocessable();
+        $this->assertEquals($students, DB::table('student_publication_imports')->sole());
+        $this->assertEquals($research, DB::table('research_imports')->sole());
+
+        $response = $upload('mhs_file', $studentPath, 'students-reupload.xlsx', $studentValues)->assertOk();
+        $this->assertSame('students-reupload.xlsx', DB::table('student_publication_imports')->sole()->filename);
+        $this->assertSame(1, DB::table('student_publication_imports')->count());
+        $this->assertEquals($research, DB::table('research_imports')->sole());
+        $this->assertEquals($researchRows, DB::table('rectorate_research')->get());
+        $this->assertStringContainsString('students-reupload.xlsx', $response->json('history_html'));
+        $this->assertStringContainsString('research.xlsx', $response->json('history_html'));
     }
 
     public function test_student_required_only_arbitrary_headers_are_mapped_and_persisted(): void
@@ -88,7 +130,7 @@ class RectorateOptionalMappingTest extends TestCase
         $importer = app(StudentPublicationImporter::class);
         $importer->import($path, 'original.xlsx', 2026, 9);
         $before = DB::table('student_publication_imports')->first();
-        foreach (array_keys($values) as $required) {
+        foreach (array_keys(app(\App\Services\ColumnMapping\ColumnMapperService::class)->getMappingConfig('mhs_file')['required']) as $required) {
             foreach (['omitted', null, ''] as $missing) {
                 $mapping = array_flip(array_keys($values));
                 unset($mapping[$required]);
@@ -103,7 +145,7 @@ class RectorateOptionalMappingTest extends TestCase
 
     public function test_student_mapped_required_row_values_are_still_validated(): void
     {
-        foreach (['request_code', 'name', 'title', 'program', 'type'] as $required) {
+        foreach (array_intersect(['request_code', 'name', 'title', 'program', 'type'], array_keys(app(\App\Services\ColumnMapping\ColumnMapperService::class)->getMappingConfig('mhs_file')['required'])) as $required) {
             $values = array_replace($this->studentValues(), [$required => '']);
             $path = $this->arbitraryWorkbook('MALANG', $values);
             $this->assertInvalid(fn () => app(StudentPublicationImporter::class)->import($path, 'invalid.xlsx', 2026, 9,

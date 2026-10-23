@@ -61,6 +61,7 @@ class DataDosen extends Model
         'nomor_nidn_nupn',
         'university_registered_nidn',
         'pendidikan',
+        'status_pendidikan',
         'alumni',
         'jurusan',
         'jja',

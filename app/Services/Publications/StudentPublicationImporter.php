@@ -3,6 +3,7 @@
 namespace App\Services\Publications;
 
 use App\Services\ColumnMapping\ColumnMapperService;
+use App\Services\Imports\ImportPolicy;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -22,12 +23,15 @@ class StudentPublicationImporter
         }
         $rows = $sheets[$sheet];
         $headerRow = array_key_first($rows);
+        $sourceHeaders = $rows[$headerRow] ?? [];
         $headers = array_map($this->normalize(...), $rows[$headerRow] ?? []);
         unset($rows[$headerRow]);
-        $map = app(ColumnMapperService::class)->resolveMapping($headers, 'mhs_file', $columnMapping);
+        $mapper = app(ColumnMapperService::class);
+        $map = $mapper->resolveMapping($headers, 'mhs_file', $columnMapping, $year);
         $summary = ['sheet' => $sheet, 'year' => $year, 'month' => $month, 'read' => count($rows),
             'excluded_campus' => 0, 'excluded_submitted' => 0, 'duplicates' => 0, 'warnings' => []];
         $records = [];
+        $policy = new ImportPolicy('rectorate_mhs');
         foreach ($rows as $number => $cells) {
             $row = [];
             foreach ($map as $field => $index) {
@@ -39,20 +43,22 @@ class StudentPublicationImporter
                 continue;
             }
             if (! in_array($this->normalize($row['submitted']), ['scopus mahasiswa', 'non scopus mahasiswa'], true)
-                || $this->normalize($row['code']) !== 'mahasiswa') {
+                || ($row['code'] !== '' && $this->normalize($row['code']) !== 'mahasiswa')) {
                 $summary['excluded_submitted']++;
 
                 continue;
             }
-            foreach (['request_code', 'name', 'title', 'program', 'type'] as $required) {
-                if ($row[$required] === '') {
-                    $this->invalid("Baris {$number}: {$required} wajib diisi.");
-                }
+            $validation = $mapper->validateRow($row, 'mhs_file', (int) $number, $map, $sourceHeaders, $year);
+            if (! $validation['valid']) {
+                $policy->accept(implode(' ', $validation['errors']));
             }
-            $key = $row['request_code'].'|'.$this->normalize($row['name']).'|'.$this->normalize($row['program']);
+            $key = PublicationWorkbookMetrics::publicationKey($row + ['tipe_publikasi' => $row['type'], 'source_row' => $number])
+                .'|'.$this->normalize($row['name']).'|'.$this->normalize($row['program']);
             if (isset($records[$key])) {
                 if (array_diff_assoc($row, $records[$key])) {
-                    $this->invalid("Baris {$number}: identitas publikasi mahasiswa duplikat dengan isi berbeda.");
+                    $policy->skip("Baris {$number}: identitas publikasi mahasiswa duplikat dengan isi berbeda; data pertama dipakai.");
+
+                    continue;
                 }
                 $summary['duplicates']++;
 
@@ -68,29 +74,34 @@ class StudentPublicationImporter
         $derivedList = array_map(fn ($r) => ['program' => $r['program'], 'name' => $r['name'], 'title' => $r['title']], $scopus);
         $list = $derivedList;
         if (isset($sheets['LIST'])) {
-            $list = [];
-            $listRows = $sheets['LIST'];
-            $headerRow = array_key_first($listRows);
-            $listHeaders = array_map($this->normalize(...), $listRows[$headerRow] ?? []);
-            unset($listRows[$headerRow]);
-            foreach (['prodi', 'mhs author', 'title'] as $header) {
-                if (count(array_keys($listHeaders, $header, true)) !== 1) {
-                    $this->invalid("Kolom {$header} tidak valid pada LIST.");
-                }
-            }
-            foreach ($listRows as $number => $cells) {
-                $row = [];
-                foreach (['program' => 'prodi', 'name' => 'mhs author', 'title' => 'title'] as $field => $header) {
-                    $row[$field] = $cells[array_search($header, $listHeaders, true)] ?? '';
-                    if ($row[$field] === '') {
-                        $this->invalid("LIST baris {$number}: {$header} wajib diisi.");
+            try {
+                $list = [];
+                $listRows = $sheets['LIST'];
+                $headerRow = array_key_first($listRows);
+                $listHeaders = array_map($this->normalize(...), $listRows[$headerRow] ?? []);
+                unset($listRows[$headerRow]);
+                foreach (['prodi', 'mhs author', 'title'] as $header) {
+                    if (count(array_keys($listHeaders, $header, true)) !== 1) {
+                        $this->invalid("Kolom {$header} tidak valid pada LIST.");
                     }
                 }
-                $list[] = $row;
-            }
-            $signature = fn ($r) => $this->normalize(implode('|', $r));
-            if (collect($list)->map($signature)->countBy()->sortKeys()->all() !== collect($derivedList)->map($signature)->countBy()->sortKeys()->all()) {
-                $summary['warnings'][] = 'Isi LIST berbeda dari baris Scopus pada MALANG. Rincian laporan menggunakan LIST; periksa sebelum mengunduh.';
+                foreach ($listRows as $number => $cells) {
+                    $row = [];
+                    foreach (['program' => 'prodi', 'name' => 'mhs author', 'title' => 'title'] as $field => $header) {
+                        $row[$field] = $cells[array_search($header, $listHeaders, true)] ?? '';
+                        if ($row[$field] === '') {
+                            $this->invalid("LIST baris {$number}: {$header} wajib diisi.");
+                        }
+                    }
+                    $list[] = $row;
+                }
+                $signature = fn ($r) => $this->normalize(implode('|', $r));
+                if (collect($list)->map($signature)->countBy()->sortKeys()->all() !== collect($derivedList)->map($signature)->countBy()->sortKeys()->all()) {
+                    $summary['warnings'][] = 'Isi LIST berbeda dari baris Scopus pada MALANG. Rincian laporan menggunakan LIST; periksa sebelum mengunduh.';
+                }
+            } catch (ValidationException $exception) {
+                $policy->accept($exception->getMessage().' LIST dibentuk dari data MALANG/Raw.');
+                $list = $derivedList;
             }
         } else {
             $summary['warnings'][] = 'Sheet LIST tidak ada; daftar mahasiswa dibentuk dari MALANG/Raw.';
@@ -112,7 +123,7 @@ class StudentPublicationImporter
                 $titleCounts[$code] = (int) $cells[$offset + 1];
             }
             if (! $titleCounts) {
-                $this->invalid('Rekap Scopus pada sheet TITLE tidak ditemukan.');
+                $policy->accept('Rekap Scopus pada sheet TITLE tidak ditemukan; rekap dihitung dari daftar Scopus.');
             }
         } else {
             $summary['warnings'][] = 'Sheet TITLE tidak ada; rekap dihitung dari daftar Scopus.';
@@ -133,6 +144,7 @@ class StudentPublicationImporter
         }
         $summary += ['selected' => count($records), 'scopus' => count($scopus), 'list_count' => count($list),
             'title_counts' => $titleCounts, 'list_counts' => $listCounts, 'report' => $report];
+        $summary = $policy->summary($summary);
         if ($dryRun) {
             return $summary + ['dry_run' => true];
         }

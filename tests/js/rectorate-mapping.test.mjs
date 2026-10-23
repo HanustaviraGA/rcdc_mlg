@@ -51,8 +51,8 @@ class Element {
     after(child) { this.parent.append(child); }
     setAttribute(key, value) { this.attributes[key] = value; }
     addEventListener(name, handler) { (this.listeners[name] ??= []).push(handler); }
-    async fire(name) {
-        const event = { preventDefault() {} };
+    async fire(name, properties = {}) {
+        const event = { preventDefault() {}, ...properties };
         for (const handler of this.listeners[name] || []) await handler(event);
         if (name === 'click') await this.onclick?.(event);
     }
@@ -105,8 +105,11 @@ function harness() {
     year.tagName = 'input';
     year.name = 'year';
     year.value = '2025';
-    form.append(year);
-    root.append(form, el('monthly-import-submit'), el('monthly-import-errors'), el('monthly-import-summary'), el('monthly-import-history'));
+    const month = el('upload-month');
+    month.name = 'month';
+    month.value = '9';
+    form.append(year, month);
+    root.append(form, el('monthly-import-errors'), el('monthly-import-summary'), el('monthly-import-history'));
     const inputs = ['fm_file', 'mhs_file', 'research_file'].map(name => {
         const input = el(name);
         input.tagName = 'input';
@@ -114,7 +117,11 @@ function harness() {
         input.name = name;
         const container = new Element();
         container.className = 'mb-6';
-        container.append(input);
+        const button = el(`${name}-submit`);
+        button.tagName = 'button';
+        button.dataset.importFile = name;
+        button.innerHTML = `Upload dan import ${name}`;
+        container.append(input, button);
         form.append(container);
         return input;
     });
@@ -159,8 +166,9 @@ function harness() {
         await flush();
     };
     const confirm = () => el('cm-confirm-btn').fire('click');
-    const submit = () => form.fire('submit');
-    return { el, inputs, requests, modal, flush, choose, selects, change, reopen, confirm, submit };
+    const button = (name = 'fm_file') => el(`${name}-submit`);
+    const submit = (name = 'fm_file') => form.fire('submit', { submitter: button(name) });
+    return { el, inputs, requests, modal, flush, choose, selects, change, reopen, confirm, submit, button };
 }
 
 const preview = (mapping = { code: 0, title: 1 }) => ({
@@ -179,20 +187,23 @@ async function ready(h, name = 'fm_file', data = preview()) {
 
 test('initial config validates index zero; optional absence is informational; confirm precedes upload', async () => {
     const h = harness();
-    assert.equal(h.el('monthly-import-submit').disabled, true);
+    assert.equal(h.button().disabled, true);
     const file = await ready(h);
     assert.equal(h.selects()[0].value, '0');
     assert.equal(h.el('cm-confirm-btn').disabled, false);
     assert.equal(h.el('cm-validation-warnings').hidden, false);
     assert.equal(h.el('cm-validation-errors').hidden, true);
-    assert.equal(h.el('monthly-import-submit').disabled, true);
+    assert.equal(h.button().disabled, true);
     await h.confirm();
     assert.equal(h.modal.shown, false);
-    assert.equal(h.el('monthly-import-submit').disabled, false);
+    assert.equal(h.button().disabled, false);
     const uploading = h.submit();
     assert.equal(h.requests.length, 2);
     const request = h.requests[1];
     assert.equal(request.url, '/upload');
+    assert.equal(request.options.body.values.get('_token'), 'csrf-token');
+    assert.equal(request.options.body.values.get('year'), '2025');
+    assert.equal(request.options.body.values.get('month'), '9');
     assert.equal(request.options.body.values.get('fm_file'), file);
     assert.deepEqual(JSON.parse(request.options.body.values.get('column_mapping[fm_file]')), { code: 0, title: 1 });
     await h.submit();
@@ -200,7 +211,7 @@ test('initial config validates index zero; optional absence is informational; co
     request.respond({ summary_html: 'done', history_html: 'history' });
     await uploading;
     assert.equal(h.el('fm_file').files.length, 0);
-    assert.equal(h.el('monthly-import-submit').disabled, true);
+    assert.equal(h.button().disabled, true);
 });
 
 test('missing required and duplicate optional mappings stay blocked after content transition and direct confirm', async () => {
@@ -209,20 +220,20 @@ test('missing required and duplicate optional mappings stay blocked after conten
     assert.equal(h.el('cm-content').hidden, false);
     assert.equal(h.el('cm-confirm-btn').disabled, true);
     await h.confirm();
-    assert.equal(h.el('monthly-import-submit').disabled, true);
+    assert.equal(h.button().disabled, true);
     await h.change('title', '1');
     assert.equal(h.el('cm-confirm-btn').disabled, false);
     await h.change('extra', '0');
     assert.equal(h.el('cm-confirm-btn').disabled, true);
     assert.match(h.el('cm-validation-error-list').innerHTML, /kolom sumber yang sama/);
     await h.confirm();
-    assert.equal(h.el('monthly-import-submit').disabled, true);
+    assert.equal(h.button().disabled, true);
     await h.change('extra', '');
     await h.confirm();
-    assert.equal(h.el('monthly-import-submit').disabled, false);
+    assert.equal(h.button().disabled, false);
     await h.reopen('fm_file');
     await h.change('title', '');
-    assert.equal(h.el('monthly-import-submit').disabled, true, 'edits invalidate confirmed mapping');
+    assert.equal(h.button().disabled, true, 'edits invalidate confirmed mapping');
     await h.submit();
     assert.equal(h.requests.length, 1, 'unconfirmed submit never reaches upload');
 });
@@ -251,19 +262,19 @@ test('reopen preserves confirmed/manual mapping; same-name replacement invalidat
     assert.equal(h.requests.length, 1, 'confirmed file can reopen cached preview');
     assert.equal(h.selects()[0].value, '2');
     h.modal.hide();
-    assert.equal(h.el('monthly-import-submit').disabled, false);
+    assert.equal(h.button().disabled, false);
     const replacement = await h.choose('fm_file', { name: oldFile.name });
     assert.notEqual(replacement, oldFile);
-    assert.equal(h.el('monthly-import-submit').disabled, true);
+    assert.equal(h.button().disabled, true);
     assert.equal(h.el('cm-confirm-btn').disabled, true);
     h.requests[1].respond(preview());
     await h.flush();
     assert.equal(h.selects()[0].value, '0', 'replacement does not inherit saved mapping');
-    assert.equal(h.el('monthly-import-submit').disabled, true);
+    assert.equal(h.button().disabled, true);
     await h.confirm();
-    assert.equal(h.el('monthly-import-submit').disabled, false);
+    assert.equal(h.button().disabled, false);
     await h.choose('fm_file', null);
-    assert.equal(h.el('monthly-import-submit').disabled, true);
+    assert.equal(h.button().disabled, true);
 });
 
 test('year changes clear confirmed FM preview, mapping and draft before suggesting the new status column', async () => {
@@ -278,13 +289,13 @@ test('year changes clear confirmed FM preview, mapping and draft before suggesti
     await h.confirm();
     await h.reopen('fm_file');
     assert.equal(h.requests.length, 1, 'same-year preview remains cached');
-    assert.equal(h.el('monthly-import-submit').disabled, false);
+    assert.equal(h.button().disabled, false);
 
     h.el('upload-year').value = '2026';
     await h.el('upload-year').fire('change');
     assert.equal(h.modal.shown, false, 'active FM preview closes');
     assert.equal(h.el('cm-confirm-btn').disabled, true);
-    assert.equal(h.el('monthly-import-submit').disabled, true);
+    assert.equal(h.button().disabled, true);
     const badge = h.el('fm_file').closest('.mb-6').querySelector('.cm-status-badge');
     assert.equal(badge.children[0].textContent, 'Pemetaan belum dikonfirmasi.');
     await h.confirm();
@@ -297,9 +308,9 @@ test('year changes clear confirmed FM preview, mapping and draft before suggesti
     h.requests[1].respond(fmPreview(3));
     await h.flush();
     assert.equal(h.selects().find(select => select.dataset.field === 'status').value, '3', 'new suggestion replaces saved mapping and draft');
-    assert.equal(h.el('monthly-import-submit').disabled, true, 'new year requires explicit confirmation');
+    assert.equal(h.button().disabled, true, 'new year requires explicit confirmation');
     await h.confirm();
-    assert.equal(h.el('monthly-import-submit').disabled, false);
+    assert.equal(h.button().disabled, false);
 });
 
 test('year changes abort loading FM previews and ignore late responses for the old year', async () => {
@@ -318,7 +329,7 @@ test('year changes abort loading FM previews and ignore late responses for the o
     await h.flush();
     assert.equal(h.selects()[0].value, '0');
     await h.confirm();
-    assert.equal(h.el('monthly-import-submit').disabled, false);
+    assert.equal(h.button().disabled, false);
 });
 
 test('year changes invalidate only FM while preserving other active previews and confirmations', async () => {
@@ -332,13 +343,14 @@ test('year changes invalidate only FM while preserving other active previews and
     await h.el('upload-year').fire('change');
     assert.equal(h.modal.shown, true, 'non-FM preview stays open');
     assert.equal(h.el('cm-confirm-btn').disabled, false);
-    assert.equal(h.el('monthly-import-submit').disabled, true, 'FM still needs reconfirmation');
+    assert.equal(h.button().disabled, true, 'FM still needs reconfirmation');
+    assert.equal(h.button('mhs_file').disabled, false, 'student upload is independent of FM');
     h.modal.hide();
     await h.reopen('fm_file');
     h.requests[2].respond(preview());
     await h.flush();
     await h.confirm();
-    assert.equal(h.el('monthly-import-submit').disabled, false, 'student confirmation was preserved');
+    assert.equal(h.button().disabled, false, 'student confirmation was preserved');
     await h.reopen('mhs_file');
     assert.equal(h.requests.length, 3, 'student preview cache was preserved');
 });
@@ -364,12 +376,13 @@ test('out-of-order replacement and cross-file previews cannot overwrite active c
     assert.equal(h.el('cm-file-name').textContent, 'student.xlsx');
     assert.deepEqual(h.selects().map(select => select.dataset.field), ['request_code']);
     await h.confirm();
-    assert.equal(h.el('monthly-import-submit').disabled, true, 'FM still unconfirmed');
+    assert.equal(h.button().disabled, true, 'FM still unconfirmed');
+    assert.equal(h.button('mhs_file').disabled, false, 'confirmed student file can upload');
     await h.reopen('fm_file');
     h.requests[3].respond(preview());
     await h.flush();
     await h.confirm();
-    assert.equal(h.el('monthly-import-submit').disabled, false);
+    assert.equal(h.button().disabled, false);
 });
 
 test('closing a loading modal ignores late completion and offers an explicit retry', async () => {
@@ -386,7 +399,7 @@ test('closing a loading modal ignores late completion and offers an explicit ret
     h.requests[1].respond(preview());
     await h.flush();
     await h.confirm();
-    assert.equal(h.el('monthly-import-submit').disabled, false);
+    assert.equal(h.button('research_file').disabled, false);
 });
 
 test('preview HTTP, network and malformed-config failures are safe and retryable without stale error DOM', async () => {
@@ -414,7 +427,85 @@ test('preview HTTP, network and malformed-config failures are safe and retryable
     h.requests[4].respond({ message: 'Import failed' }, false);
     await uploading;
     assert.equal(h.el('monthly-import-errors').textContent, 'Import failed');
-    assert.equal(h.el('monthly-import-submit').disabled, false, 'failed upload can retry confirmed file');
+    assert.equal(h.button().disabled, false, 'failed upload can retry confirmed file');
+});
+
+for (const name of ['fm_file', 'mhs_file', 'research_file']) {
+    test(`${name} uploads independently while other sources have failed or pending previews`, async () => {
+        const h = harness();
+        const others = h.inputs.filter(input => input.name !== name);
+        const file = await ready(h, name);
+        await h.confirm();
+        await h.choose(others[0].name);
+        h.requests.at(-1).respond({ message: 'Invalid workbook' }, false);
+        await h.flush();
+        await h.choose(others[1].name);
+        const pending = h.requests.at(-1);
+        assert.equal(h.button(name).disabled, false, 'other previews do not block this upload');
+        const uploading = h.submit(name);
+        const request = h.requests.at(-1);
+        assert.equal(pending.options.signal.aborted, true);
+        assert.equal(request.url, '/upload');
+        assert.equal(request.options.body.values.get(name), file);
+        assert.deepEqual([...request.options.body.values.keys()].sort(), [
+            '_token', 'year', 'month', name, `column_mapping[${name}]`,
+        ].sort());
+        assert.ok(h.inputs.every(input => input.disabled), 'file selections stay stable during upload');
+        assert.equal(h.el('upload-year').disabled, true);
+        assert.equal(h.el('upload-month').disabled, true);
+        pending.respond(preview());
+        request.respond({ summary_html: `done ${name}`, history_html: `history ${name}` });
+        await uploading;
+        assert.equal(h.el(name).files.length, 0);
+        assert.ok(others.every(input => input.files.length === 1), 'other file selections are preserved');
+        assert.ok(others.every(input => h.button(input.name).disabled), 'other mappings still require confirmation');
+        assert.ok(h.inputs.every(input => !input.disabled));
+        assert.equal(h.el('upload-year').disabled, false);
+        assert.equal(h.el('monthly-import-summary').innerHTML, `done ${name}`);
+        assert.equal(h.el('monthly-import-history').innerHTML, `history ${name}`);
+    });
+}
+
+test('sequential uploads preserve other confirmed files and manual mappings, including after a failure', async () => {
+    const h = harness();
+    const files = new Map();
+    for (const name of ['fm_file', 'mhs_file', 'research_file']) {
+        files.set(name, await ready(h, name));
+        await h.change('code', '2');
+        await h.confirm();
+    }
+    let uploading = h.submit('mhs_file');
+    h.requests.at(-1).respond({ message: 'Student import failed' }, false);
+    await uploading;
+    for (const input of h.inputs) {
+        assert.equal(input.files[0], files.get(input.name), 'failed import retains every file');
+        assert.equal(h.button(input.name).disabled, false);
+        assert.equal(h.button(input.name).innerHTML, `Upload dan import ${input.name}`);
+    }
+    for (const name of ['fm_file', 'mhs_file', 'research_file']) {
+        uploading = h.submit(name);
+        const request = h.requests.at(-1);
+        assert.equal(request.options.body.values.get(name), files.get(name));
+        assert.deepEqual(JSON.parse(request.options.body.values.get(`column_mapping[${name}]`)), { code: 2, title: 1 });
+        assert.equal([...request.options.body.values.keys()].filter(key => key.endsWith('_file')).length, 1);
+        request.respond({ summary_html: name, history_html: name });
+        await uploading;
+        assert.equal(h.button(name).disabled, true);
+    }
+    assert.ok(h.inputs.every(input => input.files.length === 0));
+});
+
+test('a confirmed source cannot submit an unconfirmed source or a form without a source button', async () => {
+    const h = harness();
+    await ready(h);
+    await h.confirm();
+    await ready(h, 'mhs_file');
+    await h.submit('mhs_file');
+    await h.submit('research_file');
+    await h.submit(null);
+    assert.equal(h.requests.length, 2, 'invalid submissions never upload any source');
+    assert.equal(h.button().disabled, false);
+    assert.equal(h.el('monthly-import-errors').hidden, false);
 });
 
 test('every referenced modal ID exists in the owned views; optional hint uses informational styling', () => {

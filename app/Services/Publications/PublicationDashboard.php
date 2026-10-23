@@ -40,7 +40,7 @@ class PublicationDashboard
         foreach ($publications->groupBy('year')->sortKeys() as $year => $rows) {
             $latest = $rows->sortByDesc(fn ($r) => (int) $r->month * 10 + (int) $r->period)->first();
             $snapshotRows = $rows->filter(fn ($r) => (int) $r->month === (int) $latest->month && (int) $r->period === (int) $latest->period);
-            $current = $snapshotRows->sortByDesc('updated_at')->unique(fn ($r) => $r->request_code.'|'.$r->kode_dosen)->values();
+            $current = $snapshotRows->sortByDesc('updated_at')->unique(fn ($r) => PublicationWorkbookMetrics::publicationKey($r).'|'.$r->kode_dosen)->values();
             $candidateCount = $candidates->where('year', $year)->where('month', $latest->month)->where('period', $latest->period)->count();
             $batch = $imports->where('year', $year)->where('month', $latest->month)->where('period', $latest->period)->first();
             $batchKpi = $kpiEntries->get($batch->id ?? null, collect());

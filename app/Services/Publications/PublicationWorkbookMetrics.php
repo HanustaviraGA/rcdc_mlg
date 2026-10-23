@@ -6,6 +6,22 @@ use Illuminate\Support\Collection;
 
 class PublicationWorkbookMetrics
 {
+    public static function publicationKey(object|array $row): string
+    {
+        $requestCode = trim((string) data_get($row, 'request_code'));
+        if ($requestCode !== '') {
+            return 'request:'.$requestCode;
+        }
+        if (trim((string) data_get($row, 'title')) === '') {
+            return 'row:'.(data_get($row, 'source_row') ?? data_get($row, 'id_rectorate') ?? 'unknown');
+        }
+        // A missing optional Request Code must not merge all papers by one lecturer.
+        $identity = array_map(fn ($field) => mb_strtolower(trim(preg_replace('/\s+/u', ' ',
+            str_replace("\xC2\xA0", ' ', (string) data_get($row, $field))))), ['title', 'jenis', 'tipe_publikasi']);
+
+        return 'publication:'.hash('sha256', json_encode($identity, JSON_THROW_ON_ERROR));
+    }
+
     public static function isScopusTitle(object|array $row): bool
     {
         return strcasecmp(trim((string) data_get($row, 'tipe_publikasi')), 'Scopus') === 0

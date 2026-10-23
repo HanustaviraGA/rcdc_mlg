@@ -90,22 +90,34 @@ class ColumnMapperService
     /**
      * Dapatkan mapping configuration untuk tipe import tertentu
      */
-    public function getMappingConfig(string $importType): array
+    public function getMappingConfig(string $importType, ?int $year = null): array
     {
-        return match ($importType) {
+        $config = match ($importType) {
             'fm_file' => $this->getFmMappingConfig(),
             'mhs_file' => $this->getMhsMappingConfig(),
             'research_file' => $this->getResearchMappingConfig(),
+            'pkm_ratio' => $this->getPkmRatioMappingConfig(),
+            'pkm_involvement' => $this->getPkmInvolvementMappingConfig(),
             default => [],
         };
+        foreach (['required', 'optional'] as $group) {
+            foreach ($config[$group] ?? [] as $field => $label) {
+                $config[$group][$field] = str_replace('{tahun}', (string) ($year ?? now()->year), $label);
+            }
+        }
+        foreach ($config['aliases'] ?? [] as $field => $aliases) {
+            $config['aliases'][$field] = array_map(fn ($alias) => str_replace('{tahun}', (string) ($year ?? now()->year), $alias), $aliases);
+        }
+
+        return $config;
     }
 
     /**
      * Validasi mapping columns
      */
-    public function validateMapping(array $mapping, string $importType, ?int $headerCount = null): array
+    public function validateMapping(array $mapping, string $importType, ?int $headerCount = null, ?int $year = null): array
     {
-        $config = $this->getMappingConfig($importType);
+        $config = $this->getMappingConfig($importType, $year);
         if ($config === []) {
             return ['valid' => false, 'errors' => ['type' => 'Tipe import tidak dikenal.'], 'warnings' => []];
         }
@@ -162,13 +174,43 @@ class ColumnMapperService
     }
 
     /**
+     * Validate mapped row values using the same required fields as the preview.
+     */
+    public function validateRow(array $record, string $importType, int $rowNumber, array $mapping = [], array $headers = [], ?int $year = null): array
+    {
+        $config = $this->getMappingConfig($importType, $year);
+        if ($config === []) {
+            return ['valid' => false, 'errors' => ['type' => 'Tipe import tidak dikenal.']];
+        }
+        $errors = [];
+        foreach ($config['required'] as $field => $label) {
+            if (trim((string) ($record[$field] ?? '')) !== '') {
+                continue;
+            }
+            $source = '';
+            $index = $mapping[$field] ?? null;
+            if ($index !== null && $index !== '' && is_numeric($index) && (int) $index >= 0) {
+                $column = '';
+                for ($number = (int) $index + 1; $number > 0; $number = intdiv($number - 1, 26)) {
+                    $column = chr(65 + ($number - 1) % 26).$column;
+                }
+                $header = trim((string) ($headers[(int) $index] ?? ''));
+                $source = ' pada kolom '.$column.($header === '' ? '' : " ({$header})");
+            }
+            $errors[$field] = "Baris {$rowNumber}: {$label} ({$field}) kosong{$source}.";
+        }
+
+        return ['valid' => $errors === [], 'errors' => $errors];
+    }
+
+    /**
      * Resolve a confirmed mapping against a workbook header row.
      * A supplied mapping is authoritative: an omitted optional field stays null
      * rather than silently switching back to automatic header detection.
      */
-    public function resolveMapping(array $headers, string $importType, ?array $mapping = null): array
+    public function resolveMapping(array $headers, string $importType, ?array $mapping = null, ?int $year = null): array
     {
-        $config = $this->getMappingConfig($importType);
+        $config = $this->getMappingConfig($importType, $year);
         if ($config === []) {
             throw ValidationException::withMessages(['rectorate' => 'Tipe import tidak dikenal.']);
         }
@@ -180,7 +222,7 @@ class ColumnMapperService
             $mapping
         );
         if ($source !== null) {
-            $validation = $this->validateMapping($source, $importType, count($headers));
+            $validation = $this->validateMapping($source, $importType, count($headers), $year);
             if (! $validation['valid']) {
                 throw ValidationException::withMessages(['rectorate' => implode(' ', $validation['errors'])]);
             }
@@ -210,7 +252,7 @@ class ColumnMapperService
             $resolved[$field] = $matches === [] ? null : (int) array_key_first($matches);
         }
 
-        $validation = $this->validateMapping($resolved, $importType, count($headers));
+        $validation = $this->validateMapping($resolved, $importType, count($headers), $year);
         if (! $validation['valid']) {
             throw ValidationException::withMessages(['rectorate' => implode(' ', $validation['errors'])]);
         }
@@ -223,15 +265,11 @@ class ColumnMapperService
      */
     public function suggestMapping(array $headers, string $importType, ?int $year = null): array
     {
-        $config = $this->getMappingConfig($importType);
+        $config = $this->getMappingConfig($importType, $year);
         $mapping = [];
         if ($config === []) {
             return [];
         }
-        if ($importType === 'fm_file') {
-            $config['aliases']['status'] = ['status', 'st'.($year ?? now()->year)];
-        }
-
         // Normalize headers
         $normalizedHeaders = array_map($this->normalize(...), $headers);
 
@@ -330,6 +368,36 @@ class ColumnMapperService
         return strtolower(trim(preg_replace('/\s+/u', ' ', str_replace("\xC2\xA0", ' ', $value))));
     }
 
+    private function getPkmRatioMappingConfig(): array
+    {
+        return [
+            'required' => ['program' => 'Prodi', 'faculty' => 'Jumlah FM', 'activities' => 'Jumlah Kegiatan', 'ratio' => 'Rasio'],
+            // 'optional' => ['ratio' => 'Rasio'],
+            'optional' => [],
+            'aliases' => ['program' => ['program studi', 'jurusan', 'prodi'], 'faculty' => ['jumlah dosen'],
+                'activities' => ['jumlah kegiatan'], 'ratio' => ['rasio']],
+        ];
+    }
+
+    private function getPkmInvolvementMappingConfig(): array
+    {
+        return [
+            'required' => [
+                'kode_dosen' => 'Kode Dosen',
+                'reported_activities' => 'Jumlah kegiatan yang dilaporkan ke binusmaya',
+                'score' => 'Skor KPI comdev FM', 'status' => 'Keterangan : Minimal 1 Kegiatan PkM'
+            ],
+            // 'optional' => ['score' => 'Skor KPI comdev FM', 'status' => 'Keterangan : Minimal 1 Kegiatan PkM'],
+            'optional' => [],
+            'aliases' => [
+                'kode_dosen' => ['kode dosen', 'kode_dosen'],
+                'reported_activities' => ['jumlah laporan binusmaya', 'jumlah kegiatan binusmaya'],
+                'score' => ['skor kpi', 'skor kpi comdev fm'],
+                'status' => ['status', 'keterangan', 'keterangan: minimal 1 kegiatan pkm'],
+            ],
+        ];
+    }
+
     /**
      * FM Publication Mapping Config
      */
@@ -337,7 +405,6 @@ class ColumnMapperService
     {
         return [
             'required' => [
-                'request_code' => 'Request Code',
                 'kode_dosen' => 'Kode Dosen',
                 'kampus' => 'Kampus',
                 'submitted' => 'Submitted',
@@ -348,6 +415,7 @@ class ColumnMapperService
                 'status' => 'Status (Status / St{tahun})',
             ],
             'optional' => [
+                'request_code' => 'Request Code',
                 'author' => 'Author',
                 's_f' => 'S/F',
                 'dept' => 'Dept',
@@ -388,7 +456,7 @@ class ColumnMapperService
                 'publisher' => ['publisher', 'penerbit'],
                 'tanggal_pelaporan' => ['tanggal pelaporan', 'tanggal', 'date', 'tgl'],
                 'prodi_kpi' => ['prodi', 'prodi kpi'],
-                'status' => ['status', 'st2024', 'st2025', 'st2026', 'st2027'],
+                'status' => ['status', 'st{tahun}'],
             ],
         ];
     }
@@ -400,9 +468,7 @@ class ColumnMapperService
     {
         return [
             'required' => [
-                'request_code' => 'Request Code',
                 'name' => 'Nama Mahasiswa / FM Author',
-                'code' => 'Kode Dosen (Mahasiswa)',
                 'campus' => 'Kampus',
                 'submitted' => 'Submitted',
                 'type' => 'Tipe Publikasi',
@@ -410,6 +476,8 @@ class ColumnMapperService
                 'program' => 'Program Studi Mahasiswa',
             ],
             'optional' => [
+                'code' => 'Kode Dosen (Mahasiswa)',
+                'request_code' => 'Request Code',
                 'first_author' => 'First Author',
             ],
             'aliases' => [

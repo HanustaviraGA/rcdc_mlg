@@ -7,6 +7,7 @@ use App\Models\AttributeDosen;
 use App\Models\DataDosen;
 use App\Models\Dosen;
 use App\Models\IdentitasDosen;
+use App\Services\Lecturers\LecturerEducationWorkbook;
 use App\Services\Lecturers\LecturerSnapshots;
 use App\Services\Lecturers\LecturerWorkbook;
 use Illuminate\Http\Request;
@@ -140,7 +141,7 @@ class DosenController extends Controller
             ? ' Master tahun berjalan diperbarui.' : ' Master tahun berjalan tidak diubah.';
 
         return response()->json(['success' => true, 'summary' => $summary,
-            'message' => "Import {$summary['sheet']} periode {$summary['month']}/{$summary['year']} selesai: {$summary['selected']} dosen, {$summary['mapped_columns']} kolom; {$summary['created']} baru, {$summary['updated']} diperbarui.".$masterMessage]);
+            'message' => "Import {$summary['sheet']} periode {$summary['month']}/{$summary['year']} selesai: {$summary['selected']} dosen, {$summary['mapped_columns']} kolom; {$summary['created']} baru, {$summary['updated']} diperbarui, {$summary['removed']} dihapus dari periode. Data periode ini diganti sesuai file dan pemetaan terbaru.".$masterMessage]);
     }
 
     public function detail(Request $request)
@@ -169,6 +170,37 @@ class DosenController extends Controller
         $request->validate(['dosen' => ['required', 'file', 'mimes:xlsx', 'max:20480']]);
 
         return response()->json($workbook->preview($request->file('dosen')->getRealPath()));
+    }
+
+    public function previewEducation(Request $request, LecturerEducationWorkbook $workbook)
+    {
+        abort_unless(auth()->check(), 403);
+        $request->validate(['dosen' => ['required', 'file', 'mimes:xlsx', 'max:20480']]);
+
+        return response()->json($workbook->preview($request->file('dosen')->getRealPath()));
+    }
+
+    public function importEducation(Request $request, LecturerEducationWorkbook $workbook)
+    {
+        abort_unless(auth()->check(), 403);
+        $validated = $request->validate([
+            'dosen' => ['required', 'file', 'mimes:xlsx', 'max:20480'],
+            'year' => ['required', 'integer', 'between:2000,2100'],
+            'month' => ['required', 'integer', 'between:1,12'],
+            'column_mapping' => ['required', 'json'],
+            'header_row' => ['required', 'integer', 'min:1', 'max:1000'],
+        ]);
+        $mapping = json_decode($validated['column_mapping'], true);
+        if (! is_array($mapping)) {
+            throw ValidationException::withMessages(['column_mapping' => 'Format pemetaan kolom tidak valid.']);
+        }
+        $summary = $workbook->import($request->file('dosen')->getRealPath(), (int) $validated['year'],
+            (int) $validated['month'], $mapping, (int) $validated['header_row']);
+
+        return response()->json([
+            'success' => true, 'summary' => $summary,
+            'message' => "Status pendidikan periode {$summary['month']}/{$summary['year']} selesai: {$summary['updated']} dosen diperbarui, {$summary['unchanged']} tetap sama, ".count($summary['unmatched_codes']).' kode tidak ditemukan pada periode ini.',
+        ]);
     }
 
     public function headers(Request $request, LecturerWorkbook $workbook)

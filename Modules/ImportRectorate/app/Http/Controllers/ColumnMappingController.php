@@ -34,7 +34,7 @@ class ColumnMappingController extends Controller
         }
 
         $suggestedMapping = $this->mapperService->suggestMapping($preview['headers'], $type, (int) ($validated['year'] ?? now()->year));
-        $config = $this->mapperService->getMappingConfig($type);
+        $config = $this->mapperService->getMappingConfig($type, (int) ($validated['year'] ?? now()->year));
         $hasKpi = $type === 'fm_file' && in_array('KPI', array_map(fn ($sheet) => strtoupper(trim($sheet)), $preview['sheets'] ?? []), true);
 
         return response()->json([

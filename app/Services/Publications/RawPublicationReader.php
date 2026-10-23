@@ -3,6 +3,7 @@
 namespace App\Services\Publications;
 
 use App\Services\ColumnMapping\ColumnMapperService;
+use App\Services\Imports\ImportPolicy;
 use Aspera\Spreadsheet\XLSX\Reader;
 use Aspera\Spreadsheet\XLSX\ReaderConfiguration;
 use DateTimeImmutable;
@@ -20,6 +21,9 @@ class RawPublicationReader
             'duplicates' => 0, 'selected' => 0, 'submitted' => array_fill_keys(self::SUBMITTED, 0),
             'missing' => [], 'warnings' => []];
         $records = [];
+        $mapper = app(ColumnMapperService::class);
+        $sourceHeaders = [];
+        $policy = new ImportPolicy('rectorate_fm');
         try {
             $reader->open($path);
             $sheets = [];
@@ -39,8 +43,9 @@ class RawPublicationReader
                     continue;
                 }
                 if ($map === null) {
+                    $sourceHeaders = array_map(fn ($header) => trim((string) $header), $row);
                     $headers = array_map(fn ($h) => $this->normalize((string) $h), $row);
-                    $map = $this->mapHeaders($headers, $year, $userMapping);
+                    $map = $mapper->resolveMapping($headers, 'fm_file', $userMapping, $year);
                     $missingOptional = array_keys(array_filter($map, fn ($index) => $index === null));
                     if ($missingOptional) {
                         $summary['warnings'][] = 'Kolom opsional tidak dipetakan: '.implode(', ', $missingOptional).'. Import tetap dilanjutkan; nilai terkait belum tersedia.';
@@ -69,23 +74,30 @@ class RawPublicationReader
                 $record['submitted'] = self::SUBMITTED[$submitted];
                 $record['kampus'] = 'MALANG';
                 $record['kode_dosen'] = strtoupper($record['kode_dosen'] ?? '');
-                foreach (['request_code', 'kode_dosen', 'title', 'jenis', 'tipe_publikasi', 'status'] as $required) {
-                    if (empty($record[$required])) {
-                        $this->invalid("Baris {$number}: {$required} kosong. Perbaiki file sebelum import; data lama tetap tersimpan.");
-                    }
+                if ($policy->force && $record['kode_dosen'] === '') {
+                    $policy->skip("Baris {$number}: Kode Dosen kosong.");
+
+                    continue;
+                }
+                $validation = $mapper->validateRow($record, 'fm_file', (int) $number, $map, $sourceHeaders, $year);
+                if (! $validation['valid']) {
+                    $policy->accept(implode(' ', $validation['errors']));
                 }
                 $weight = str_replace(',', '.', $record['bobot_asli'] ?? '');
-                if (! is_numeric($weight) || (float) $weight < 0) {
-                    $this->invalid("Baris {$number}: Bobot harus berupa angka nol atau positif.");
+                if ($record['bobot_asli'] !== null && (! is_numeric($weight) || ! is_finite((float) $weight) || (float) $weight < 0)) {
+                    $policy->accept("Baris {$number}: Bobot harus berupa angka nol atau positif; nilai tidak valid dikosongkan.");
+                    $record['bobot_asli'] = null;
                 }
-                $record['bobot_asli'] = (float) $weight;
-                $record['bobot'] = self::adjustedWeight($record);
+                $record['bobot_asli'] = $record['bobot_asli'] === null ? null : (float) $weight;
+                $record['bobot'] = $record['bobot_asli'] === null ? null : self::adjustedWeight($record);
                 $record['tanggal_pelaporan'] = $this->date($record['tanggal_pelaporan']);
-                $key = $record['request_code'].'|'.$record['kode_dosen'];
+                $key = PublicationWorkbookMetrics::publicationKey($record + ['source_row' => (int) $number]).'|'.$record['kode_dosen'];
                 if (isset($records[$key])) {
                     $previous = array_intersect_key($records[$key], $record);
                     if ($previous !== $record) {
-                        $this->invalid("Baris {$number}: RequestCode dan Kode Dosen duplikat dengan isi berbeda ({$key}).");
+                        $policy->skip("Baris {$number}: identitas publikasi dan Kode Dosen duplikat dengan isi berbeda; data pertama dipakai.");
+
+                        continue;
                     }
                     $summary['duplicates']++;
 
@@ -109,9 +121,9 @@ class RawPublicationReader
         }
         $summary['selected'] = count($records);
         $summary['lecturers'] = count(array_unique(array_column($records, 'kode_dosen')));
-        $summary['publications'] = count(array_unique(array_column($records, 'request_code')));
+        $summary['publications'] = count(array_unique(array_map(PublicationWorkbookMetrics::publicationKey(...), $records)));
 
-        return ['records' => array_values($records), 'summary' => $summary];
+        return ['records' => array_values($records), 'summary' => $policy->summary($summary)];
     }
 
     public static function adjustedWeight(array $record): float
@@ -133,27 +145,6 @@ class RawPublicationReader
         }
 
         return $weight;
-    }
-
-    private function mapHeaders(array $headers, int $year, ?array $userMapping = null): array
-    {
-        // Without a confirmed mapping, only this period's status header is valid.
-        // With a mapping, arbitrary header names are accepted and omitted optional
-        // fields remain empty instead of being silently auto-detected again.
-        if ($userMapping === null) {
-            $statusHeaders = array_keys(array_intersect($headers, ['st'.$year, 'status']));
-            if (count($statusHeaders) !== 1) {
-                $this->invalid("Kolom status harus Status atau St{$year} dan tersedia tepat satu kali; periksa tahun import.");
-            }
-            $headers[$statusHeaders[0]] = 'status';
-            foreach ($headers as $index => $header) {
-                if ($index !== $statusHeaders[0] && preg_match('/^st\d{4}$/', $header)) {
-                    $headers[$index] = '';
-                }
-            }
-        }
-
-        return app(ColumnMapperService::class)->resolveMapping($headers, 'fm_file', $userMapping);
     }
 
     private function normalize(string $value): string

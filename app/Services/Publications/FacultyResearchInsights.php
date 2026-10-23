@@ -38,7 +38,7 @@ class FacultyResearchInsights
         $papers = $papers->filter(fn ($row) => (int) $row->year <= $year);
         $entries = $entries->filter(fn ($row) => (int) $row->year <= $year);
         $history = $grants->filter(fn ($row) => (int) $row->budget_year <= $year);
-        $scopus = $papers->filter(PublicationWorkbookMetrics::isScopusTitle(...))->unique('request_code')->count();
+        $scopus = $papers->filter(PublicationWorkbookMetrics::isScopusTitle(...))->unique(PublicationWorkbookMetrics::publicationKey(...))->count();
         $rtto = $entries->max('rtto_scopus');
         $hasScopus = $scopus > 0 || $rtto > 0;
         $qualified = $education === 'S3' || in_array($rank, ['L', 'LK', 'GB'], true);

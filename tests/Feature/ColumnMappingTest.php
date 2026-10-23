@@ -27,7 +27,8 @@ class ColumnMappingTest extends TestCase
         $this->assertNotEmpty($config['aliases']);
 
         // Check required fields
-        $this->assertArrayHasKey('request_code', $config['required']);
+        $this->assertArrayNotHasKey('request_code', $config['required']);
+        $this->assertArrayHasKey('request_code', $config['optional']);
         $this->assertArrayHasKey('kode_dosen', $config['required']);
         $this->assertArrayHasKey('kampus', $config['required']);
     }
@@ -53,10 +54,12 @@ class ColumnMappingTest extends TestCase
         $config = $this->service->getMappingConfig('mhs_file');
 
         $this->assertSame([
-            'request_code', 'name', 'code', 'campus', 'submitted', 'type', 'title', 'program',
+            'name', 'campus', 'submitted', 'type', 'title', 'program',
         ], array_keys($config['required']));
         $this->assertArrayNotHasKey('nim', $config['required']);
         $this->assertArrayHasKey('first_author', $config['optional']);
+        $this->assertArrayHasKey('request_code', $config['optional']);
+        $this->assertArrayHasKey('code', $config['optional']);
     }
 
     /**
@@ -203,5 +206,34 @@ class ColumnMappingTest extends TestCase
         $config = $this->service->getMappingConfig('invalid_type');
 
         $this->assertEmpty($config);
+    }
+
+    public function test_row_validation_uses_required_fields_from_each_mapping_config(): void
+    {
+        foreach (['fm_file', 'mhs_file', 'research_file'] as $type) {
+            $config = $this->service->getMappingConfig($type);
+            $record = array_fill_keys(array_keys($config['required']), 'value');
+            $this->assertTrue($this->service->validateRow($record, $type, 2)['valid']);
+            foreach ($config['required'] as $field => $label) {
+                $validation = $this->service->validateRow(array_replace($record, [$field => null]), $type, 2);
+                $this->assertFalse($validation['valid']);
+                $this->assertArrayHasKey($field, $validation['errors']);
+                $this->assertStringContainsString($label, $validation['errors'][$field]);
+            }
+            foreach (array_keys($record) as $field) {
+                $this->assertTrue($this->service->validateRow(array_replace($record, [$field => '0']), $type, 2)['valid']);
+            }
+        }
+    }
+
+    public function test_row_errors_show_the_mapped_excel_column_and_source_header(): void
+    {
+        $config = $this->service->getMappingConfig('fm_file');
+        $record = array_fill_keys(array_keys($config['required']), 'value');
+        $record['title'] = '';
+        $validation = $this->service->validateRow($record, 'fm_file', 7, ['title' => 26], [26 => 'Judul Terbitan']);
+        $this->assertSame('Baris 7: Title (title) kosong pada kolom AA (Judul Terbitan).', $validation['errors']['title']);
+        $this->assertArrayNotHasKey('request_code', $validation['errors']);
+        $this->assertFalse($this->service->validateRow([], 'invalid_type', 2)['valid']);
     }
 }

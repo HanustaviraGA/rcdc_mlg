@@ -14,8 +14,10 @@ use Modules\ImportPKM\Http\Controllers\ImportPKMController;
 |
 */
 
-Route::prefix('backoffice/importpkm')->group(function() {
+Route::prefix('backoffice/importpkm')->group(function () {
     Route::get('/', [ImportPKMController::class, 'index'])->name('importpkm.index');
+    Route::post('preview', [ImportPKMController::class, 'preview'])->middleware('auth')->name('importpkm.preview');
+    Route::post('upload', [ImportPKMController::class, 'upload'])->middleware('auth')->name('importpkm.upload');
     Route::post('create', [ImportPKMController::class, 'create'])->name('importpkm.create');
     Route::post('read', [ImportPKMController::class, 'read'])->name('importpkm.read');
     Route::put('update', [ImportPKMController::class, 'update'])->name('importpkm.update');

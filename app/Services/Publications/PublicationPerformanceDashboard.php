@@ -54,7 +54,7 @@ class PublicationPerformanceDashboard
             $latestPeriod = $periodRows->pluck('period')->merge($kpiBatches->where('year', $year)
                 ->where('month', $month)->pluck('period'))->max();
             $current = $periodRows->where('period', $latestPeriod)->sortByDesc('updated_at')
-                ->unique(fn ($row) => $row->request_code.'|'.$row->kode_dosen)->values();
+                ->unique(fn ($row) => PublicationWorkbookMetrics::publicationKey($row).'|'.$row->kode_dosen)->values();
             $batch = $periodBatches->firstWhere('period', $latestPeriod);
             // Snapshot tables are optional while older installations and tests are upgraded.
             $historicalProfiles = $hasLecturerSnapshots ? $this->periodProfiles($year, $month) : collect();

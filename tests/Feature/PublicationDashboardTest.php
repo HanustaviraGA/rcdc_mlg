@@ -192,6 +192,27 @@ class PublicationDashboardTest extends TestCase
         $this->assertSame('2026-01-01', $parsed['records'][0]['tanggal_pelaporan']);
     }
 
+    public function test_publications_without_request_codes_remain_separate_in_dashboards_and_kpi(): void
+    {
+        $file = $this->rawFile([
+            $this->row(['RequestCode' => '', 'Title ' => 'First publication']),
+            $this->row(['RequestCode' => '', 'Title ' => 'Second publication']),
+        ]);
+        $summary = app(PublicationImporter::class)->import($file, 'no-requests.xlsx', 2026, 9, 3);
+        $this->assertSame(2, $summary['publications']);
+        $this->assertSame(2, DB::table('rectorate_dosen')->whereNull('request_code')->count());
+        $dashboard = app(PublicationDashboard::class)->data();
+        $this->assertCount(2, $dashboard['publications']);
+        $faculty = collect($dashboard['faculty'])->firstWhere('code', 'D001');
+        $this->assertSame(2, $faculty['annual'][2026]['rows']);
+        $this->assertSame(2, $faculty['annual'][2026]['cluster_analysis']['evidence']['scopus_titles']);
+        $kpi = app(ImportedLecturerKpi::class)->rows()->firstWhere('code', 'D001');
+        $this->assertSame(2, $kpi['titles']);
+        $this->assertSame(1.0, $kpi['rectorate_scopus']);
+        $performance = app(PublicationPerformanceDashboard::class)->data();
+        $this->assertSame(2, $performance['snapshots'][0]['fm']['cards'][0]['titles']);
+    }
+
     public function test_missing_raw_sheet_does_not_replace_existing_snapshot(): void
     {
         $importer = app(PublicationImporter::class);
@@ -293,6 +314,11 @@ class PublicationDashboardTest extends TestCase
             ->assertSee('id="footer"', false)
             ->assertSee('landing/assets/css/main.css', false)
             ->assertSee('href="'.route('research-gallery.index').'"', false)
+            ->assertSeeInOrder(['id="performanceDepartments"', 'id="communityDevelopment"'], false)
+            ->assertSee('Community Development FM')
+            ->assertSee('Data contoh')
+            ->assertSee('data-community-lecturers="psychology"', false)
+            ->assertViewHas('communityDevelopment', fn ($data) => $data['isDemo'] && count($data['programs']) === 9 && count($data['partners']) === 100)
             ->assertDontSee('Import Excel')
             ->assertDontSee('Import hibah')
             ->assertDontSee('/dashboard/matrixkpidosen')

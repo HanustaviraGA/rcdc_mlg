@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Community Development FM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .highlight-card { animation: highlightAnim 2s ease-out; }
+        @keyframes highlightAnim {
+            0% { box-shadow: 0 0 0 4px #3b82f6; transform: scale(1.02); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); transform: scale(1); }
+        }
+        html { scroll-behavior: smooth; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto space-y-6">
+        
+        <!-- HEADER -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 rounded-2xl shadow-sm border border-slate-200 gap-4">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Dashboard Community Development FM</h1>
+                <p class="text-slate-500 text-sm mt-1">Ringkasan aktivitas, rasio dosen per divisi, serta data komunitas binaan.</p>
+            </div>
+            <div class="bg-blue-50 border border-blue-100 px-4 py-2.5 rounded-xl flex items-center gap-4 text-xs md:text-sm">
+                <span class="font-semibold text-blue-900"><i class="fa-solid fa-bullseye mr-1.5 text-blue-600"></i>TARGET KPI FM:</span>
+                <span class="flex items-center gap-1.5 text-slate-700"><i class="fa-solid fa-circle-check text-blue-600"></i> 1 Keg. (Skor 5)</span>
+                <span class="text-slate-300">|</span>
+                <span class="flex items-center gap-1.5 text-slate-700"><i class="fa-solid fa-circle-check text-blue-600"></i> 2 Keg. (Skor 6)</span>
+            </div>
+        </header>
+
+        <!-- TOP SECTION -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- LEFT: OVERVIEW TABLE -->
+            <div class="lg:col-span-6 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-base font-bold text-slate-900"><i class="fa-solid fa-table-list text-blue-600 mr-2"></i>Rekapitulasi Capaian Prodi</h2>
+                        <span class="text-xs text-slate-400">Klik baris prodi untuk navigasi</span>
+                    </div>
+                    <div class="overflow-x-auto max-h-[380px] border border-slate-100 rounded-xl">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-100 text-slate-700 uppercase font-semibold sticky top-0">
+                                <tr>
+                                    <th class="p-3">Prodi</th>
+                                    <th class="p-3 text-center">Jumlah FM</th>
+                                    <th class="p-3 text-center">Jumlah Kegiatan</th>
+                                    <th class="p-3 text-center">Rasio</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr onclick="selectProdi('binus')" class="hover:bg-blue-50 cursor-pointer transition font-bold bg-slate-50">
+                                    <td class="p-3 text-blue-700">BINUS @MALANG (Total)</td>
+                                    <td class="p-3 text-center">109</td>
+                                    <td class="p-3 text-center">206</td>
+                                    <td class="p-3 text-center text-blue-600">1.9</td>
+                                </tr>
+                                <tr onclick="selectProdi('ebc')" class="hover:bg-blue-50 cursor-pointer transition">
+                                    <td class="p-3 font-medium text-slate-800">EBC</td>
+                                    <td class="p-3 text-center">30</td>
+                                    <td class="p-3 text-center">60</td>
+                                    <td class="p-3 text-center">2.0</td>
+                                </tr>
+                                <tr onclick="selectProdi('cs')" class="hover:bg-blue-50 cursor-pointer transition">
+                                    <td class="p-3 font-medium text-slate-800">CS</td>
+                                    <td class="p-3 text-center">21</td>
+                                    <td class="p-3 text-center">37</td>
+                                    <td class="p-3 text-center">1.8</td>
+                                </tr>
+                                <tr onclick="selectProdi('pr')" class="hover:bg-blue-50 cursor-pointer transition">
+                                    <td class="p-3 font-medium text-slate-800">PR</td>
+                                    <td class="p-3 text-center">8</td>
+                                    <td class="p-3 text-center">14</td>
+                                    <td class="p-3 text-center">1.8</td>
+                                </tr>
+                                <tr onclick="selectProdi('ilkom')" class="hover:bg-blue-50 cursor-pointer transition">
+                                    <td class="p-3 font-medium text-slate-800">ILKOM</td>
+                                    <td class="p-3 text-center">8</td>
+                                    <td class="p-3 text-center">10</td>
+                                    <td class="p-3 text-center">1.3</td>
+                                </tr>
+                                <tr onclick="selectProdi('di')" class="hover:bg-blue-50 cursor-pointer transition">
+                                    <td class="p-3 font-medium text-slate-800">DI</td>
+                                    <td class="p-3 text-center">10</td>
+                                    <td class="p-3 text-center">18</td>
+                                    <td class="p-3 text-center">1.8</td>
+                                </tr>
+                                <tr onclick="selectProdi('dkv')" class="hover:bg-blue-50 cursor-pointer transition">
+                                    <td class="p-3 font-medium text-slate-800">DKV</td>
+                                    <td class="p-3 text-center">19</td>
+                                    <td class="p-3 text-center">36</td>
+                                    <td class="p-3 text-center">1.9</td>
+                                </tr>
+                                <tr onclick="selectProdi('cbdc')" class="hover:bg-blue-50 cursor-pointer transition">
+                                    <td class="p-3 font-medium text-slate-800">CBDC</td>
+                                    <td class="p-3 text-center">10</td>
+                                    <td class="p-3 text-center">20</td>
+                                    <td class="p-3 text-center">2.0</td>
+                                </tr>
+                                <tr onclick="selectProdi('dllc')" class="hover:bg-blue-50 cursor-pointer transition">
+                                    <td class="p-3 font-medium text-slate-800">DLLC</td>
+                                    <td class="p-3 text-center">2</td>
+                                    <td class="p-3 text-center">3</td>
+                                    <td class="p-3 text-center">1.5</td>
+                                </tr>
+                                <tr onclick="selectProdi('psychology')" class="hover:bg-blue-50 cursor-pointer transition">
+                                    <td class="p-3 font-medium text-slate-800">Psychology</td>
+                                    <td class="p-3 text-center">2</td>
+                                    <td class="p-3 text-center">8</td>
+                                    <td class="p-3 text-center">4.0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: KOMUNITAS BINAAN OVERVIEW + MAPS -->
+            <div class="lg:col-span-6 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-base font-bold text-slate-900"><i class="fa-solid fa-handshake-angle text-emerald-600 mr-2"></i>Overview Komunitas Binaan</h2>
+                        <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1.5 rounded-full">Total: 100 Mitra</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mb-5">
+                        <div onclick="openKategoriModal('kluster')" class="bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 p-4 rounded-xl cursor-pointer transition-colors group">
+                            <div class="flex justify-between items-start">
+                                <span class="text-xs text-emerald-700 font-semibold block">Kategori Kluster</span>
+                                <i class="fa-solid fa-arrow-pointer text-emerald-400 group-hover:text-emerald-600 transition"></i>
+                            </div>
+                            <span class="text-xl font-extrabold text-emerald-900 mt-1 block">5 Kluster</span>
+                            <span class="text-[11px] text-emerald-600 block mt-1 leading-tight">F&B, Kriya, Batik, Holti, dll.<br><b class="font-bold underline">Klik lihat rincian</b></span>
+                        </div>
+                        
+                        <div onclick="openKategoriModal('skala')" class="bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 p-4 rounded-xl cursor-pointer transition-colors group">
+                            <div class="flex justify-between items-start">
+                                <span class="text-xs text-indigo-700 font-semibold block">Skala Usaha</span>
+                                <i class="fa-solid fa-arrow-pointer text-indigo-400 group-hover:text-indigo-600 transition"></i>
+                            </div>
+                            <span class="text-xl font-extrabold text-indigo-900 mt-1 block">3 Skala</span>
+                            <span class="text-[11px] text-indigo-600 block mt-1 leading-tight">Mikro, Kecil, Menengah.<br><b class="font-bold underline">Klik lihat rincian</b></span>
+                        </div>
+                    </div>
+
+                    <!-- Area Binaan dengan Chart.js -->
+                    <div class="bg-slate-50 border border-slate-100 p-4 rounded-xl">
+                        <span class="text-xs font-bold text-slate-700 block mb-2"><i class="fa-solid fa-chart-pie text-blue-500 mr-1.5"></i>Sebaran Area Binaan</span>
+                        <div class="w-full h-40 flex justify-center items-center relative">
+                            <canvas id="areaChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pt-6 pb-2 border-b border-slate-200">
+            <h2 class="text-xl font-bold text-slate-900 border-l-4 border-blue-600 pl-3">Dashboard Detail per Prodi</h2>
+        </div>
+
+        <!-- GRID 9 PRODI CARDS -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+            <div id="card-ebc" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 transition-all flex flex-col justify-between scroll-mt-6">
+                <div>
+                    <div class="flex justify-between items-center mb-5">
+                        <span class="font-bold text-slate-900 text-lg">Prodi EBC</span>
+                        <span class="bg-blue-50 text-blue-700 text-[11px] font-bold px-2.5 py-1 rounded-md uppercase">Entrepreneurship</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl mb-5 text-center border border-slate-100">
+                        <div><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Dosen</span><span class="text-xl font-extrabold text-slate-800">30</span></div>
+                        <div class="border-x border-slate-200"><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Kegiatan</span><span class="text-xl font-extrabold text-blue-600">60</span></div>
+                        <div><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Rasio</span><span class="text-xl font-extrabold text-slate-800">2.0</span></div>
+                    </div>
+                </div>
+                <button onclick="openDosenModal('ebc')" class="w-full bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 hover:shadow-md text-sm font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-600 cursor-pointer"><i class="fa-solid fa-users"></i> List Dosen</button>
+            </div>
+            
+            <div id="card-cs" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 transition-all flex flex-col justify-between scroll-mt-6">
+                <div>
+                    <div class="flex justify-between items-center mb-5">
+                        <span class="font-bold text-slate-900 text-lg">Prodi CS</span>
+                        <span class="bg-blue-50 text-blue-700 text-[11px] font-bold px-2.5 py-1 rounded-md uppercase">Computer Science</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl mb-5 text-center border border-slate-100">
+                        <div><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Dosen</span><span class="text-xl font-extrabold text-slate-800">21</span></div>
+                        <div class="border-x border-slate-200"><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Kegiatan</span><span class="text-xl font-extrabold text-blue-600">37</span></div>
+                        <div><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Rasio</span><span class="text-xl font-extrabold text-slate-800">1.8</span></div>
+                    </div>
+                </div>
+                <button onclick="openDosenModal('cs')" class="w-full bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 hover:shadow-md text-sm font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-600 cursor-pointer"><i class="fa-solid fa-users"></i> List Dosen</button>
+            </div>
+
+            <div id="card-pr" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 transition-all flex flex-col justify-between scroll-mt-6">
+                <div>
+                    <div class="flex justify-between items-center mb-5">
+                        <span class="font-bold text-slate-900 text-lg">Prodi PR</span>
+                        <span class="bg-blue-50 text-blue-700 text-[11px] font-bold px-2.5 py-1 rounded-md uppercase">Public Relations</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl mb-5 text-center border border-slate-100">
+                        <div><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Dosen</span><span class="text-xl font-extrabold text-slate-800">8</span></div>
+                        <div class="border-x border-slate-200"><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Kegiatan</span><span class="text-xl font-extrabold text-blue-600">14</span></div>
+                        <div><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Rasio</span><span class="text-xl font-extrabold text-slate-800">1.8</span></div>
+                    </div>
+                </div>
+                <button onclick="openDosenModal('pr')" class="w-full bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 hover:shadow-md text-sm font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-600 cursor-pointer"><i class="fa-solid fa-users"></i> List Dosen</button>
+            </div>
+
+            <div id="card-ilkom" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 transition-all flex flex-col justify-between scroll-mt-6">
+                <div>
+                    <div class="flex justify-between items-center mb-5">
+                        <span class="font-bold text-slate-900 text-lg">Digicom</span>
+                        <span class="bg-blue-50 text-blue-700 text-[11px] font-bold px-2.5 py-1 rounded-md uppercase">ILKOM</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl mb-5 text-center border border-slate-100">
+                        <div><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Dosen</span><span class="text-xl font-extrabold text-slate-800">8</span></div>
+                        <div class="border-x border-slate-200"><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Kegiatan</span><span class="text-xl font-extrabold text-blue-600">10</span></div>
+                        <div><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Rasio</span><span class="text-xl font-extrabold text-slate-800">1.3</span></div>
+                    </div>
+                </div>
+                <button onclick="openDosenModal('ilkom')" class="w-full bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 hover:shadow-md text-sm font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-600 cursor-pointer"><i class="fa-solid fa-users"></i> List Dosen</button>
+            </div>
+
+            <div id="card-di" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 transition-all flex flex-col justify-between scroll-mt-6">
+                <div>
+                    <div class="flex justify-between items-center mb-5">
+                        <span class="font-bold text-slate-900 text-lg">DP / PJJ</span>
+                        <span class="bg-blue-50 text-blue-700 text-[11px] font-bold px-2.5 py-1 rounded-md uppercase">Interior Design</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl mb-5 text-center border border-slate-100">
+                        <div><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Dosen</span><span class="text-xl font-extrabold text-slate-800">10</span></div>
+                        <div class="border-x border-slate-200"><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Kegiatan</span><span class="text-xl font-extrabold text-blue-600">18</span></div>
+                        <div><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Rasio</span><span class="text-xl font-extrabold text-slate-800">1.8</span></div>
+                    </div>
+                </div>
+                <button onclick="openDosenModal('di')" class="w-full bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 hover:shadow-md text-sm font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-600 cursor-pointer"><i class="fa-solid fa-users"></i> List Dosen</button>
+            </div>
+
+            <div id="card-dkv" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 transition-all flex flex-col justify-between scroll-mt-6">
+                <div>
+                    <div class="flex justify-between items-center mb-5">
+                        <span class="font-bold text-slate-900 text-lg">Prodi DKV</span>
+                        <span class="bg-blue-50 text-blue-700 text-[11px] font-bold px-2.5 py-1 rounded-md uppercase">Visual Comm.</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl mb-5 text-center border border-slate-100">
+                        <div><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Dosen</span><span class="text-xl font-extrabold text-slate-800">19</span></div>
+                        <div class="border-x border-slate-200"><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Kegiatan</span><span class="text-xl font-extrabold text-blue-600">36</span></div>
+                        <div><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Rasio</span><span class="text-xl font-extrabold text-slate-800">1.9</span></div>
+                    </div>
+                </div>
+                <button onclick="openDosenModal('dkv')" class="w-full bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 hover:shadow-md text-sm font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-600 cursor-pointer"><i class="fa-solid fa-users"></i> List Dosen</button>
+            </div>
+            
+            <div id="card-cbdc" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 transition-all flex flex-col justify-between scroll-mt-6">
+                <div>
+                    <div class="flex justify-between items-center mb-5">
+                        <span class="font-bold text-slate-900 text-lg">Prodi CBDC</span>
+                        <span class="bg-blue-50 text-blue-700 text-[11px] font-bold px-2.5 py-1 rounded-md uppercase">Char. Building</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl mb-5 text-center border border-slate-100">
+                        <div><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Dosen</span><span class="text-xl font-extrabold text-slate-800">10</span></div>
+                        <div class="border-x border-slate-200"><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Kegiatan</span><span class="text-xl font-extrabold text-blue-600">20</span></div>
+                        <div><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Rasio</span><span class="text-xl font-extrabold text-slate-800">2.0</span></div>
+                    </div>
+                </div>
+                <button onclick="openDosenModal('cbdc')" class="w-full bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 hover:shadow-md text-sm font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-600 cursor-pointer"><i class="fa-solid fa-users"></i> List Dosen</button>
+            </div>
+
+            <div id="card-dllc" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 transition-all flex flex-col justify-between scroll-mt-6">
+                <div>
+                    <div class="flex justify-between items-center mb-5">
+                        <span class="font-bold text-slate-900 text-lg">LC</span>
+                        <span class="bg-blue-50 text-blue-700 text-[11px] font-bold px-2.5 py-1 rounded-md uppercase">DLLC</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl mb-5 text-center border border-slate-100">
+                        <div><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Dosen</span><span class="text-xl font-extrabold text-slate-800">2</span></div>
+                        <div class="border-x border-slate-200"><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Kegiatan</span><span class="text-xl font-extrabold text-blue-600">3</span></div>
+                        <div><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Rasio</span><span class="text-xl font-extrabold text-slate-800">1.5</span></div>
+                    </div>
+                </div>
+                <button onclick="openDosenModal('dllc')" class="w-full bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 hover:shadow-md text-sm font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-600 cursor-pointer"><i class="fa-solid fa-users"></i> List Dosen</button>
+            </div>
+
+            <div id="card-psychology" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 transition-all flex flex-col justify-between scroll-mt-6">
+                <div>
+                    <div class="flex justify-between items-center mb-5">
+                        <span class="font-bold text-slate-900 text-lg">Psychology</span>
+                        <span class="bg-blue-50 text-blue-700 text-[11px] font-bold px-2.5 py-1 rounded-md uppercase">Psychology</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl mb-5 text-center border border-slate-100">
+                        <div><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Dosen</span><span class="text-xl font-extrabold text-slate-800">2</span></div>
+                        <div class="border-x border-slate-200"><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Kegiatan</span><span class="text-xl font-extrabold text-blue-600">8</span></div>
+                        <div><span class="text-[10px] text-slate-500 block uppercase font-bold mb-1">Rasio</span><span class="text-xl font-extrabold text-slate-800">4.0</span></div>
+                    </div>
+                </div>
+                <button onclick="openDosenModal('psychology')" class="w-full bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 hover:shadow-md text-sm font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-600 cursor-pointer"><i class="fa-solid fa-users"></i> List Dosen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 1: LIST DOSEN PER PRODI -->
+    <div id="dosenModal" style="z-index: 9999;" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 transition-opacity">
+        <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl">
+            <div class="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-2xl">
+                <div>
+                    <h3 id="dosenModalTitle" class="font-extrabold text-xl text-slate-900">List Dosen</h3>
+                    <p class="text-sm text-slate-500 mt-1">Daftar capaian kegiatan PkM</p>
+                </div>
+                <button onclick="closeModal('dosenModal')" class="w-10 h-10 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center transition cursor-pointer">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="overflow-y-auto flex-1 p-0">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-white text-slate-600 font-bold sticky top-0 border-b border-slate-200 shadow-sm">
+                        <tr>
+                            <th class="p-4">Nama Dosen</th>
+                            <th class="p-4 text-center">Jumlah Kegiatan</th>
+                            <th class="p-4 text-center">Skor KPI</th>
+                            <th class="p-4">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dosenModalBody" class="divide-y divide-slate-100 bg-white">
+                        <!-- Data diisi oleh JS -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-5 border-t border-slate-200 bg-slate-50 text-right rounded-b-2xl">
+                <button onclick="closeModal('dosenModal')" class="bg-slate-800 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition cursor-pointer">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: MENU KATEGORI/SKALA -->
+    <div id="kategoriModal" style="z-index: 9999;" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 transition-opacity">
+        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl">
+            <div class="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-2xl">
+                <h3 id="kategoriModalTitle" class="font-extrabold text-lg text-slate-900">Menu</h3>
+                <button onclick="closeModal('kategoriModal')" class="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center transition cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-5 flex flex-col gap-3" id="kategoriModalBody">
+                <!-- Buttons diisi oleh JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: LIST UMKM (DRILL DOWN) -->
+    <div id="umkmModal" style="z-index: 9999;" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 transition-opacity">
+        <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl">
+            <div class="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-2xl">
+                <div>
+                    <h3 id="umkmModalTitle" class="font-extrabold text-xl text-slate-900">List UMKM</h3>
+                    <p class="text-sm text-slate-500 mt-1" id="umkmModalSub">Detail mitra binaan</p>
+                </div>
+                <button onclick="closeModal('umkmModal')" class="w-10 h-10 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center transition cursor-pointer">
+                    <i class="fa-solid fa-arrow-left text-lg"></i>
+                </button>
+            </div>
+            <div class="overflow-y-auto flex-1 p-0">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-white text-slate-600 font-bold sticky top-0 border-b border-slate-200 shadow-sm">
+                        <tr>
+                            <th class="p-4 w-12 text-center">No</th>
+                            <th class="p-4">Nama UMKM / Mitra</th>
+                            <th class="p-4">Kluster</th>
+                            <th class="p-4">Skala</th>
+                        </tr>
+                    </thead>
+                    <tbody id="umkmModalBody" class="divide-y divide-slate-100 bg-white">
+                        <!-- Data diisi oleh JS -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-5 border-t border-slate-200 bg-slate-50 text-right rounded-b-2xl">
+                <button onclick="closeModal('umkmModal')" class="bg-slate-800 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition cursor-pointer">Kembali</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        const dosenData = {
+            ebc: [
+                { name: "Dr. Kukuh Lukiyanto, S.T., M.M., M.T.", keg: 3, skor: 6, status: "Sudah PkM" },
+                { name: "Yoseph Benny Kusuma, S.M., M.SM.", keg: 2, skor: 6, status: "Sudah PkM" },
+                { name: "Etsa Astridya Setiyati, S.E., M.Comm.", keg: 1, skor: 5, status: "Sudah PkM" }
+            ],
+            cs: [
+                { name: "Dr. Choirul Huda, S.Kom., M.M.", keg: 2, skor: 6, status: "Sudah PkM" },
+                { name: "Alvin Chandra, S.Kom., M.M.", keg: 1, skor: 5, status: "Sudah PkM" },
+                { name: "Dr. Anita Rahayu, S.Si., M.Si.", keg: 4, skor: 6, status: "Sudah PkM" }
+            ],
+            pr: [
+                { name: "Galuh Ayu Savitri, S.I.Kom., M.I.Kom.", keg: 4, skor: 6, status: "Sudah PkM" },
+                { name: "Nisrin Husna, S.I.Kom., M.I.Kom.", keg: 1, skor: 5, status: "Sudah PkM" }
+            ],
+            ilkom: [{ name: "Windaningsih, S.Sos., M.I.Kom", keg: 1, skor: 5, status: "Sudah PkM" }],
+            di: [{ name: "Ira Audia Agustina, S.T., M.Ds.", keg: 1, skor: 5, status: "Sudah PkM" }],
+            dkv: [{ name: "Hindam Basith Rafiqi, S.Sn., M.Sn.", keg: 5, skor: 6, status: "Sudah PkM" }],
+            cbdc: [{ name: "Romanus Piter, S.Fil., M.Fil.", keg: 3, skor: 6, status: "Sudah PkM" }],
+            dllc: [{ name: "Asih Zunaidah, S.S., M.LI.", keg: 2, skor: 6, status: "Sudah PkM" }],
+            psychology: [{ name: "Natasha Gandhi, S.Psi., M.Psi.", keg: 3, skor: 6, status: "Sudah PkM" }]
+        };
+
+        const umkmData = [];
+        
+        // Membangkitkan 100 data UMKM
+        for(let i=1; i<=48; i++) umkmData.push({nama: "UMKM F&B " + i, kluster: "F&B", skala: i<=30?"Mikro":(i<=45?"Kecil":"Menengah")});
+        for(let i=1; i<=23; i++) umkmData.push({nama: "UMKM Kriya " + i, kluster: "Kriya", skala: i<=15?"Mikro":"Kecil"});
+        for(let i=1; i<=10; i++) umkmData.push({nama: "UMKM Batik " + i, kluster: "Batik & Ecoprint", skala: i<=5?"Mikro":"Kecil"});
+        for(let i=1; i<=9; i++) umkmData.push({nama: "UMKM Holti " + i, kluster: "Holti", skala: i<=7?"Mikro":"Kecil"});
+        for(let i=1; i<=10; i++) umkmData.push({nama: "Mitra Non UMKM " + i, kluster: "NON UMKM", skala: "Lainnya"});
+
+        // Chart.js Area Chart Initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('areaChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Kab. Malang', 'Kota Malang', 'Lainnya'],
+                    datasets: [{
+                        data: [70, 26, 4], // Total 100
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b'],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } }
+                    },
+                    cutout: '65%'
+                }
+            });
+        });
+
+        function selectProdi(prodiKey) {
+            if (prodiKey === 'binus') {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                const card = document.getElementById('card-' + prodiKey);
+                if (card) {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    card.classList.add('highlight-card');
+                    setTimeout(() => { card.classList.remove('highlight-card'); }, 2000);
+                }
+            }
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+        }
+
+        function openDosenModal(prodiKey) {
+            const modal = document.getElementById('dosenModal');
+            const tbody = document.getElementById('dosenModalBody');
+            
+            document.getElementById('dosenModalTitle').innerText = `List Dosen - Prodi ${prodiKey.toUpperCase()}`;
+            tbody.innerHTML = '';
+            
+            const list = dosenData[prodiKey] || [];
+            list.sort((a, b) => a.skor - b.skor);
+
+            list.forEach(d => {
+                let badgeColor = d.skor === 6 ? 'bg-emerald-100 text-emerald-800' : 
+                                (d.skor === 5 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800');
+                
+                let rowColor = d.skor === 0 ? 'bg-slate-50 opacity-70' : 'hover:bg-slate-50 transition';
+                
+                tbody.innerHTML += `
+                    <tr class="${rowColor}">
+                        <td class="p-4 font-semibold text-slate-800 border-b border-slate-100">${d.name}</td>
+                        <td class="p-4 text-center font-bold text-slate-700 border-b border-slate-100">${d.keg}</td>
+                        <td class="p-4 text-center border-b border-slate-100">
+                            <span class="px-3 py-1.5 rounded-lg font-extrabold text-xs ${badgeColor}">Skor ${d.skor}</span>
+                        </td>
+                        <td class="p-4 text-slate-600 font-medium border-b border-slate-100">${d.status}</td>
+                    </tr>`;
+            });
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+        }
+
+        function openKategoriModal(tipe) {
+            const modal = document.getElementById('kategoriModal');
+            const title = document.getElementById('kategoriModalTitle');
+            const body = document.getElementById('kategoriModalBody');
+            body.innerHTML = '';
+
+            let dataMenu = [];
+            if(tipe === 'kluster') {
+                title.innerText = 'Daftar Kategori Kluster';
+                dataMenu = [
+                    { name: 'F&B', count: 48 }, { name: 'Kriya', count: 23 },
+                    { name: 'Batik & Ecoprint', count: 10 }, { name: 'NON UMKM', count: 10 },
+                    { name: 'Holti', count: 9 }
+                ];
+            } else {
+                title.innerText = 'Daftar Skala Usaha';
+                dataMenu = [
+                    { name: 'Mikro', count: 57 }, { name: 'Kecil', count: 30 },
+                    { name: 'Menengah', count: 3 }, { name: 'Lainnya', count: 10 }
+                ];
+            }
+
+            dataMenu.forEach(item => {
+                body.innerHTML += `
+                    <button onclick="openUmkmListModal('${item.name}', '${tipe}')" 
+                        class="w-full flex justify-between items-center bg-white border border-slate-200 p-4 rounded-xl hover:border-emerald-400 hover:shadow-md transition cursor-pointer text-left">
+                        <span class="font-bold text-slate-800">${item.name}</span>
+                        <div class="flex items-center gap-3">
+                            <span class="bg-slate-100 text-slate-600 font-bold px-3 py-1 rounded-lg text-sm">${item.count} UMKM</span>
+                            <i class="fa-solid fa-chevron-right text-slate-400"></i>
+                        </div>
+                    </button>`;
+            });
+
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+        }
+
+        function openUmkmListModal(filterValue, tipe) {
+            closeModal('kategoriModal');
+            
+            const modal = document.getElementById('umkmModal');
+            document.getElementById('umkmModalTitle').innerText = `List UMKM: ${filterValue}`;
+            document.getElementById('umkmModalSub').innerText = `Difilter berdasarkan ${tipe === 'kluster' ? 'Kluster' : 'Skala Usaha'}`;
+            
+            const tbody = document.getElementById('umkmModalBody');
+            tbody.innerHTML = '';
+
+            const filteredData = umkmData.filter(u => tipe === 'kluster' ? u.kluster === filterValue : u.skala === filterValue);
+
+            filteredData.forEach((u, index) => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-4 text-center font-bold text-slate-500 border-b border-slate-100">${index + 1}</td>
+                        <td class="p-4 font-bold text-slate-800 border-b border-slate-100">${u.nama}</td>
+                        <td class="p-4 text-emerald-700 font-medium border-b border-slate-100">${u.kluster}</td>
+                        <td class="p-4 text-indigo-700 font-medium border-b border-slate-100">${u.skala}</td>
+                    </tr>`;
+            });
+
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+        }
+    </script>
+</body>
+</html>

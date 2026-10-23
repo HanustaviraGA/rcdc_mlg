@@ -62,7 +62,7 @@ class ImportedLecturerKpi
             [$year, $month] = array_map('intval', explode('-', $snapshot));
             $roster = $snapshotMode && $year > 0 ? $rosters->rows($year, $month > 0 ? $month : null) : collect();
             $papers = collect($data['papers'] ?? [])->sortByDesc('updated_at')
-                ->unique(fn ($row) => $row->request_code.'|'.$row->kode_dosen)->groupBy('kode_dosen');
+                ->unique(fn ($row) => PublicationWorkbookMetrics::publicationKey($row).'|'.$row->kode_dosen)->groupBy('kode_dosen');
             $entries = collect($data['entries'] ?? [])->keyBy('kode_dosen');
             $grants = collect($data['grants'] ?? [])->groupBy('kode_dosen_nim');
             // Keep the original participant population: a roster enriches imported participants,
