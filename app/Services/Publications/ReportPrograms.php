@@ -8,6 +8,9 @@ class ReportPrograms
         'CS' => 'Computer Science', 'DKV' => 'Visual Communication Design', 'DI' => 'Interior Design',
         'ILKOM' => 'Communication', 'PR' => 'Public Relation', 'CBDC' => 'CBDC', 'LC' => 'LC', 'PSY' => 'Psychology'];
 
+    public const FULL_LABELS = ['BC' => 'Entrepreneurship - Business Creation',
+        'CBDC' => 'Character Building Development Center', 'LC' => 'Language Center'] + self::LABELS;
+
     public static function code(?string $name): string
     {
         $name = trim($name ?? '');

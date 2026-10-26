@@ -9,20 +9,28 @@ const indicators = {
 };
 const numberFormat = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 });
 const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+const publicationFilterFields = [['category', 'Submitted'], ['type', 'Jenis'], ['index', 'Tipe Publikasi'], ['quartile', 'Quartile Jurnal'], ['firstAuthor', 'First Author'], ['paperSource', 'Sumber paper']];
+const normalize = value => String(value ?? '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('id-ID');
 const hasNumber = value => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
 const format = value => hasNumber(value) ? numberFormat.format(Number(value)) : '—';
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 const periodLabel = snapshot => snapshot ? `${shortMonths[snapshot.month - 1]} ${snapshot.year}` : 'Belum tersedia';
 
-export function selectSnapshot(snapshots, year, kind, quarter = 'all') {
-    const cutoff = /^Q[1-4]$/.test(quarter) ? Number(quarter.slice(1)) * 3 : 12;
+export function periodCutoff(quarter, month = 'all') {
+    const quarterEnd = /^Q[1-4]$/.test(quarter) ? Number(quarter.slice(1)) * 3 : 12;
+    return /^([1-9]|1[0-2])$/.test(String(month)) ? Math.min(Number(month), quarterEnd) : quarterEnd;
+}
+
+export function selectSnapshot(snapshots, year, kind, quarter = 'all', month = 'all') {
+    const cutoff = periodCutoff(quarter, month);
     return snapshots.filter(row => String(row.year) === String(year) && row.month >= 1 && row.month <= cutoff && row[kind])
         .sort((a, b) => b.month - a.month)[0] ?? null;
 }
 
 export function selectedSources(source, state, kind) {
     return state.years.map(year => {
-        const snapshot = selectSnapshot(source.snapshots, year, kind, state.quarter);
+        const snapshot = selectSnapshot(source.snapshots, year, kind, state.quarter, state.month);
         let data = snapshot?.[kind] ?? null;
         if (data && state.program) {
             const card = data.cards.find(row => row.program === state.program);
@@ -43,15 +51,49 @@ export function csvCell(value) {
     return `"${text.replace(/"/g, '""')}"`;
 }
 
+export function publicationCounts(rows) {
+    const counts = { firstConference: 0, firstJournal: 0, nonFirstConference: 0, nonFirstJournal: 0, sinta: 0 };
+    for (const row of rows) {
+        const author = normalize(row.firstAuthor);
+        const prefix = ['y', 'yes', 'ya', '1', 'true'].includes(author) ? 'first'
+            : ['n', 'no', 'tidak', '0', 'false'].includes(author) ? 'nonFirst' : null;
+        const type = normalize(row.type);
+        const category = ['seminar', 'conference', 'konferensi'].includes(type) ? 'Conference'
+            : ['jurnal', 'journal'].includes(type) ? 'Journal' : null;
+        if (prefix && category) counts[prefix + category]++;
+        if (normalize(row.quartile).includes('jurnal sinta')) counts.sinta++;
+    }
+    return counts;
+}
+
+export function filterPublications(rows, filters = {}) {
+    return rows.filter(row => publicationFilterFields.every(([key]) => !filters[key]?.length
+        || filters[key].some(value => normalize(row[key]) === normalize(value))));
+}
+
 function initialize(source) {
     const $ = id => document.getElementById(id);
     const params = new URLSearchParams(window.location.search);
     const requestedYears = [...params.getAll('years[]'), ...(params.get('year')?.split(',') ?? [])].filter(year => source.years.includes(year));
     const defaultYear = String(source.defaultYear);
+    function latestPeriod(years, kind) {
+        const available = source.snapshots.filter(row => years.includes(String(row.year)) && row.month >= 1 && row.month <= 12);
+        const snapshot = available.filter(row => row[kind]).sort((a, b) => b.year - a.year || b.month - a.month)[0]
+            ?? available.sort((a, b) => b.year - a.year || b.month - a.month)[0];
+        const month = snapshot?.month ?? new Date().getMonth() + 1;
+        return { quarter: `Q${Math.ceil(month / 3)}`, month: String(month) };
+    }
+    const initialPeriod = latestPeriod(requestedYears.length ? requestedYears : [defaultYear], params.get('indicator') ?? 'fm');
+    const initialQuarter = /^Q[1-4]$/.test(params.get('quarter')) ? params.get('quarter') : initialPeriod.quarter;
+    const requestedMonth = params.get('month');
+    const quarterEnd = Number(initialQuarter.slice(1)) * 3;
+    const initialMonth = requestedMonth && Number(requestedMonth) > quarterEnd - 3 && Number(requestedMonth) <= quarterEnd && /^([1-9]|1[0-2])$/.test(requestedMonth)
+        ? requestedMonth : initialQuarter === initialPeriod.quarter ? initialPeriod.month : String(quarterEnd);
     const state = {
         years: requestedYears.length ? [...new Set(requestedYears)].sort() : [defaultYear],
         indicator: Object.hasOwn(indicators, params.get('indicator')) ? params.get('indicator') : 'fm',
-        quarter: /^Q[1-4]$/.test(params.get('quarter')) ? params.get('quarter') : 'all',
+        quarter: initialQuarter,
+        month: initialMonth,
         program: '',
     };
     const availablePrograms = [...new Set(source.snapshots.flatMap(row => ['fm', 'mhs'].flatMap(kind => row[kind]?.cards.map(card => card.program) ?? [])))].sort();
@@ -108,10 +150,14 @@ function initialize(source) {
     function render() {
         $('performanceIndicator').value = state.indicator;
         $('performanceQuarter').value = state.quarter;
+        const quarterEnd = Number(state.quarter.slice(1)) * 3;
+        $('performanceMonth').innerHTML = months.map((month, index) => index >= quarterEnd - 3 && index < quarterEnd
+            ? `<option value="${index + 1}">${month}</option>` : '').join('');
+        $('performanceMonth').value = state.month;
         $('performanceProgram').value = state.program;
         document.querySelectorAll('#performanceYears input').forEach(input => { input.checked = state.years.includes(input.value); });
         $('performanceYearLabel').textContent = state.years.join(', ');
-        $('performanceSummaryPeriod').textContent = `${state.years.join(', ')} · ${state.quarter === 'all' ? 'Periode terbaru' : `Kumulatif ${state.quarter}`}`;
+        $('performanceSummaryPeriod').textContent = `${state.years.join(', ')} · ${state.quarter} · s.d. ${months[Number(state.month) - 1]}`;
         $('performanceIndicatorLabel').textContent = indicators[state.indicator].label;
         const selections = selectedSources(source, state, state.indicator);
         renderedCards = selections.flatMap(({ snapshot, data }) => data ? data.cards.map(card => ({ card, snapshot, kind: state.indicator })) : []);
@@ -126,14 +172,14 @@ function initialize(source) {
         renderSummary();
         const missing = selections.filter(row => !row.data).map(row => row.year);
         const publication = ['fm', 'mhs'].includes(state.indicator);
-        const partial = state.quarter !== 'all' && selections.some(row => row.data && row.snapshot.month < Number(state.quarter.slice(1)) * 3);
+        const partial = selections.some(row => row.data && row.snapshot.month < periodCutoff(state.quarter, state.month));
         $('performanceContext').textContent = publication
-            ? `Target yang tersedia adalah target tahunan. Realisasi bersifat kumulatif, mengikuti snapshot terakhir dalam batas periode.${partial ? ' Data belum mencapai akhir kuartal; bulan sumber ditampilkan pada setiap grafik.' : ''}${state.years.length > 1 ? ' Ringkasan menjumlahkan tahun yang tersedia; persentase ditampilkan per tahun pada kartu jurusan.' : ''}${missing.length ? ` Data ${missing.join(', ')} belum tersedia pada filter ini.` : ''}`
+            ? `Target yang tersedia adalah target tahunan. Realisasi bersifat kumulatif, mengikuti snapshot terakhir sampai bulan terpilih.${partial ? ' Data belum mencapai bulan terpilih; bulan sumber ditampilkan pada setiap grafik.' : ''}${state.years.length > 1 ? ' Ringkasan menjumlahkan tahun yang tersedia; persentase ditampilkan per tahun pada kartu jurusan.' : ''}${missing.length ? ` Data ${missing.join(', ')} belum tersedia pada filter ini.` : ''}`
             : indicators[state.indicator].message;
         $('performanceScope').textContent = `${renderedCards.length} grafik${state.program ? ` · ${state.program}` : ' · Semua program studi'}${periods.length ? ` · Data s.d. ${periods.join(' / ')}` : ''}`;
         $('performanceEmpty').hidden = renderedCards.length > 0;
         $('performanceEmptyTitle').textContent = publication ? 'Belum ada data pada periode ini' : `${indicators[state.indicator].label} belum tersedia`;
-        $('performanceEmptyText').textContent = publication ? 'Belum ada snapshot yang sesuai dengan tahun, batas kuartal, dan program studi terpilih. Coba pilih periode atau program studi lain.' : indicators[state.indicator].message;
+        $('performanceEmptyText').textContent = publication ? 'Belum ada snapshot yang sesuai dengan tahun, kuartal, bulan, dan program studi terpilih. Coba pilih periode atau program studi lain.' : indicators[state.indicator].message;
         renderNotes(selections, publication);
     }
 
@@ -152,7 +198,7 @@ function initialize(source) {
     }
 
     function reset() {
-        state.years = [defaultYear]; state.indicator = 'fm'; state.quarter = 'all'; state.program = '';
+        Object.assign(state, { years: [defaultYear], indicator: 'fm', program: '' }, latestPeriod([defaultYear], 'fm'));
         $('performanceYears').open = false;
         render();
     }
@@ -161,24 +207,68 @@ function initialize(source) {
         ['code', 'Kode dosen'], ['name', 'Nama dosen'], ['program', 'Jurusan'], ['rank', 'JJA'], ['faculty', 'Faculty type'],
         ['nonScopus', 'Non Scopus', true], ['scopus', 'Scopus', true], ['firstAuthor', 'First author', true], ['score', 'Skor KPI', true],
     ];
-    const paperColumns = [['title', 'Judul'], ['author', 'Author'], ['name', 'FM Author'], ['request', 'Request code'], ['firstAuthor', 'First author'], ['weight', 'Bobot asli', true], ['category', 'Submitted'], ['status', 'Status'], ['type', 'Jenis'], ['index', 'Tipe publikasi'], ['source', 'Source title'], ['quartile', 'Quartile jurnal']];
+    const paperColumns = [['title', 'Judul'], ['author', 'Author'], ['name', 'FM Author'], ['request', 'Request code'], ['firstAuthor', 'First author'], ['weight', 'Bobot asli', true], ['category', 'Submitted'], ['status', 'Status'], ['type', 'Jenis'], ['index', 'Tipe publikasi'], ['source', 'Source title'], ['quartile', 'Quartile jurnal'], ['paperSource', 'Sumber paper']];
     const studentColumns = [['name', 'Penulis mahasiswa'], ['title', 'Judul publikasi']];
 
     function setDetailTable(mode, code = null) {
         detail.mode = mode; detail.code = code; detail.sort = mode === 'papers' ? 'title' : 'name'; detail.ascending = true;
+        detail.filters = {};
         $('performanceDetailSearch').value = '';
         $('performanceDetailBack').hidden = mode !== 'papers';
+        $('performanceDetailStats').hidden = mode === 'papers';
+        $('performanceFacultySummary').hidden = mode !== 'papers';
+        $('performancePublicationFilters').hidden = mode !== 'papers';
+        if (mode === 'papers') {
+            const faculty = detail.card.faculty.find(row => row.code === code);
+            const counts = publicationCounts(facultyPapers());
+            $('performanceFacultyName').textContent = `${faculty?.name ?? code} · ${code}`;
+            $('performanceFacultyCounts').innerHTML = `<tr>${[counts.firstConference, counts.firstJournal, counts.nonFirstConference, counts.nonFirstJournal, counts.sinta, faculty?.score].map(value => `<td>${format(value)}</td>`).join('')}</tr>`;
+            renderPublicationFilters();
+        }
         $('performanceDetailCaption').textContent = mode === 'faculty' ? 'Klik nama dosen untuk melihat publikasinya. Bobot Non Scopus/Scopus mengikuti MAX(Rectorate, RTTO); skor kosong berarti belum tersedia.'
             : mode === 'papers' ? `Publikasi ${detail.card.faculty.find(row => row.code === code)?.name ?? code} pada jurusan dan snapshot terpilih. Bobot per publikasi memakai bobot asli.`
                 : 'Daftar penulis mahasiswa dan judul publikasi mengikuti LIST pada periode terpilih.';
         renderTable();
     }
 
+    function facultyPapers() {
+        return detail.card.publications.filter(row => row.code === detail.code);
+    }
+
+    function renderPublicationFilters() {
+        const rows = facultyPapers();
+        $('performancePublicationFilterGrid').innerHTML = publicationFilterFields.map(([key, label]) => {
+            const values = [...new Set(rows.map(row => String(row[key] ?? '').trim()))].sort((a, b) => a.localeCompare(b, 'id', { numeric: true }));
+            return `<div class="pd-publication-filter-field"><label id="paperFilterLabel-${key}">${label}</label>
+                <details class="pd-paper-select" data-paper-filter="${key}">
+                    <summary aria-labelledby="paperFilterLabel-${key} paperFilterSummary-${key}"><span id="paperFilterSummary-${key}">Semua ${label}</span><i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
+                    <div class="pd-paper-options">
+                        <input type="search" class="pd-option-search" placeholder="Cari pilihan…" aria-label="Cari pilihan ${label}">
+                        <div class="pd-option-actions"><button type="button" class="pd-text-button" data-paper-options="all">Pilih Semua</button><button type="button" class="pd-text-button" data-paper-options="clear">Hapus Pilihan</button></div>
+                        <div class="pd-paper-option-list" role="group" aria-labelledby="paperFilterLabel-${key}">${values.map(value => `<label><input type="checkbox" data-paper-option value="${escape(value)}"><span>${escape(value || '(Kosong)')}</span></label>`).join('') || '<p>Belum ada pilihan.</p>'}</div>
+                        <p>Tanpa pilihan = semua data.</p>
+                    </div>
+                </details></div>`;
+        }).join('');
+    }
+
+    function updatePublicationFilter(group) {
+        const key = group.dataset.paperFilter;
+        const values = [...group.querySelectorAll('[data-paper-option]:checked')].map(input => input.value);
+        detail.filters[key] = values;
+        const all = values.length === group.querySelectorAll('[data-paper-option]').length;
+        $(`paperFilterSummary-${key}`).textContent = !values.length || all ? `Semua ${publicationFilterFields.find(([field]) => field === key)[1]}`
+            : values.map(value => value || '(Kosong)').join(', ');
+        group.classList.toggle('has-selection', values.length > 0 && !all);
+        renderTable();
+    }
+
     function tableRows() {
         const columns = detail.mode === 'faculty' ? facultyColumns : detail.mode === 'papers' ? paperColumns : studentColumns;
-        const rows = detail.mode === 'faculty' ? detail.card.faculty : detail.mode === 'papers' ? detail.card.publications.filter(row => row.code === detail.code) : detail.card.students;
+        const rows = detail.mode === 'faculty' ? detail.card.faculty : detail.mode === 'papers' ? facultyPapers() : detail.card.students;
         const query = $('performanceDetailSearch').value.toLocaleLowerCase('id-ID').trim();
-        const visible = rows.filter(row => !query || columns.some(([key]) => String(row[key] ?? '').toLocaleLowerCase('id-ID').includes(query)));
+        const filtered = detail.mode === 'papers' ? filterPublications(rows, detail.filters) : rows;
+        const visible = filtered.filter(row => !query || columns.some(([key]) => String(row[key] ?? '').toLocaleLowerCase('id-ID').includes(query)));
         const numeric = columns.find(([key]) => key === detail.sort)?.[2];
         visible.sort((a, b) => {
             const left = a[detail.sort], right = b[detail.sort];
@@ -199,7 +289,7 @@ function initialize(source) {
     function openDetail(index) {
         detail = { ...renderedCards[index] };
         previousFocus = document.activeElement;
-        $('performanceDetailTitle').textContent = `${detail.card.program} · ${detail.card.label}`;
+        $('performanceDetailTitle').textContent = `Detail Prodi ${detail.card.label} - ${state.quarter} ${months[Number(state.month) - 1]}`;
         $('performanceDetailSubtitle').textContent = `${indicators[detail.kind].label} · s.d. ${periodLabel(detail.snapshot)}`;
         $('performanceDetailStats').innerHTML = [['Target tahunan', detail.card.target], ['Realisasi kumulatif', detail.card.actual], ['Skor jurusan', detail.card.score]].map(([label, value]) => `<div class="pd-detail-stat"><span>${label}</span><strong>${format(value)}</strong></div>`).join('');
         setDetailTable(detail.kind === 'fm' ? 'faculty' : 'students');
@@ -211,7 +301,8 @@ function initialize(source) {
     $('performanceFilters').addEventListener('submit', event => event.preventDefault());
     $('performanceFilters').addEventListener('reset', event => { event.preventDefault(); reset(); });
     $('performanceIndicator').addEventListener('change', event => { state.indicator = event.target.value; render(); });
-    $('performanceQuarter').addEventListener('change', event => { state.quarter = event.target.value; render(); });
+    $('performanceQuarter').addEventListener('change', event => { state.quarter = event.target.value; state.month = String(Number(state.quarter.slice(1)) * 3); render(); });
+    $('performanceMonth').addEventListener('change', event => { state.month = event.target.value; render(); });
     $('performanceProgram').addEventListener('change', event => { state.program = event.target.value; render(); });
     $('performanceYears').addEventListener('change', event => {
         const years = [...document.querySelectorAll('#performanceYears input:checked')].map(input => input.value);
@@ -219,7 +310,10 @@ function initialize(source) {
         state.years = years.sort(); render();
     });
     $('performanceAllYears').addEventListener('click', () => { if (source.years.length) state.years = [...source.years]; render(); });
-    document.addEventListener('click', event => { if (!$('performanceYears').contains(event.target)) $('performanceYears').open = false; });
+    document.addEventListener('click', event => {
+        if (!$('performanceYears').contains(event.target)) $('performanceYears').open = false;
+        document.querySelectorAll('.pd-paper-select[open]').forEach(group => { if (!group.contains(event.target)) group.open = false; });
+    });
     $('performanceEmptyReset').addEventListener('click', reset);
     $('performancePrint').addEventListener('click', () => window.print());
     $('performanceDepartments').addEventListener('click', event => { const button = event.target.closest('[data-detail]'); if (button) openDetail(Number(button.dataset.detail)); });
@@ -230,6 +324,27 @@ function initialize(source) {
         if (event.target === $('performanceDetail') && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) $('performanceDetail').close();
     });
     $('performanceDetailSearch').addEventListener('input', renderTable);
+    $('performancePublicationFilterGrid').addEventListener('change', event => {
+        if (event.target.matches('[data-paper-option]')) updatePublicationFilter(event.target.closest('[data-paper-filter]'));
+    });
+    $('performancePublicationFilterGrid').addEventListener('input', event => {
+        if (!event.target.matches('.pd-option-search')) return;
+        const query = normalize(event.target.value);
+        event.target.closest('[data-paper-filter]').querySelectorAll('.pd-paper-option-list label').forEach(label => { label.hidden = !normalize(label.textContent).includes(query); });
+    });
+    $('performancePublicationFilterGrid').addEventListener('click', event => {
+        const button = event.target.closest('[data-paper-options]');
+        if (!button) return;
+        const group = button.closest('[data-paper-filter]');
+        group.querySelectorAll('[data-paper-option]').forEach(input => { input.checked = button.dataset.paperOptions === 'all'; });
+        updatePublicationFilter(group);
+    });
+    $('performancePublicationReset').addEventListener('click', () => {
+        detail.filters = {};
+        $('performanceDetailSearch').value = '';
+        renderPublicationFilters();
+        renderTable();
+    });
     $('performanceDetailBack').addEventListener('click', () => setDetailTable('faculty'));
     $('performanceDetailTable').addEventListener('click', event => {
         const lecturer = event.target.closest('[data-faculty]'), sort = event.target.closest('[data-sort]');

@@ -72,7 +72,7 @@ class PublicationPerformanceDashboard
             ->unique()->sort()->values();
 
         return ['years' => $years->all(), 'defaultYear' => (string) now()->year,
-            'snapshots' => $snapshots->all(), 'programs' => collect(ReportPrograms::LABELS)->except('BINUS')->all()];
+            'snapshots' => $snapshots->all(), 'programs' => collect(ReportPrograms::FULL_LABELS)->except('BINUS')->all()];
     }
 
     private function facultySnapshot(Collection $papers, Collection $entries, Collection $faculty,
@@ -133,7 +133,8 @@ class PublicationPerformanceDashboard
                     'author' => $row->author, 'name' => $row->fm_author, 'title' => $row->title,
                     'firstAuthor' => $row->first_author, 'weight' => $row->bobot_asli, 'category' => $row->submitted,
                     'status' => $row->status, 'type' => $row->jenis, 'index' => $row->tipe_publikasi,
-                    'source' => $row->source_title, 'quartile' => $row->quartile_jurnal])->values()->all()];
+                    'source' => $row->source_title, 'paperSource' => $row->sumber_paper ?? null,
+                    'quartile' => $row->quartile_jurnal])->values()->all()];
         })->sortBy(fn ($card) => array_search($card['program'], array_keys(ReportPrograms::LABELS), true) ?: PHP_INT_MAX)->values();
         $actual = $metadata['realization']['BINUS']['realization'] ?? $papers->filter(PublicationWorkbookMetrics::isScopusTitle(...))->sum('bobot_asli');
 
@@ -169,7 +170,7 @@ class PublicationPerformanceDashboard
 
     private function card(string $program, array $metadata, float $actual): array
     {
-        return ['program' => $program, 'label' => ReportPrograms::LABELS[$program] ?? $program,
+        return ['program' => $program, 'label' => ReportPrograms::FULL_LABELS[$program] ?? $program,
             'target' => $metadata['realization'][$program]['target'] ?? null, 'actual' => $actual,
             'score' => ReportWorkbookReader::score($actual, $metadata['ranges'][$program] ?? [])];
     }

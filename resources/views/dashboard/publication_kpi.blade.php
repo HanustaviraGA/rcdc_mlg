@@ -60,15 +60,18 @@
         <div class="pd-field">
             <label for="performanceQuarter">Kuartal</label>
             <select id="performanceQuarter" name="quarter">
-                <option value="all">Periode terbaru</option>
-                <option value="Q1">Q1 &middot; s.d. Maret</option>
-                <option value="Q2">Q2 &middot; s.d. Juni</option>
-                <option value="Q3">Q3 &middot; s.d. September</option>
-                <option value="Q4">Q4 &middot; s.d. Desember</option>
+                <option value="Q1">Q1</option>
+                <option value="Q2">Q2</option>
+                <option value="Q3">Q3</option>
+                <option value="Q4">Q4</option>
             </select>
         </div>
         <div class="pd-field">
-            <label for="performanceProgram">Program studi</label>
+            <label for="performanceMonth">Bulan</label>
+            <select id="performanceMonth" name="month"></select>
+        </div>
+        <div class="pd-field pd-program-field">
+            <label for="performanceProgram">Program Studi</label>
             <select id="performanceProgram" name="program"><option value="">Semua program studi</option></select>
         </div>
         <button class="pd-button pd-reset" type="reset"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> Reset filter</button>
@@ -116,7 +119,27 @@
     <div class="pd-dialog-heading"><div><span class="pd-eyebrow" id="performanceDetailSubtitle">RINCIAN CAPAIAN</span><h2 id="performanceDetailTitle">Detail program studi</h2></div><button class="pd-icon-button" type="button" id="performanceDetailClose" aria-label="Tutup detail"><i class="bi bi-x-lg" aria-hidden="true"></i></button></div>
     <div class="pd-dialog-body">
         <div class="pd-detail-stats" id="performanceDetailStats"></div>
+        <section class="pd-faculty-summary" id="performanceFacultySummary" aria-labelledby="performanceFacultyName" hidden>
+            <h3 id="performanceFacultyName"></h3>
+            <div class="pd-count-scroll" tabindex="0" role="region" aria-label="Ringkasan jumlah publikasi FM">
+                <table class="pd-count-table">
+                    <thead>
+                        <tr><th colspan="2" scope="colgroup">First Author</th><th colspan="2" scope="colgroup">Non First Author</th><th rowspan="2" scope="col">SINTA</th><th rowspan="2" scope="col">KPI</th></tr>
+                        <tr><th scope="col">Conference</th><th scope="col">Journal</th><th scope="col">Conference</th><th scope="col">Journal</th></tr>
+                    </thead>
+                    <tbody id="performanceFacultyCounts"></tbody>
+                </table>
+            </div>
+            <p class="pd-table-caption">Ringkasan menunjukkan jumlah publikasi pada periode terpilih. SINTA dihitung dari Quartile Jurnal yang memuat “Jurnal SINTA”. KPI menunjukkan skor KPI dosen.</p>
+        </section>
         <div class="pd-table-tools"><button type="button" class="pd-text-button" id="performanceDetailBack" hidden><i class="bi bi-arrow-left" aria-hidden="true"></i> Daftar dosen</button><label class="pd-search"><i class="bi bi-search" aria-hidden="true"></i><input type="search" id="performanceDetailSearch" placeholder="Cari nama, kode, atau judul…" aria-label="Cari pada tabel detail"></label><button class="pd-button" id="performanceExport" type="button"><i class="bi bi-download" aria-hidden="true"></i> Export CSV</button></div>
+        <section class="pd-publication-filters" id="performancePublicationFilters" aria-labelledby="performancePublicationFiltersTitle" hidden>
+            <div class="pd-publication-filter-heading">
+                <div><h3 id="performancePublicationFiltersTitle">Filter Publikasi</h3><p>Pilih lebih dari satu opsi pada setiap filter; hasil tabel diperbarui otomatis</p></div>
+                <button type="button" class="pd-button" id="performancePublicationReset">Reset Semua Filter</button>
+            </div>
+            <div class="pd-publication-filter-grid" id="performancePublicationFilterGrid"></div>
+        </section>
         <p class="pd-table-caption" id="performanceDetailCaption"></p>
         <div class="pd-table-scroll" tabindex="0" role="region" aria-label="Tabel rincian capaian"><table class="pd-table" id="performanceDetailTable"></table></div>
         <p class="pd-table-meta" id="performanceDetailMeta" role="status"></p>

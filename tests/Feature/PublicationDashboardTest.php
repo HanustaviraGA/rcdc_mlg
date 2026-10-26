@@ -602,6 +602,8 @@ class PublicationDashboardTest extends TestCase
             ->assertSee('publication-performance.css')->assertSee('publication-performance.js')
             ->assertSee('Ringkasan capaian')->assertSee('Kinerja per jurusan')
             ->assertSee('Alokasi Budget VRTT')->assertSee('id="performanceQuarter"', false)
+            ->assertSee('id="performanceMonth"', false)->assertSee('id="performanceFacultyCounts"', false)
+            ->assertSee('id="performancePublicationFilters"', false)
             ->assertDontSee('id="donut"', false)->assertDontSee('localStorage');
         $this->get('/kpi-publikasi-old')->assertOk()->assertViewIs('dashboard.publication_kpi_old')
             ->assertSee('id="donut"', false)->assertSee('publication-kpi.js');
@@ -611,7 +613,7 @@ class PublicationDashboardTest extends TestCase
     {
         $importer = app(PublicationImporter::class);
         $importer->import($this->workbookWithKpi([$this->row(['Bobot' => 0.5])], [$this->kpiRow()]), 'august.xlsx', 2026, 8, 3);
-        $importer->import($this->workbookWithKpi([$this->row(['RequestCode' => 'SEP', 'Bobot' => 2])], [$this->kpiRow(['Score KPI RTTO' => 0])]), 'september.xlsx', 2026, 9, 3);
+        $importer->import($this->workbookWithKpi([$this->row(['RequestCode' => 'SEP', 'Bobot' => 2, 'Skema' => 'Internal'])], [$this->kpiRow(['Score KPI RTTO' => 0])]), 'september.xlsx', 2026, 9, 3);
         $batch = DB::table('publication_imports')->where('month', 9)->first();
         $summary = json_decode($batch->summary, true);
         $summary['report'] = ['realization' => ['CS' => ['target' => 16, 'realization' => 6.5], 'BINUS' => ['target' => 89, 'realization' => 12.5]],
@@ -629,6 +631,7 @@ class PublicationDashboardTest extends TestCase
         $this->assertSame(1, $snapshots[9]['fm']['cards'][0]['score']);
         $this->assertSame(0, $snapshots[9]['fm']['cards'][0]['faculty'][0]['score']);
         $this->assertSame('SEP', $snapshots[9]['fm']['cards'][0]['publications'][0]['request']);
+        $this->assertSame('Internal', $snapshots[9]['fm']['cards'][0]['publications'][0]['paperSource']);
         $this->assertArrayNotHasKey('source_payload', $snapshots[9]['fm']['cards'][0]['publications'][0]);
     }
 
