@@ -49,7 +49,7 @@
                         </span>
                     </label>
                     <input class="form-control" id="research_file" name="research_file" type="file" accept=".xlsx">
-                    <div class="form-text">Mengutamakan sheet MALANG, lalu Detail, dengan Lokasi Kampus = Binus @Malang. Tahun Anggaran mengikuti isi file; tahun dan bulan laporan mengikuti pilihan di atas.</div>
+                    <div class="form-text">Mengutamakan sheet MALANG, lalu Detail. Lokasi Kampus mengikuti kolom yang dipilih pada preview pemetaan. Tahun Anggaran mengikuti isi file; tahun dan bulan laporan mengikuti pilihan di atas.</div>
                     <button class="btn btn-primary mt-4" id="research_file-submit" data-import-file="research_file" type="submit" disabled>
                         <i class="bi bi-cloud-upload me-1"></i>Upload dan import Hibah
                     </button>

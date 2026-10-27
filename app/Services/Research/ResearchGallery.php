@@ -60,7 +60,7 @@ class ResearchGallery
                 'sdg_notes' => $this->values($rows, 'keyword_sdgs'), 'roadmap' => $this->values($rows, 'subtopik_research_roadmap'),
                 'abstracts' => [], 'variants' => $variants,
                 'row_issues' => $rows->flatMap(fn ($row) => json_decode($row->data_issues ?? '[]', true) ?: [])->unique()->values()->all(),
-                'permalink' => null, 'campus' => RectorateResearchReader::CAMPUS,
+                'permalink' => null, 'campus' => implode(', ', $this->values($rows, 'lokasi_kampus')) ?: null,
                 'updated_at' => $rows->max('updated_at'), 'rows' => $rows->count(),
             ];
         })->values();

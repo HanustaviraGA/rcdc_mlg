@@ -31,7 +31,9 @@ File/sheet tidak terbaca, pemetaan salah, periode salah, prasyarat Data Center
 untuk status pendidikan, migrasi belum tersedia, dan kegagalan database tetap
 menghentikan impor. Tidak ada penggantian data jika semua baris tidak dapat
 diimpor. Perubahan database tetap dalam transaksi agar kegagalan penyimpanan
-mengembalikan data sebelumnya. Filter kampus dan kategori laporan tetap berlaku.
+mengembalikan data sebelumnya. Filter kampus dan kategori publikasi FM/MHS tetap
+berlaku. Hibah tidak difilter berdasarkan lokasi; Lokasi Kampus mengikuti kolom
+yang dikonfirmasi pada preview pemetaan.
 
 ## Import Community Development
 

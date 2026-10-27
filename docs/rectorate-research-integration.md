@@ -4,9 +4,15 @@ Implementasi 8 September 2026 menambahkan upload laporan hibah, galeri publik, b
 
 Pembaruan 16 September 2026 menyatukan galeri dan detail riset dengan template Home (Constructo), bersama Dashboard KPI publik di `/kpi-publikasi`. Keduanya memakai logo, navigasi, footer, tipografi, dan palet yang sama melalui layout Blade bersama. Galeri dan detail dapat dibuka tanpa login atau `change_perms`. Form `/dashboard/import-hibah` dan POST `/research-imports` memerlukan sesi login seperti akses dashboard; permintaan tamu mendapat HTTP 403 sebelum validasi atau impor berlangsung.
 
-## Hasil import lokal
+## Lokasi Kampus Hibah
 
-Sumber: `C:\Users\hanustavira.acarya\Downloads\07 (6).xlsx`. Pembaca hanya menggunakan sheet **Detail**, dengan filter **Lokasi Kampus = Binus @Malang**. Pencocokan mengabaikan huruf besar/kecil dan spasi berlebih, tetapi tidak menerima kampus lain yang sekadar mengandung kata Malang. Tidak ada filter tambahan berdasarkan kategori atau pengakuan KPI.
+Import Hibah menggunakan sheet MALANG, dengan fallback Detail. Lokasi Kampus mengikuti kolom yang dikonfirmasi pada preview pemetaan dan nilai pada setiap baris; tidak ada filter lokasi maupun penggantian nilai menjadi Binus @Malang. Galeri dan dashboard memakai lokasi yang tersimpan. Kolom lokasi tetap wajib dipetakan seperti kolom wajib lainnya.
+
+Metadata batch `campus` berisi `Sesuai pemetaan` dan ringkasan menyertakan `campus_filter: false`. File lama dapat diupload ulang pada periode yang sama untuk memasukkan baris yang sebelumnya dilewati, termasuk jika isi file identik. Pengulangan berikutnya tetap idempoten.
+
+## Hasil import lokal awal
+
+Sumber: `C:\Users\hanustavira.acarya\Downloads\07 (6).xlsx`. Angka berikut merupakan audit awal ketika pembaca memakai sheet **Detail** dan filter **Lokasi Kampus = Binus @Malang**, sebelum pembatasan lokasi dihapus.
 
 | Pemeriksaan | Hasil |
 | --- | ---: |
@@ -77,7 +83,7 @@ Tahun, kode proposal, kode peneliti, nama, peran, judul, serta header kampus waj
 
 ## Perilaku upload dan penggabungan tampilan
 
-- File diperiksa sebelum transaksi penulisan. Sheet/header wajib hilang, filter kosong, atau identitas ganda dengan isi berbeda menggagalkan import tanpa mengganti data aktif.
+- File diperiksa sebelum transaksi penulisan. Sheet/header wajib hilang, tidak ada baris yang dapat diimpor, atau identitas ganda dengan isi berbeda menggagalkan import tanpa mengganti data aktif.
 - File dengan isi identik, termasuk jika diganti nama, tidak membuat batch atau baris baru. Duplikat identik dalam satu file dihitung sekali.
 - Setiap file berbeda menjadi batch baru. Galeri dan KPI memakai **batch upload terbaru untuk masing-masing tahun anggaran**, bukan menjumlahkan seluruh riwayat upload.
 - Upload harus merupakan laporan lengkap untuk tahun-tahun yang tercantum. Misalnya, upload yang hanya memuat 2026 mengganti tampilan data 2026; batch aktif 2023–2025 tetap dipakai. Baris dari batch sebelumnya tetap tersimpan untuk audit.
@@ -114,7 +120,7 @@ Setelah anggota dikelompokkan, **8 proyek belum memiliki nominal dana disetujui*
 
 **14 proyek memiliki metadata yang berbeda antarbaris**, terutama Program Hibah. Beberapa nilai Program Hibah berbentuk angka seperti 2039/2040; aplikasi mempertahankan nilai tersebut dan menampilkan bagian “Beberapa metadata perlu konfirmasi”. Nominal atau tanggal yang saling berbeda tidak dipilih secara diam-diam. SDG, bidang ilmu, dan produk ditampilkan sebagai gabungan nilai yang tercatat pada anggota.
 
-Tim hanya mencakup baris kampus Malang. Tidak adanya Ketua pada suatu proyek tidak langsung berarti datanya rusak: Ketua dari kampus lain dapat berada di luar filter. Anggota lintas kampus tidak ditambahkan karena pengguna meminta filter khusus Binus @Malang.
+Tim mencakup seluruh baris yang valid dari sheet terpilih, termasuk peneliti dengan lokasi kampus yang berbeda. Lokasi proyek pada galeri merangkum nilai Lokasi Kampus anggota yang tersimpan.
 
 ## Operasional dan validasi
 
@@ -131,10 +137,10 @@ Upload web menerima XLSX hingga 20 MB. POST `/research-imports` menggunakan CSRF
 Validasi:
 
 ```powershell
-php -d extension=pdo_sqlite vendor/bin/phpunit tests/Feature/RectorateResearchTest.php tests/Feature/PublicationDashboardTest.php tests/Feature/OutletPublikasiTest.php
+php -d extension=pdo_sqlite vendor/bin/phpunit tests/Feature/RectorateResearchTest.php tests/Feature/RectorateOptionalMappingTest.php tests/Feature/PublicationDashboardTest.php tests/Feature/OutletPublikasiTest.php
 ```
 
-**32 test, 264 assertion lolos**. Pengujian mencakup filter tepat, urutan header, normalisasi, validasi file, duplikat, import ulang, transaksi/rollback, batch per tahun, pemisahan `researchs`, dana proyek, konflik metadata, filter galeri, detail/404, escaping, payload publik, endpoint upload, dan dry-run. SQLite diaktifkan hanya untuk proses test.
+Pengujian mencakup Lokasi Kampus dari pemetaan tanpa filter, urutan header, normalisasi, validasi file, duplikat, import ulang batch lama, transaksi/rollback, batch per tahun, pemisahan `researchs`, dana proyek, konflik metadata, filter galeri, detail/404, escaping, payload publik, endpoint upload, dan dry-run. SQLite diaktifkan hanya untuk proses test.
 
 Browser Chrome berhasil memeriksa sumber, tahun, pencarian, detail, hasil kosong, paginasi, ringkasan KPI, riwayat upload, galeri beranda, dan lebar ponsel 390 px tanpa overflow horizontal atau exception JavaScript. Screenshot lokal ada di `storage/app/research-gallery-desktop.png`, `research-gallery-collection.png`, `research-gallery-detail.png`, `research-gallery-homepage.png`, dan `research-gallery-mobile.png`.
 

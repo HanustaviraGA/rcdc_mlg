@@ -43,12 +43,15 @@ class RectorateResearchImporter
             $snapshot = compact('year', 'month');
             // Lock the monthly snapshot before checking or replacing its contents.
             DB::table('research_imports')->upsert([$snapshot + [
-                'filename' => basename($filename), 'sha256' => $sha256, 'sheet' => $summary['sheet'], 'campus' => RectorateResearchReader::CAMPUS,
+                'filename' => basename($filename), 'sha256' => $sha256, 'sheet' => $summary['sheet'], 'campus' => $summary['campus'],
                 'summary' => json_encode($summary, JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now(),
             ]], ['year', 'month'], ['year']);
             $batch = DB::table('research_imports')->where($snapshot)->lockForUpdate()->first();
+            $previousSummary = json_decode($batch->summary, true) ?: [];
             // Explicit mappings can change the imported data even when the file is identical.
-            if ($columnMapping === null && $batch->sha256 === $sha256 && DB::table('rectorate_research')->where('research_import_id', $batch->id)->exists()) {
+            // Rebuild legacy batches once to include rows excluded by the old campus filter.
+            if ($columnMapping === null && ($previousSummary['campus_filter'] ?? true) === false
+                && $batch->sha256 === $sha256 && DB::table('rectorate_research')->where('research_import_id', $batch->id)->exists()) {
                 // The roster may have changed since the original upload; retain the rows but
                 // refresh the stored and returned unmatched-code diagnostics.
                 DB::table('research_imports')->where('id', $batch->id)->update([
@@ -58,7 +61,7 @@ class RectorateResearchImporter
                 return $summary + ['import_id' => $batch->id, 'already_imported' => true];
             }
             DB::table('research_imports')->where('id', $batch->id)->update([
-                'filename' => basename($filename), 'sha256' => $sha256, 'sheet' => $summary['sheet'],
+                'filename' => basename($filename), 'sha256' => $sha256, 'sheet' => $summary['sheet'], 'campus' => $summary['campus'],
                 'summary' => json_encode($summary, JSON_THROW_ON_ERROR), 'updated_at' => now(),
             ]);
             DB::table('rectorate_research')->where('research_import_id', $batch->id)->delete();

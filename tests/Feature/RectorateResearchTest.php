@@ -95,17 +95,20 @@ class RectorateResearchTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_detail_sheet_header_mapping_and_campus_filter(): void
+    public function test_detail_sheet_header_mapping_preserves_all_campus_values(): void
     {
         $file = $this->workbook([
             'Pivot' => [$this->row()],
             'Detail' => [$this->row(), $this->row(['kode_dosen_nim' => 'D002', 'peran' => 'Anggota 1']),
-                $this->row(['lokasi_kampus' => 'BINUS @Bandung']), $this->row(['lokasi_kampus' => '-'])],
+                $this->row(['kode_dosen_nim' => 'D003', 'lokasi_kampus' => 'BINUS @Bandung']),
+                $this->row(['kode_dosen_nim' => 'D004', 'lokasi_kampus' => 'Binus @Malang Utara'])],
         ], true);
         $parsed = app(RectorateResearchReader::class)->read($file);
-        $this->assertCount(2, $parsed['records']);
+        $this->assertCount(4, $parsed['records']);
         $this->assertSame(4, $parsed['summary']['read']);
-        $this->assertSame(2, $parsed['summary']['excluded_campus']);
+        $this->assertSame(0, $parsed['summary']['excluded_campus']);
+        $this->assertFalse($parsed['summary']['campus_filter']);
+        $this->assertSame(['Binus @Malang', 'Binus @Malang', 'BINUS @Bandung', 'Binus @Malang Utara'], array_column($parsed['records'], 'lokasi_kampus'));
         $record = $parsed['records'][0];
         $this->assertSame('0.6', $record['bobot_sumber_dana']);
         $this->assertSame('10000000.00', $record['approved_amount']);
@@ -130,25 +133,54 @@ class RectorateResearchTest extends TestCase
         $this->assertTrue($second['already_imported']);
     }
 
+    public function test_reimporting_legacy_filtered_batch_restores_other_locations_from_the_same_file(): void
+    {
+        $file = $this->workbook(['Detail' => [
+            $this->row(), $this->row(['kode_dosen_nim' => 'D002', 'peran' => 'Anggota 1', 'lokasi_kampus' => 'BINUS @Bandung']),
+        ]]);
+        $importer = app(RectorateResearchImporter::class);
+        $first = $importer->import($file, 'original.xlsx', year: 2026, month: 9);
+        // Recreate an older import that discarded locations outside Malang.
+        DB::table('rectorate_research')->where('kode_dosen_nim', 'D002')->delete();
+        $legacySummary = $first;
+        unset($legacySummary['campus_filter'], $legacySummary['import_id'], $legacySummary['already_imported']);
+        $legacySummary['campus'] = 'BINUS @Malang';
+        $legacySummary['selected'] = 1;
+        DB::table('research_imports')->where('id', $first['import_id'])->update([
+            'campus' => 'BINUS @Malang', 'summary' => json_encode($legacySummary, JSON_THROW_ON_ERROR),
+        ]);
+
+        $second = $importer->import($file, 'reimported.xlsx', year: 2026, month: 9);
+        $this->assertFalse($second['already_imported']);
+        $this->assertSame($first['import_id'], $second['import_id']);
+        $this->assertSame(2, $second['selected']);
+        $this->assertSame('Sesuai pemetaan', DB::table('research_imports')->sole()->campus);
+        $this->assertSame(['Binus @Malang', 'BINUS @Bandung'], DB::table('rectorate_research')->orderBy('source_row')->pluck('lokasi_kampus')->all());
+        $third = $importer->import($file, 'same-again.xlsx', year: 2026, month: 9);
+        $this->assertTrue($third['already_imported']);
+        $this->assertSame(2, DB::table('rectorate_research')->count());
+    }
+
     public function test_latest_upload_per_year_keeps_older_years_and_audit_history(): void
     {
         $importer = app(RectorateResearchImporter::class);
         $importer->import($this->workbook(['Detail' => [$this->row(), $this->row(['tahun_anggaran' => '2024', 'judul' => 'Older year'])]]), 'first.xlsx', year: 2026, month: 8);
-        $importer->import($this->workbook(['Detail' => [$this->row(['judul' => 'Corrected title'])]]), 'next.xlsx', year: 2026, month: 9);
+        $importer->import($this->workbook(['Detail' => [$this->row(['judul' => 'Corrected title', 'lokasi_kampus' => 'BINUS @Bandung'])]]), 'next.xlsx', year: 2026, month: 9);
         $active = app(RectorateResearchRepository::class)->activeRows();
         $this->assertSame(3, DB::table('rectorate_research')->count());
         $this->assertCount(2, $active);
         $this->assertEqualsCanonicalizing(['Older year', 'Corrected title'], $active->pluck('judul')->all());
+        $this->assertSame('BINUS @Bandung', $active->firstWhere('budget_year', 2026)->lokasi_kampus);
     }
 
-    public function test_missing_detail_and_empty_campus_selection_do_not_change_data(): void
+    public function test_missing_detail_and_empty_sheet_do_not_change_data(): void
     {
         $importer = app(RectorateResearchImporter::class);
         $importer->import($this->workbook(['Detail' => [$this->row()]]), 'valid.xlsx');
-        foreach ([['Pivot' => [$this->row()]], ['Detail' => [$this->row(['lokasi_kampus' => 'Binus @Malang Utara'])]]] as $sheets) {
+        foreach ([['Pivot' => [$this->row()]], ['Detail' => []]] as $sheets) {
             try {
                 $importer->import($this->workbook($sheets), 'invalid.xlsx');
-                $this->fail('Invalid sheet or campus must be rejected.');
+                $this->fail('Missing or empty sheet must be rejected.');
             } catch (ValidationException) {
                 $this->assertSame(1, DB::table('rectorate_research')->count());
                 $this->assertSame(1, DB::table('research_imports')->count());
@@ -199,7 +231,7 @@ class RectorateResearchTest extends TestCase
     {
         app(RectorateResearchImporter::class)->import($this->workbook(['Detail' => [
             $this->row(), $this->row(['kode_dosen_nim' => 'D002', 'nama' => 'Second Person', 'peran' => 'Anggota 1',
-                'program_hibah' => 'Different program', 'sdgs' => '9 - Industry, Innovation and Infrastructure']),
+                'program_hibah' => 'Different program', 'sdgs' => '9 - Industry, Innovation and Infrastructure', 'lokasi_kampus' => 'BINUS @Bandung']),
         ]]), 'grouped.xlsx');
         $projects = app(ResearchGallery::class)->rectorateProjects();
         $this->assertCount(1, $projects);
@@ -208,6 +240,7 @@ class RectorateResearchTest extends TestCase
         $this->assertEquals(10000000, $project['amount']);
         $this->assertSame([8, 9, 16], $project['sdgs']);
         $this->assertCount(2, $project['variants']['program_hibah']);
+        $this->assertSame('Binus @Malang, BINUS @Bandung', $project['campus']);
     }
 
     public function test_public_gallery_filters_sources_year_and_researcher_and_escapes_detail(): void
@@ -259,7 +292,7 @@ class RectorateResearchTest extends TestCase
         $this->assertSame(0, DB::table('research_imports')->count());
         $this->get(route('research-import.index'))->assertRedirect('/dashboard/importrectorate');
         $page = $this->get(route('importrectorate.index'))->assertOk()->json('page');
-        $this->assertStringContainsString('Lokasi Kampus = Binus @Malang', base64_decode($page));
+        $this->assertStringContainsString('Lokasi Kampus mengikuti kolom yang dipilih pada preview pemetaan.', base64_decode($page));
         $file = new UploadedFile($path, 'research.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true);
         $this->post(route('research-import.store'), ['research_file' => $file, 'year' => 2026, 'month' => 9])->assertRedirect('/dashboard/importrectorate')->assertSessionHas('research_summary');
         $this->assertSame(1, DB::table('rectorate_research')->count());

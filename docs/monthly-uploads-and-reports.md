@@ -38,8 +38,10 @@ Permintaan tanpa JSON diarahkan kembali ke `/dashboard/importrectorate` dengan p
 | Publikasi MHS | MALANG, fallback Raw; filter Kampus MALANG, Kode Dosen Mahasiswa, Submitted Scopus/Non Scopus Mahasiswa |
 | Rekap Scopus MHS | Blok Scopus pada TITLE, fallback jumlah LIST; target dan rentang skor dari Realization Template/Scoring PI |
 | Daftar MHS | LIST; dibandingkan dengan baris Scopus MALANG; bila LIST tidak ada, dibentuk dari MALANG |
-| Hibah | MALANG, fallback Detail; Lokasi Kampus BINUS @Malang; termasuk Evidence |
+| Hibah | MALANG, fallback Detail; Lokasi Kampus mengikuti kolom yang dipilih pada preview pemetaan, tanpa filter lokasi; termasuk Evidence |
 | Master dosen | Malang, fallback FM Malang / FM BINUS Malang; pemetaan nama kolom, tidak berdasarkan urutan |
+
+Lokasi Kampus Hibah tetap wajib dipetakan, dan nilai setiap baris disimpan dari kolom yang dikonfirmasi pada preview. Baris dengan lokasi selain Binus @Malang juga diimpor dan tersedia pada galeri/dashboard. Upload ulang file lama diperlukan untuk memuat kembali baris yang sebelumnya dilewati oleh filter lokasi.
 
 Generate selalu menggunakan **periode yang dipilih**, tanpa mengambil bulan lain secara diam-diam. Sumber yang belum ada menghasilkan peringatan dan nilai yang belum tersedia dibiarkan kosong. Galeri/dashboard hibah memilih periode laporan terbaru per tahun anggaran, sehingga upload bulan lama tidak menggantikan snapshot terbaru.
 

@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Services\Publications\StudentPublicationImporter;
 use App\Services\Research\RectorateResearchImporter;
 use App\Services\Research\RectorateResearchReader;
+use App\Services\Research\ResearchGallery;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -164,7 +165,7 @@ class RectorateOptionalMappingTest extends TestCase
         $this->assertSame(1, $summary['projects']);
         $record = (array) DB::table('rectorate_research')->sole();
         foreach ($values as $field => $value) {
-            $this->assertSame($field === 'lokasi_kampus' ? RectorateResearchReader::CAMPUS : $value, $record[$field]);
+            $this->assertSame($value, $record[$field]);
         }
         foreach (array_diff(array_keys(RectorateResearchReader::HEADERS), array_keys($values)) as $optional) {
             $this->assertNull($record[$optional], $optional);
@@ -172,6 +173,38 @@ class RectorateOptionalMappingTest extends TestCase
         $this->assertNull($record['approved_amount']);
         $this->assertNull($record['starts_on']);
         $this->assertSame([], json_decode($record['sdg_numbers'], true));
+    }
+
+    public function test_research_upload_uses_the_location_column_confirmed_after_preview(): void
+    {
+        $this->actingAs((new User)->forceFill(['id' => 1]));
+        $values = $this->researchValues() + ['chosen_location' => 'BINUS @Bandung'];
+        $headers = array_map(fn ($field) => RectorateResearchReader::HEADERS[$field] ?? 'Lokasi pilihan', array_keys($values));
+        $path = $this->makeWorkbook(['Detail' => [$headers, array_values($values), array_values(array_replace($values, [
+            'kode_dosen_nim' => 'D002', 'peran' => 'Anggota 1', 'chosen_location' => 'BINUS @Kemanggisan',
+        ]))]]);
+        $this->postJson(route('importrectorate.preview-columns'), [
+            'file' => new UploadedFile($path, 'locations.xlsx', null, null, true), 'type' => 'research_file',
+        ])->assertOk()->assertJsonPath('suggested_mapping.lokasi_kampus', 1);
+
+        $mapping = array_flip(array_keys($this->researchValues()));
+        $mapping['lokasi_kampus'] = count($values) - 1;
+        $upload = fn (array $confirmedMapping) => $this->postJson(route('importrectorate.upload'), [
+            'year' => 2026, 'month' => 9,
+            'research_file' => new UploadedFile($path, 'locations.xlsx', null, null, true),
+            'column_mapping' => ['research_file' => json_encode($confirmedMapping, JSON_THROW_ON_ERROR)],
+        ]);
+        $upload($mapping)->assertOk()->assertJsonPath('summaries.research_file.selected', 2)
+            ->assertJsonPath('summaries.research_file.excluded_campus', 0);
+        $this->assertSame(['BINUS @Bandung', 'BINUS @Kemanggisan'], DB::table('rectorate_research')->orderBy('source_row')->pluck('lokasi_kampus')->all());
+        $project = app(ResearchGallery::class)->rectorateProjects()->sole();
+        $this->assertCount(2, $project['people']);
+        $this->assertSame('BINUS @Bandung, BINUS @Kemanggisan', $project['campus']);
+
+        $mapping['lokasi_kampus'] = 1;
+        $upload($mapping)->assertOk()->assertJsonPath('summaries.research_file.already_imported', false);
+        $this->assertSame(['BINUS @Malang', 'BINUS @Malang'], DB::table('rectorate_research')->orderBy('source_row')->pluck('lokasi_kampus')->all());
+        $this->assertSame(1, DB::table('research_imports')->count());
     }
 
     public function test_research_same_file_with_changed_mapping_replaces_persisted_rows(): void
@@ -265,7 +298,7 @@ class RectorateOptionalMappingTest extends TestCase
 
     public function test_research_mapped_required_row_values_are_still_validated(): void
     {
-        foreach (['tahun_anggaran', 'kd_prop', 'kode_dosen_nim', 'nama', 'peran', 'judul'] as $required) {
+        foreach (['tahun_anggaran', 'kd_prop', 'kode_dosen_nim', 'nama', 'peran', 'judul', 'lokasi_kampus'] as $required) {
             $values = array_replace($this->researchValues(), [$required => '']);
             $path = $this->arbitraryWorkbook('Detail', $values);
             $this->assertInvalid(fn () => app(RectorateResearchReader::class)->read($path, array_flip(array_keys($values))));

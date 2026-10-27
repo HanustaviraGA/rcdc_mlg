@@ -11,8 +11,6 @@ use Illuminate\Validation\ValidationException;
 
 class RectorateResearchReader
 {
-    public const CAMPUS = 'BINUS @Malang';
-
     public const HEADERS = [
         'no' => 'No', 'pengakuan_kpi_research_program' => 'Pengakuan KPI Research Program',
         'pengakuan_kpi_non_tuition' => 'Pengakuan KPI non Tuition', 'sumber_dana' => 'Sumber Dana',
@@ -46,7 +44,7 @@ class RectorateResearchReader
         $mapper = app(ColumnMapperService::class);
         $sourceHeaders = [];
         $policy = new ImportPolicy('rectorate_hibah', 'research_file');
-        $summary = ['sheet' => 'Detail', 'campus' => self::CAMPUS, 'read' => 0, 'excluded_campus' => 0,
+        $summary = ['sheet' => 'Detail', 'campus' => 'Sesuai pemetaan', 'campus_filter' => false, 'read' => 0, 'excluded_campus' => 0,
             'duplicates' => 0, 'missing' => [], 'invalid_values' => [], 'years' => [], 'roles' => []];
         try {
             $reader->open($path);
@@ -74,11 +72,6 @@ class RectorateResearchReader
                     continue;
                 }
                 $summary['read']++;
-                if ($this->normalize($cells[$map['lokasi_kampus']] ?? '') !== $this->normalize(self::CAMPUS)) {
-                    $summary['excluded_campus']++;
-
-                    continue;
-                }
                 $record = [];
                 foreach ($map as $field => $index) {
                     $value = $index === null ? '' : ($cells[$index] ?? '');
@@ -98,7 +91,6 @@ class RectorateResearchReader
 
                     continue;
                 }
-                $record['lokasi_kampus'] = self::CAMPUS;
                 $record['kd_prop'] = strtoupper($record['kd_prop']);
                 $record['kode_dosen_nim'] = strtoupper($record['kode_dosen_nim']);
                 $record['budget_year'] = (int) $record['tahun_anggaran'];
@@ -160,7 +152,7 @@ class RectorateResearchReader
             $reader->close();
         }
         if (! $rows) {
-            $this->invalid('Tidak ada baris pada sheet terpilih dengan Lokasi Kampus Binus @Malang. Tidak ada data yang diubah.');
+            $this->invalid('Tidak ada baris hibah yang dapat diimpor pada sheet terpilih. Tidak ada data yang diubah.');
         }
         $summary['selected'] = count($rows);
         $summary['projects'] = count(array_unique(array_column($rows, 'project_key')));

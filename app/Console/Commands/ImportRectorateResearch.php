@@ -10,7 +10,7 @@ class ImportRectorateResearch extends Command
 {
     protected $signature = 'research:import-rectorate {file} {--year=} {--month=} {--dry-run : Validate without changing data}';
 
-    protected $description = 'Import hibah bulanan dari sheet MALANG (fallback Detail), Lokasi Kampus Binus @Malang';
+    protected $description = 'Import hibah bulanan dari sheet MALANG (fallback Detail), lokasi mengikuti kolom sumber';
 
     public function handle(RectorateResearchImporter $importer): int
     {
