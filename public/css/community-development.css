@@ -42,13 +42,23 @@
 .performance-page .cd-area h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 20px; color: #526579; font-family: var(--default-font); font-size: 12px; font-weight: 500; }
 .performance-page .cd-area h4 i { color: var(--brand-600); }
 .performance-page .cd-area-content { display: flex; align-items: center; justify-content: center; gap: 32px; }
-.performance-page .cd-donut { display: grid; place-items: center; flex: none; width: 150px; height: 150px; border-radius: 50%; background: conic-gradient(var(--cd-area-regency-color) 0 var(--cd-area-first), var(--cd-area-city-color) var(--cd-area-first) var(--cd-area-second), var(--cd-area-other-color) var(--cd-area-second) 100%); }
-.performance-page .cd-donut > span { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 108px; height: 108px; border-radius: 50%; background: #fff; }
+.performance-page .cd-donut { position: relative; display: grid; place-items: center; flex: none; width: 150px; height: 150px; border-radius: 50%; }
+.performance-page .cd-area-chart { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.performance-page .cd-area-segment { fill: var(--cd-area-regency-color); stroke: #fff; stroke-width: 1; cursor: pointer; transition: filter .15s; }
+.performance-page .cd-area-segment-1 { fill: var(--cd-area-city-color); }
+.performance-page .cd-area-segment-2 { fill: var(--cd-area-other-color); }
+.performance-page .cd-area-segment:hover { filter: brightness(.88); }
+.performance-page .cd-area-segment:focus-visible { outline: none; stroke: var(--brand-800); stroke-width: 3; filter: brightness(.88); }
+.performance-page .cd-donut > span { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 108px; height: 108px; border-radius: 50%; background: #fff; }
 .performance-page .cd-donut strong { color: var(--brand-700); font-family: var(--heading-font); font-size: 28px; line-height: 1.3; }
 .performance-page .cd-donut small { color: var(--pd-muted); font-size: 10px; }
 .performance-page .cd-area-legend { flex: 1; max-width: 225px; list-style: none; margin: 0; padding: 0; }
-.performance-page .cd-area-legend li { display: flex; align-items: center; gap: 8px; padding: 10px 0; font-size: 11px; color: #526579; }
+.performance-page .cd-area-legend li { font-size: 11px; color: #526579; }
 .performance-page .cd-area-legend li + li { border-top: 1px solid #edf1f5; }
+.performance-page .cd-area-button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 0; border: 0; border-radius: 4px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.performance-page .cd-area-button:hover { color: var(--brand-700); background: var(--pd-soft); }
+.performance-page .cd-area-button:hover > span { text-decoration: underline; }
+.performance-page .cd-area-button:focus-visible { outline: 2px solid var(--brand-600); outline-offset: 3px; }
 .performance-page .cd-area-legend strong { margin-left: auto; color: var(--heading-color); font-size: 12px; white-space: nowrap; }
 .performance-page .cd-area-legend strong small { color: var(--pd-muted); font-size: 10px; font-weight: 400; }
 .performance-page .cd-area-key { flex: none; width: 9px; height: 9px; border-radius: 3px; background: var(--cd-area-regency-color); }
@@ -97,7 +107,8 @@
     .performance-page .cd-area-content { gap: 16px; }
     .performance-page .cd-donut { width: 116px; height: 116px; }
     .performance-page .cd-donut > span { width: 84px; height: 84px; }
-    .performance-page .cd-area-legend li { gap: 6px; font-size: 10px; }
+    .performance-page .cd-area-legend li { font-size: 10px; }
+    .performance-page .cd-area-button { gap: 6px; }
     .performance-page .cd-area-legend strong { font-size: 11px; }
     .performance-page .cd-dialog { width: calc(100% - 20px); }
 }

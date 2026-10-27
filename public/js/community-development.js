@@ -6,6 +6,7 @@ function initializeCommunityDevelopment(source) {
     const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
     const number = value => value === null || value === undefined ? '—' : new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(value);
     const statusLabel = row => row.status || (row.activities === null ? 'Belum tersedia' : row.activities > 0 ? 'Sudah PkM' : 'Belum PkM');
+    const areaLabel = partner => ['Kab. Malang', 'Kota Malang'].includes(partner.area) ? partner.area : 'Lainnya';
     let state = null;
     let previousFocus = null;
 
@@ -17,8 +18,8 @@ function initializeCommunityDevelopment(source) {
         $('communityDetailSource').textContent = 'COMMUNITY DEVELOPMENT · ' + (lecturers ? (source.isDemo ? 'DATA CONTOH DOSEN' : source.periodLabel) : (source.partnersImported ? 'MITRA ' + source.selectedPartnerYear : 'BELUM ADA DATA MITRA'));
         $('communityCategoryList').hidden = !categories;
         $('communityDetailTableRegion').hidden = categories;
-        $('communityDetailBack').hidden = state.view !== 'partners';
-        const fieldLabel = state.field === 'cluster' ? 'kluster' : 'skala usaha';
+        $('communityDetailBack').hidden = state.view !== 'partners' || state.field === 'area';
+        const fieldLabel = { cluster: 'kluster', scale: 'skala usaha', area: 'area binaan' }[state.field];
         if (categories) {
             $('communityDetailTitle').textContent = state.field === 'cluster' ? 'Kategori kluster binaan' : 'Skala usaha mitra';
             $('communityDetailCaption').textContent = 'Pilih kategori untuk melihat daftar mitra binaan' + (source.partnersImported ? ' tahun ' + source.selectedPartnerYear + '.' : '. Belum ada data mitra yang diimpor.');
@@ -36,13 +37,15 @@ function initializeCommunityDevelopment(source) {
             : source.programs.find(row => row.key === state.program);
         const all = lecturers
             ? [...program.lecturers].sort((a, b) => (a.score ?? Infinity) - (b.score ?? Infinity) || a.name.localeCompare(b.name, 'id-ID'))
-            : source.partners.filter(partner => partner[state.field] === state.value);
+            : source.partners.filter(partner => (state.field === 'area' ? areaLabel(partner) : partner[state.field]) === state.value);
         const rows = all.filter(row => matches(lecturers ? [row.name, row.code, row.activities, row.score, statusLabel(row)] : [row.name, row.cluster, row.scale, row.area, row.joined_year]));
         $('communityDetailTitle').textContent = lecturers ? `List dosen · ${program.code}` : `Mitra binaan · ${state.value}`;
         $('communityDetailCaption').textContent = lecturers
             ? source.isDemo ? `${program.label}. Daftar ini hanya sebagian contoh dosen, bukan seluruh dosen atau kegiatan pada rekap prodi.`
                 : `${program.label} · ${source.periodLabel}. Jumlah kegiatan mengikuti kegiatan yang dilaporkan ke Binusmaya; profil dosen dicocokkan berdasarkan kode dosen. Jumlah dosen pada rincian dapat berbeda dari rekap Rasio karena pengelompokan mengikuti data dosen terkini.`
-            : `Mitra tahun ${source.selectedPartnerYear} berdasarkan ${fieldLabel}. Sumber: ${source.partnerFilename}.`;
+            : source.partnersImported
+                ? `Mitra tahun ${source.selectedPartnerYear} berdasarkan ${fieldLabel}.${state.field === 'area' && state.value === 'Lainnya' ? ' Mencakup seluruh area di luar Kab. Malang dan Kota Malang.' : ''} Sumber: ${source.partnerFilename}.`
+                : 'Belum ada data mitra binaan untuk area ini.';
         const headings = lecturers ? ['Nama dosen', 'Jumlah kegiatan', 'Skor KPI', 'Status'] : ['No.', 'Nama UMKM / mitra', 'Kluster', 'Skala', 'Area', 'Tahun bergabung'];
         const body = rows.map((row, index) => lecturers
             ? `<tr><td class="cd-name-cell">${escape(row.name)}${row.code ? `<small class="cd-lecturer-code">${escape(row.code)}</small>` : ''}</td><td class="pd-numeric">${number(row.activities)}</td><td><span class="pd-score ${row.score === null ? '' : row.score >= 6 ? 'is-good' : row.score >= 5 ? 'is-warning' : 'is-low'}">Skor <strong>${number(row.score)}</strong></span></td><td>${escape(statusLabel(row))}</td></tr>`
@@ -61,12 +64,19 @@ function initializeCommunityDevelopment(source) {
         search.focus();
     }
 
+    function openArea(button) {
+        button.focus({ preventScroll: true });
+        openDetail({ view: 'partners', field: 'area', value: button.dataset.communityArea });
+    }
+
     root.addEventListener('click', event => {
         const lecturerButton = event.target.closest('[data-community-lecturers]');
         const categoryButton = event.target.closest('[data-community-category]');
+        const areaButton = event.target.closest('[data-community-area]');
         const jump = event.target.closest('[data-community-jump]');
         if (lecturerButton) openDetail({ view: 'lecturers', program: lecturerButton.dataset.communityLecturers });
         if (categoryButton) openDetail({ view: 'categories', field: categoryButton.dataset.communityCategory });
+        if (areaButton) openArea(areaButton);
         if (jump) {
             event.preventDefault();
             const card = $(`community-card-${jump.dataset.communityJump}`);
@@ -77,6 +87,12 @@ function initializeCommunityDevelopment(source) {
             window.clearTimeout(card.highlightTimer);
             card.highlightTimer = window.setTimeout(() => card.classList.remove('is-highlighted'), 1800);
         }
+    });
+    root.addEventListener('keydown', event => {
+        const segment = event.target.closest('.cd-area-segment');
+        if (!segment || !['Enter', ' '].includes(event.key)) return;
+        event.preventDefault();
+        if (!event.repeat) openArea(segment);
     });
     $('communityCategoryList').addEventListener('click', event => {
         const button = event.target.closest('[data-community-partners]');

@@ -133,4 +133,7 @@ Dashboard memilih tahun mitra terbaru, atau `partner_year=2025` untuk tahun lain
 Pilihan tahun mitra dan `community_period` saling dipertahankan pada kedua formulir
 filter. Sebelum import mitra pertama, jumlah dan grafik bernilai nol dengan pesan
 belum ada data; tidak menggunakan mitra contoh. Rincian kluster/skala mendukung
-pencarian nama, area, dan tahun bergabung.
+pencarian nama, area, dan tahun bergabung. Bagian chart sebaran area dan label
+Kab. Malang, Kota Malang, serta Lainnya dapat dipilih untuk membuka daftar mitra
+pada kelompok area tersebut. Lainnya mencakup semua area di luar Kab. Malang dan
+Kota Malang, dengan nama area aslinya tetap terlihat di rincian.

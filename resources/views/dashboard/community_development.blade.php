@@ -82,18 +82,35 @@
                 </div>
                 <div class="cd-area">
                     <h4><i class="bi bi-geo-alt" aria-hidden="true"></i> Sebaran area binaan</h4>
+                    <p class="cd-hint">Pilih bagian chart atau nama area untuk melihat daftar mitranya.</p>
                     <div class="cd-area-content">
                         @php
                             $areaTotal = array_sum(array_column($community['areas'], 'count'));
-                            $areaFirst = $areaTotal ? 100 * $community['areas'][0]['count'] / $areaTotal : 0;
-                            $areaSecond = $areaFirst + ($areaTotal ? 100 * $community['areas'][1]['count'] / $areaTotal : 0);
+                            $areaAngle = 0;
+                            $areaPath = function ($start, $end) {
+                                if ($end - $start >= 359.9999) {
+                                    return 'M 75 0 A 75 75 0 1 1 75 150 A 75 75 0 1 1 75 0 Z';
+                                }
+                                $point = fn ($angle) => number_format(75 + 75 * sin(deg2rad($angle)), 4, '.', '').' '.number_format(75 - 75 * cos(deg2rad($angle)), 4, '.', '');
+
+                                return 'M 75 75 L '.$point($start).' A 75 75 0 '.($end - $start > 180 ? '1' : '0').' 1 '.$point($end).' Z';
+                            };
                         @endphp
-                        <div class="cd-donut {{ $areaTotal ? '' : 'is-empty' }}" style="--cd-area-first: {{ $areaFirst }}%; --cd-area-second: {{ $areaSecond }}%" role="img" aria-label="Sebaran mitra: {{ collect($community['areas'])->map(fn ($area) => $area['label'].' '.$area['count'])->implode(', ') }}.">
+                        <div class="cd-donut {{ $areaTotal ? '' : 'is-empty' }}">
+                            <svg class="cd-area-chart" viewBox="0 0 150 150" role="group" aria-label="Sebaran mitra: {{ collect($community['areas'])->map(fn ($area) => $area['label'].' '.$area['count'])->implode(', ') }}. Pilih area untuk melihat mitra.">
+                                @foreach($community['areas'] as $area)
+                                    @if($area['count'] > 0 && $areaTotal > 0)
+                                        @php($areaEnd = $areaAngle + 360 * $area['count'] / $areaTotal)
+                                        <path class="cd-area-segment cd-area-segment-{{ $loop->index }}" d="{{ $areaPath($areaAngle, $areaEnd) }}" data-community-area="{{ $area['label'] }}" role="button" tabindex="0" aria-label="Lihat {{ $area['count'] }} mitra di {{ $area['label'] }}" aria-haspopup="dialog" aria-controls="communityDetail"><title>{{ $area['label'] }}: {{ $area['count'] }} mitra</title></path>
+                                        @php($areaAngle = $areaEnd)
+                                    @endif
+                                @endforeach
+                            </svg>
                             <span><strong>{{ count($community['partners']) }}</strong><small>Mitra binaan</small></span>
                         </div>
                         <ul class="cd-area-legend">
                             @foreach($community['areas'] as $area)
-                                <li><i class="cd-area-key cd-area-key-{{ $loop->index }}" aria-hidden="true"></i><span>{{ $area['label'] }}</span><strong>{{ $area['count'] }} <small>({{ $areaTotal ? number_format(100 * $area['count'] / $areaTotal, 0) : 0 }}%)</small></strong></li>
+                                <li><button type="button" class="cd-area-button" data-community-area="{{ $area['label'] }}" aria-label="Lihat {{ $area['count'] }} mitra di {{ $area['label'] }}" aria-haspopup="dialog" aria-controls="communityDetail"><i class="cd-area-key cd-area-key-{{ $loop->index }}" aria-hidden="true"></i><span>{{ $area['label'] }}</span><strong>{{ $area['count'] }} <small>({{ $areaTotal ? number_format(100 * $area['count'] / $areaTotal, 0) : 0 }}%)</small></strong></button></li>
                             @endforeach
                         </ul>
                     </div>
