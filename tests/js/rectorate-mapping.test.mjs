@@ -47,7 +47,7 @@ class Element {
     }
     append(...children) { children.forEach(child => { child.parent = this; this.children.push(child); }); }
     appendChild(child) { this.append(child); return child; }
-    replaceChildren(...children) { this.children = []; this.append(...children); }
+    replaceChildren(...children) { this.children = []; this._html = ''; this._text = ''; this.append(...children); }
     after(child) { this.parent.append(child); }
     setAttribute(key, value) { this.attributes[key] = value; }
     addEventListener(name, handler) { (this.listeners[name] ??= []).push(handler); }
@@ -87,7 +87,7 @@ class Element {
     scrollIntoView() {}
 }
 
-function harness() {
+function harness({ confirmDelete = true } = {}) {
     const document = new Element('document');
     const elements = new Map();
     for (const [, id] of markup.matchAll(/\bid="([^"]+)"/g)) {
@@ -109,7 +109,7 @@ function harness() {
     month.name = 'month';
     month.value = '9';
     form.append(year, month);
-    root.append(form, el('monthly-import-errors'), el('monthly-import-summary'), el('monthly-import-history'));
+    root.append(form, el('monthly-import-errors'), el('monthly-import-summary'), el('monthly-import-history'), el('monthly-import-notice'));
     const inputs = ['fm_file', 'mhs_file', 'research_file'].map(name => {
         const input = el(name);
         input.tagName = 'input';
@@ -129,6 +129,7 @@ function harness() {
     document.getElementById = id => el(id) || null;
     document.createElement = tag => new Element(tag);
     const requests = [];
+    const confirmations = [];
     class FormDataMock {
         constructor() { this.values = new Map(); }
         append(key, value) { this.values.set(key, value); }
@@ -140,6 +141,7 @@ function harness() {
     };
     vm.runInNewContext(source, {
         document, AbortController, FormData: FormDataMock,
+        window: { confirm(message) { confirmations.push(message); return confirmDelete; } },
         bootstrap: { Modal: { getOrCreateInstance: () => modal } },
         fetch(url, options) {
             return new Promise((resolve, reject) => requests.push({
@@ -168,7 +170,20 @@ function harness() {
     const confirm = () => el('cm-confirm-btn').fire('click');
     const button = (name = 'fm_file') => el(`${name}-submit`);
     const submit = (name = 'fm_file') => form.fire('submit', { submitter: button(name) });
-    return { el, inputs, requests, modal, flush, choose, selects, change, reopen, confirm, submit, button };
+    const addDeleteButton = (type = 'fm', period = '2026-09') => {
+        const button = new Element('button');
+        const labels = { fm: 'Publikasi FM', mhs: 'Publikasi Mahasiswa', hibah: 'Hibah' };
+        Object.assign(button.dataset, {
+            deleteImport: '', label: labels[type], period,
+            url: `/backoffice/importrectorate/imports/${type}/${period.slice(0, 4)}/${Number(period.slice(5))}`,
+        });
+        button.innerHTML = 'Hapus';
+        el('monthly-import-history').append(button);
+        const icon = new Element('i');
+        button.append(icon);
+        return { button, click: () => el('monthly-import-history').fire('click', { target: icon }) };
+    };
+    return { el, inputs, requests, confirmations, modal, flush, choose, selects, change, reopen, confirm, submit, button, addDeleteButton };
 }
 
 const preview = (mapping = { code: 0, title: 1 }) => ({
@@ -513,4 +528,93 @@ test('every referenced modal ID exists in the owned views; optional hint uses in
     for (const [, id] of source.matchAll(/getElementById\('([^']+)'\)/g)) assert.ok(ids.has(id), `missing ${id}`);
     assert.match(markup, /id="cm-validation-warnings" class="alert alert-info/);
     assert.match(markup, /Kolom opsional boleh kosong dan tidak menghalangi import/);
+});
+
+test('cancelled deletion names the source and period without making a request', async () => {
+    const h = harness({ confirmDelete: false });
+    const deletion = h.addDeleteButton('mhs', '2025-12');
+    await deletion.click();
+    assert.equal(h.confirmations.length, 1);
+    assert.match(h.confirmations[0], /Publikasi Mahasiswa periode 2025-12/);
+    assert.equal(h.requests.length, 0);
+    assert.equal(deletion.button.disabled, false);
+});
+
+test('deletion uses the clicked row, blocks concurrent mutations and retains selected files and mappings', async () => {
+    const h = harness();
+    const file = await ready(h);
+    await h.confirm();
+    h.el('upload-year').value = '2030';
+    h.el('upload-month').value = '1';
+    const first = h.addDeleteButton('hibah', '2026-09');
+    const other = h.addDeleteButton('mhs', '2026-08');
+    const deleting = first.click();
+    const request = h.requests.at(-1);
+    assert.equal(request.url, '/backoffice/importrectorate/imports/hibah/2026/9');
+    assert.equal(request.options.method, 'DELETE');
+    assert.equal(request.options.headers['X-CSRF-TOKEN'], 'csrf-token');
+    assert.equal(request.options.headers.Accept, 'application/json');
+    assert.equal(first.button.disabled, true);
+    assert.equal(other.button.disabled, true);
+    assert.equal(h.button().disabled, true);
+    assert.ok(h.inputs.every(input => input.disabled));
+    await other.click();
+    await h.submit();
+    assert.equal(h.requests.length, 2, 'upload and second deletion are blocked');
+    request.respond({ message: 'Hibah periode 2026-09 berhasil dihapus.', history_html: 'remaining sources' });
+    await deleting;
+    assert.equal(h.el('monthly-import-history').innerHTML, 'remaining sources');
+    assert.equal(h.el('monthly-import-notice').hidden, false);
+    assert.match(h.el('monthly-import-notice').textContent, /Hibah periode 2026-09/);
+    assert.equal(h.el('fm_file').files[0], file);
+    assert.equal(h.button().disabled, false, 'confirmed mapping survives deletion');
+    assert.ok(h.inputs.every(input => !input.disabled));
+    assert.equal(h.el('upload-year').disabled, false);
+
+    const next = h.addDeleteButton('mhs');
+    const nextDeletion = next.click();
+    h.requests.at(-1).respond({ message: 'Deleted', history_html: 'Belum ada laporan bulanan.' });
+    await nextDeletion;
+    assert.equal(h.el('monthly-import-history').innerHTML, 'Belum ada laporan bulanan.', 'delegated listener survives replacing the history');
+});
+
+for (const failure of ['http', 'network']) {
+    test(`failed deletion (${failure}) preserves the history and can be retried`, async () => {
+        const h = harness();
+        const deletion = h.addDeleteButton();
+        const deleting = deletion.click();
+        const request = h.requests.at(-1);
+        if (failure === 'http') request.respond({ message: 'Data import tidak ditemukan.' }, false);
+        else request.reject(new Error('Network offline'));
+        await deleting;
+        assert.equal(h.el('monthly-import-errors').hidden, false);
+        assert.equal(h.el('monthly-import-history').children[0], deletion.button);
+        assert.equal(deletion.button.disabled, false);
+        assert.equal(deletion.button.innerHTML, 'Hapus');
+        assert.equal(h.el('monthly-import-notice').hidden, true);
+        const retry = deletion.click();
+        h.requests.at(-1).respond({ message: 'Deleted', history_html: 'updated' });
+        await retry;
+        assert.equal(h.el('monthly-import-history').innerHTML, 'updated');
+    });
+}
+
+test('deletion stays blocked during upload and works after the refreshed history arrives', async () => {
+    const h = harness();
+    await ready(h);
+    await h.confirm();
+    const deletion = h.addDeleteButton();
+    const uploading = h.submit();
+    assert.equal(deletion.button.disabled, true);
+    await deletion.click();
+    assert.equal(h.confirmations.length, 0);
+    assert.equal(h.requests.length, 2);
+    h.requests.at(-1).respond({ summary_html: 'uploaded', history_html: 'new history' });
+    await uploading;
+    const refreshed = h.addDeleteButton();
+    const deleting = refreshed.click();
+    h.requests.at(-1).respond({ message: 'Deleted', history_html: 'empty' });
+    await deleting;
+    assert.equal(h.el('monthly-import-summary').innerHTML, '');
+    assert.equal(h.el('monthly-import-history').innerHTML, 'empty');
 });

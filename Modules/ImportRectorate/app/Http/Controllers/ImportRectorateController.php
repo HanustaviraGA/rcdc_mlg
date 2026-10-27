@@ -81,6 +81,54 @@ class ImportRectorateController extends Controller
             ->with('research_summary', $summaries['research_file'] ?? null);
     }
 
+    public function destroyPeriod(Request $request, string $type, string $year, string $month)
+    {
+        abort_unless(Auth::check(), 403);
+
+        validator(compact('type', 'year', 'month'), [
+            'type' => ['required', 'in:fm,mhs,hibah'],
+            'year' => ['required', 'integer', 'between:2000,2100'],
+            'month' => ['required', 'integer', 'between:1,12'],
+        ])->validate();
+
+        [$table, $label, $relatedTables] = match ($type) {
+            'fm' => ['publication_imports', 'Publikasi FM', [
+                'rectorate_dosen' => 'publication_import_id',
+                'publication_kpi_entries' => 'publication_import_id',
+            ]],
+            'mhs' => ['student_publication_imports', 'Publikasi Mahasiswa', []],
+            'hibah' => ['research_imports', 'Hibah', ['rectorate_research' => 'research_import_id']],
+        };
+
+        abort_unless(Schema::hasTable($table), 404, 'Data import untuk periode ini tidak ditemukan.');
+
+        DB::transaction(function () use ($table, $relatedTables, $year, $month) {
+            // Use the same batch lock as reimports, and never load workbook payloads.
+            $ids = DB::table($table)->where('year', $year)->where('month', $month)
+                ->lockForUpdate()->pluck('id');
+            abort_if($ids->isEmpty(), 404, 'Data import untuk periode ini tidak ditemukan.');
+
+            foreach ($relatedTables as $relatedTable => $foreignKey) {
+                if (Schema::hasTable($relatedTable)) {
+                    DB::table($relatedTable)->whereIn($foreignKey, $ids)->delete();
+                }
+            }
+
+            DB::table($table)->whereIn('id', $ids)->delete();
+        });
+
+        $message = $label.' periode '.sprintf('%04d-%02d', $year, $month).' berhasil dihapus.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'history_html' => view('importrectorate::history', $this->history())->render(),
+            ]);
+        }
+
+        return redirect('/dashboard/importrectorate')->with('monthly_import_message', $message);
+    }
+
     private function history(): array
     {
         $monthly = collect();

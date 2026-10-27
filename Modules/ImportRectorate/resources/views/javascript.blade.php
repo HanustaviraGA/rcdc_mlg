@@ -7,6 +7,8 @@
     const uploadButtons = [...form.querySelectorAll('[data-import-file]')];
     const periodInputs = [form.querySelector('[name="year"]'), form.querySelector('[name="month"]')];
     const errors = root.querySelector('#monthly-import-errors');
+    const history = root.querySelector('#monthly-import-history');
+    const notice = root.querySelector('#monthly-import-notice');
     const fileInputs = [...form.querySelectorAll('input[type="file"]')];
     const modal = document.getElementById('column-mapping-modal');
     const confirmButton = document.getElementById('cm-confirm-btn');
@@ -15,7 +17,7 @@
     const files = new Map();
     let active = null;
     let previewRequest = null;
-    let uploading = false;
+    let processing = false;
 
     fileInputs.forEach(input => {
         input.addEventListener('change', () => {
@@ -23,14 +25,14 @@
             if (active?.input === input) closePreview();
             if (!input.files.length) {
                 updateFileInputBadge(input);
-                updateUploadButton();
+                updateActionButtons();
                 return;
             }
             files.set(input.name, {
                 file: input.files[0], preview: null, mapping: null,
                 draft: null, status: 'pending',
             });
-            updateUploadButton();
+            updateActionButtons();
             openMappingModal(input);
         });
     });
@@ -51,7 +53,7 @@
             state.status = 'pending';
         }
         updateFileInputBadge(input);
-        updateUploadButton();
+        updateActionButtons();
     });
 
     modal.addEventListener('hide.bs.modal', closePreview);
@@ -61,11 +63,19 @@
         return state && state.file === input.files[0] ? state : null;
     }
 
-    function updateUploadButton() {
+    function updateActionButtons() {
         uploadButtons.forEach(button => {
             const input = fileInputs.find(input => input.name === button.dataset.importFile);
-            button.disabled = uploading || !input?.files.length || !selectedState(input)?.mapping;
+            button.disabled = processing || !input?.files.length || !selectedState(input)?.mapping;
         });
+        history.querySelectorAll('[data-delete-import]').forEach(button => { button.disabled = processing; });
+    }
+
+    function setProcessing(value) {
+        processing = value;
+        periodInputs.forEach(input => { input.disabled = value; });
+        fileInputs.forEach(input => { input.disabled = value; updateFileInputBadge(input); });
+        updateActionButtons();
     }
 
     function closePreview() {
@@ -78,11 +88,11 @@
         active = null;
         confirmButton.disabled = true;
         confirmButton.onclick = null;
-        updateUploadButton();
+        updateActionButtons();
     }
 
     async function openMappingModal(input) {
-        if (uploading || !input.files.length) return;
+        if (processing || !input.files.length) return;
         closePreview();
         let state = selectedState(input);
         if (!state) {
@@ -131,7 +141,7 @@
             updateFileInputBadge(input);
         } finally {
             if (previewRequest === controller) previewRequest = null;
-            updateUploadButton();
+            updateActionButtons();
         }
     }
 
@@ -203,7 +213,7 @@
                 updatePreviewHighlight();
                 revalidateMapping();
                 updateFileInputBadge(session.input);
-                updateUploadButton();
+                updateActionButtons();
             });
             tdSelect.appendChild(select);
             tr.append(tdLabel, tdType, tdSelect, tdExample, tdStatus);
@@ -313,17 +323,17 @@
         document.getElementById('cm-validation-warning-list').innerHTML = optional.map(label => `<li>${escHtml(label)}</li>`).join('');
         document.getElementById('cm-validation-ok').hidden = !!problems.length;
         document.getElementById('cm-ready-badge').hidden = !problems.length;
-        confirmButton.disabled = uploading || !!problems.length;
+        confirmButton.disabled = processing || !!problems.length;
         return !problems.length;
     }
 
     function confirmMapping(session) {
-        if (uploading || active !== session || selectedState(session.input) !== session.state || !revalidateMapping()) return;
+        if (processing || active !== session || selectedState(session.input) !== session.state || !revalidateMapping()) return;
         session.state.mapping = getCurrentMappingFromSelects();
         session.state.draft = { ...session.state.mapping };
         session.state.status = 'confirmed';
         updateFileInputBadge(session.input);
-        updateUploadButton();
+        updateActionButtons();
         bootstrap.Modal.getOrCreateInstance(modal).hide();
     }
 
@@ -366,15 +376,16 @@
         edit.type = 'button';
         edit.className = 'btn btn-sm btn-light-primary cm-reopen-link';
         edit.textContent = status === 'confirmed' ? 'Lihat / ubah pemetaan' : 'Buka preview / pemetaan';
-        edit.disabled = uploading;
+        edit.disabled = processing;
         edit.addEventListener('click', () => openMappingModal(input));
         badge.append(label, edit);
     }
 
     form.addEventListener('submit', async event => {
         event.preventDefault();
-        if (uploading) return;
+        if (processing) return;
         errors.hidden = true;
+        notice.hidden = true;
         const button = event.submitter;
         const input = fileInputs.find(input => input.name === button?.dataset.importFile);
         if (!input?.files.length) {
@@ -384,7 +395,7 @@
         const state = selectedState(input);
         if (!state?.mapping) {
             showError('Konfirmasi pemetaan file ini terlebih dahulu melalui tombol Buka preview / pemetaan.');
-            updateUploadButton();
+            updateActionButtons();
             return;
         }
         const formData = new FormData();
@@ -394,14 +405,11 @@
         formData.append(input.name, state.file);
         formData.append(`column_mapping[${input.name}]`, JSON.stringify(state.mapping));
         const originalLabel = button.innerHTML;
-        uploading = true;
+        setProcessing(true);
         closePreview();
         bootstrap.Modal.getOrCreateInstance(modal).hide();
         root.querySelector('#monthly-import-summary').replaceChildren();
         button.textContent = 'Memproses import...';
-        periodInputs.forEach(input => { input.disabled = true; });
-        fileInputs.forEach(input => { input.disabled = true; updateFileInputBadge(input); });
-        updateUploadButton();
         try {
             const response = await fetch(form.action, {
                 method: 'POST', headers: { 'Accept': 'application/json' }, body: formData,
@@ -411,17 +419,48 @@
                 throw new Error(Object.values(data.errors || {}).flat().join(' ') || data.message || 'Import gagal.');
             }
             root.querySelector('#monthly-import-summary').innerHTML = data.summary_html;
-            root.querySelector('#monthly-import-history').innerHTML = data.history_html;
+            history.innerHTML = data.history_html;
             input.value = '';
             files.delete(input.name);
         } catch (error) {
             showError(error.message);
         } finally {
-            uploading = false;
-            periodInputs.forEach(input => { input.disabled = false; });
-            fileInputs.forEach(input => { input.disabled = false; updateFileInputBadge(input); });
+            setProcessing(false);
             button.innerHTML = originalLabel;
-            updateUploadButton();
+            updateActionButtons();
+        }
+    });
+
+    history.addEventListener('click', async event => {
+        const button = event.target.closest('[data-delete-import]');
+        if (!button || processing) return;
+        if (!window.confirm(`Hapus ${button.dataset.label} periode ${button.dataset.period} beserta seluruh data hasil importnya? Data yang dihapus tidak dapat dikembalikan.`)) return;
+
+        errors.hidden = true;
+        notice.hidden = true;
+        const originalLabel = button.innerHTML;
+        setProcessing(true);
+        closePreview();
+        bootstrap.Modal.getOrCreateInstance(modal).hide();
+        button.textContent = 'Menghapus...';
+        try {
+            const response = await fetch(button.dataset.url, {
+                method: 'DELETE',
+                headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(Object.values(data.errors || {}).flat().join(' ') || data.message || 'Gagal menghapus data import.');
+            }
+            history.innerHTML = data.history_html;
+            root.querySelector('#monthly-import-summary').replaceChildren();
+            notice.textContent = data.message;
+            notice.hidden = false;
+        } catch (error) {
+            showError(error.message);
+        } finally {
+            button.innerHTML = originalLabel;
+            setProcessing(false);
         }
     });
 
@@ -437,6 +476,6 @@
         return div.innerHTML;
     }
 
-    updateUploadButton();
+    updateActionButtons();
 })();
 </script>

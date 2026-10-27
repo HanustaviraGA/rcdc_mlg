@@ -10,6 +10,22 @@
 6. Grafik otomatis mengikuti target dan realisasi rekap. Perubahan rincian tidak otomatis mengubah rekap/score karena rekap resmi dan skor RTTO menggunakan sumber berbeda; sesuaikan sel terkait bila diperlukan.
 7. **Simpan draft** menyimpan perubahan dalam sesi login dan memulihkannya ketika menu dibuka lagi. **Unduh Word** memvalidasi dan memakai nilai editor saat itu. Override tidak mengubah hasil import atau master dosen. Maksimal lima draft disimpan dalam sesi; Generate ulang membuat draft baru.
 
+## Hapus hasil import per bulan
+
+Pada tabel **Kelengkapan sumber bulanan**, tombol **Hapus** tersedia di setiap sel sumber yang sudah diupload. Konfirmasi menampilkan jenis sumber dan periode yang akan dihapus. Penghapusan mencakup seluruh batch sumber tersebut pada tahun/bulan laporan yang dipilih, termasuk rincian publikasi dan KPI untuk FM atau rincian penelitian untuk Hibah. Sumber lain, periode lain, serta data tanpa relasi batch tersebut tetap tersimpan. Setelah berhasil, status sumber berubah menjadi **Belum diupload**; baris hilang jika ketiga sumbernya sudah dihapus. File dapat diupload kembali.
+
+Endpoint web: `DELETE /backoffice/importrectorate/imports/{type}/{year}/{month}` (`importrectorate.destroy`). Memerlukan sesi login dan token CSRF (`X-CSRF-TOKEN` atau `_token`). `type` adalah `fm`, `mhs`, atau `hibah`; `year` 2000–2100; `month` 1–12. Respons JSON dengan `Accept: application/json`:
+
+| Status | Isi / kondisi |
+| --- | --- |
+| 200 | `message` dan `history_html` terbaru setelah transaksi penghapusan berhasil |
+| 403 | Pengguna belum login |
+| 419 | Token CSRF tidak valid |
+| 422 | Jenis sumber atau periode tidak valid (`errors`) |
+| 404 | Tidak ada batch sumber pada periode tersebut; tidak menghapus data lain |
+
+Permintaan tanpa JSON diarahkan kembali ke `/dashboard/importrectorate` dengan pesan keberhasilan dalam sesi. Jika penghapusan rincian atau batch gagal, transaksi membatalkan seluruh penghapusan. Riwayat tetap hanya membaca metadata, tanpa mengambil payload JSON workbook.
+
 ## Pemetaan sumber
 
 **PerhitunganKPI** (`/dashboard/perhitungankpi`) langsung menampilkan seluruh dosen hasil import pada semua tahun/bulan. Satu baris mewakili dosen dalam satu bulan laporan; nilai antarbulan tidak dijumlahkan. Pencarian nama/kode/prodi dan filter opsional tahun, bulan, program studi bekerja langsung. Reset mengembalikan semua data. Daftar berasal dari gabungan publikasi, sheet KPI (termasuk dosen bernilai nol atau belum ada di master), dan hibah FM. Hibah dihitung per proyek unik/peran dari seluruh tahun anggaran dalam file bulan tersebut; import hibah lama tanpa bulan laporan tampil terpisah dengan label belum ditentukan. Publikasi mahasiswa tetap digunakan pada laporan MHS, bukan sebagai KPI dosen. Nilai RTTO kosong tetap kosong; file lama tanpa sheet KPI memakai skor sistem yang dihitung hanya dari publikasi bulan terkait.

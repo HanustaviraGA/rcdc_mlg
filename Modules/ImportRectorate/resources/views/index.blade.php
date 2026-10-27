@@ -62,7 +62,14 @@
             </form>
         </div>
     </div>
-    <div class="card card-bordered"><div class="card-body"><h3 class="mb-5">Kelengkapan sumber bulanan</h3><div id="monthly-import-history">@include('importrectorate::history')</div></div></div>
+    <div class="card card-bordered">
+        <div class="card-body">
+            <h3 class="mb-3">Kelengkapan sumber bulanan</h3>
+            <p class="text-muted">Hapus hasil import per jenis data pada bulan yang dipilih. Jenis data dan periode lainnya tetap tersimpan.</p>
+            <div id="monthly-import-notice" class="alert alert-success" role="status" @if(!session('monthly_import_message')) hidden @endif>{{ session('monthly_import_message') }}</div>
+            <div id="monthly-import-history">@include('importrectorate::history')</div>
+        </div>
+    </div>
 </div>
 
 {{-- Modal Column Mapping --}}

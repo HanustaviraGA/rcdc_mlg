@@ -74,6 +74,8 @@ class ImportRectorateHistoryTest extends TestCase
         foreach ($tables as $table) {
             $this->assertStringContainsString($table.'.xlsx', $html);
         }
+        $this->assertSame(4, substr_count($html, 'aria-label="Hapus '));
+        $this->assertStringContainsString('aria-label="Hapus Publikasi Mahasiswa periode 2026-09"', $html);
         $this->assertStringNotContainsString('outdated-fm.xlsx', $html);
         $this->assertStringContainsString('previous-year.xlsx', $html);
         $this->assertLessThan(strpos($html, '2025-12'), strpos($html, '2026-09'));
