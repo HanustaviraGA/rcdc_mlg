@@ -9,9 +9,9 @@ class CommunityDevelopmentDashboard
 {
     public function __construct(private CommunityDevelopmentDemo $demo) {}
 
-    public function data(?int $period = null): array
+    public function data(?int $period = null, ?int $partnerYear = null): array
     {
-        $data = $this->demo->data();
+        $data = array_replace($this->demo->data(), $this->partners($partnerYear));
         $batches = Schema::hasTable('community_development_imports')
             ? DB::table('community_development_imports')->orderByDesc('year_start')->orderBy('semester')->get() : collect();
         // Genap follows Ganjil within the same academic year.
@@ -78,5 +78,24 @@ class CommunityDevelopmentDashboard
     private function periodLabel(object $batch): string
     {
         return $batch->year_start.'/'.($batch->year_start + 1).' '.$batch->semester;
+    }
+
+    private function partners(?int $year): array
+    {
+        $batches = Schema::hasTable('community_partner_imports')
+            ? DB::table('community_partner_imports')->orderByDesc('data_year')->get() : collect();
+        $batch = $year === null ? $batches->first() : $batches->firstWhere('data_year', $year);
+        $partners = $batch ? DB::table('community_partners')->where('import_id', $batch->id)->orderBy('source_row')
+            ->get(['name', 'cluster', 'scale', 'area', 'joined_year'])->map(fn ($row) => (array) $row)->all() : [];
+        $areas = ['Kab. Malang' => 0, 'Kota Malang' => 0, 'Lainnya' => 0];
+        foreach ($partners as $partner) {
+            $areas[in_array($partner['area'], ['Kab. Malang', 'Kota Malang'], true) ? $partner['area'] : 'Lainnya']++;
+        }
+
+        return ['partners' => $partners, 'clusters' => array_values(array_unique(array_column($partners, 'cluster'))),
+            'scales' => array_values(array_unique(array_column($partners, 'scale'))),
+            'areas' => array_map(fn ($label, $count) => compact('label', 'count'), array_keys($areas), array_values($areas)),
+            'partnerYears' => $batches->pluck('data_year')->all(), 'selectedPartnerYear' => $batch?->data_year ?? $year,
+            'partnerFilename' => $batch?->filename, 'partnersImported' => $batch !== null];
     }
 }

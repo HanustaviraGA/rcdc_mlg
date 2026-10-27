@@ -55,4 +55,63 @@ trait CreatesWorkbook
             }
         }
     }
+
+    /** Build a small BIFF12 workbook without using the production reader. */
+    private function makeXlsbWorkbook(array $sheets): string
+    {
+        $file = tempnam(sys_get_temp_dir(), 'binary-workbook-');
+        $this->workbooks[] = $file;
+        $zip = new ZipArchive;
+        $zip->open($file, ZipArchive::OVERWRITE);
+        $record = static function (int $type, string $data = ''): string {
+            $header = $type < 128 ? chr($type) : chr(($type & 127) | 128).chr($type >> 7);
+            $length = strlen($data);
+            do {
+                $header .= chr(($length & 127) | ($length >= 128 ? 128 : 0));
+                $length >>= 7;
+            } while ($length > 0);
+
+            return $header.$data;
+        };
+        $wide = static function (string $value): string {
+            $encoded = mb_convert_encoding($value, 'UTF-16LE', 'UTF-8');
+
+            return pack('V', strlen($encoded) / 2).$encoded;
+        };
+        $book = $record(131).$record(143);
+        $links = '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';
+        $strings = [];
+        $index = 0;
+        foreach ($sheets as $name => $rows) {
+            $index++;
+            $book .= $record(156, pack('V2', 0, $index).$wide('rId'.$index).$wide($name));
+            $links .= '<Relationship Id="rId'.$index.'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'.$index.'.bin"/>';
+            $binary = $record(129).$record(145);
+            foreach ($rows as $r => $cells) {
+                $binary .= $record(0, pack('V', $r).str_repeat("\0", 13));
+                foreach ($cells as $c => $value) {
+                    $cell = pack('V2', $c, 0);
+                    if (is_array($value)) {
+                        $binary .= $record($value['type'], $cell.$value['payload']);
+                    } elseif (is_int($value) || is_float($value)) {
+                        $binary .= $record(5, $cell.pack('e', $value));
+                    } else {
+                        $strings[] = (string) $value;
+                        $binary .= $record(7, $cell.pack('V', count($strings) - 1));
+                    }
+                }
+            }
+            $zip->addFromString('xl/worksheets/sheet'.$index.'.bin', $binary.$record(146).$record(130));
+        }
+        $zip->addFromString('xl/workbook.bin', $book.$record(144).$record(132));
+        $zip->addFromString('xl/_rels/workbook.bin.rels', $links.'</Relationships>');
+        $shared = $record(159, pack('V2', count($strings), count($strings)));
+        foreach ($strings as $string) {
+            $shared .= $record(19, "\0".$wide($string));
+        }
+        $zip->addFromString('xl/sharedStrings.bin', $shared.$record(160));
+        $zip->close();
+
+        return $file;
+    }
 }

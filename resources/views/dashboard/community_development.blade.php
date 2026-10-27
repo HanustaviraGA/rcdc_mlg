@@ -5,21 +5,16 @@
     <section class="pd-section" aria-labelledby="communityHeading">
         <div class="pd-section-heading">
             <div class="pd-heading-copy">
-                <span class="pd-section-number">03</span>
+                <span class="pd-section-number">01</span>
                 <div><span class="pd-eyebrow">PENGABDIAN KEPADA MASYARAKAT</span><h2 id="communityHeading">Community Development FM</h2></div>
             </div>
-            <span class="cd-demo-badge"><i class="bi {{ $community['isDemo'] ? 'bi-info-circle' : 'bi-file-earmark-spreadsheet' }}" aria-hidden="true"></i> {{ $community['isDemo'] ? 'Data contoh' : $community['periodLabel'] }}</span>
+            <span class="cd-demo-badge"><i class="bi {{ $community['isDemo'] ? 'bi-info-circle' : 'bi-file-earmark-spreadsheet' }}" aria-hidden="true"></i> {{ $community['isDemo'] ? 'Contoh rekap dosen' : $community['periodLabel'] }}</span>
         </div>
         <p class="cd-intro">Ringkasan kegiatan pengabdian, capaian dosen per prodi, dan komunitas binaan BINUS Malang.</p>
-        <p class="cd-demo-note">{{ $community['isDemo'] ? 'Data contoh untuk pratinjau.' : 'Rekap menggunakan sheet Rasio; rincian dosen menggunakan Keterlibatan dan profil Modules/Dosen.' }} Filter tahun, kuartal, dan prodi pada bagian publikasi tidak mengubah data ini.</p>
+        <p class="cd-demo-note">{{ $community['isDemo'] ? 'Rekap dan rincian dosen masih menggunakan data contoh. Unggah data PKM untuk menampilkan capaian aktual.' : 'Rekap dan rincian dosen mengikuti periode akademik yang dipilih.' }} Data mitra menggunakan pilihan tahun data tersendiri.</p>
         @if(count($community['periods']))
-            <form method="get" action="{{ route('publication-dashboard') }}#communityDevelopment" class="cd-period-form" aria-label="Filter periode Community Development">
-                @foreach(['year', 'indicator', 'quarter', 'program'] as $key)
-                    @if(is_scalar(request()->query($key)))<input type="hidden" name="{{ $key }}" value="{{ request()->query($key) }}">@endif
-                @endforeach
-                @foreach((array) request()->query('years', []) as $year)
-                    @if(is_scalar($year))<input type="hidden" name="years[]" value="{{ $year }}">@endif
-                @endforeach
+            <form method="get" action="{{ route('community-dashboard') }}#communityDevelopment" class="cd-period-form" aria-label="Filter periode Community Development">
+                @if($community['selectedPartnerYear'])<input type="hidden" name="partner_year" value="{{ $community['selectedPartnerYear'] }}">@endif
                 <div class="pd-field"><label for="communityPeriod">Periode Community Development</label><select name="community_period" id="communityPeriod">
                     @foreach($community['periods'] as $period)
                         <option value="{{ $period['id'] }}" @selected($community['selectedPeriod'] == $period['id'])>{{ $period['label'] }}</option>
@@ -57,18 +52,31 @@
 
             <article class="cd-panel">
                 <div class="cd-panel-heading"><h3><i class="bi bi-people" aria-hidden="true"></i> Komunitas binaan</h3><span class="cd-partner-count">{{ count($community['partners']) }} mitra</span></div>
-                <p class="cd-hint">Telusuri mitra binaan berdasarkan kluster atau skala usahanya. <strong>Data mitra dan area masih berupa contoh.</strong></p>
+                <p class="cd-hint">Telusuri mitra binaan berdasarkan kluster atau skala usahanya.</p>
+                @if(count($community['partnerYears']))
+                    <form method="get" action="{{ route('community-dashboard') }}#communityPartners" class="cd-period-form" id="communityPartners">
+                        @if($community['selectedPeriod'])<input type="hidden" name="community_period" value="{{ $community['selectedPeriod'] }}">@endif
+                        <div class="pd-field"><label for="partnerYear">Tahun data mitra</label><select name="partner_year" id="partnerYear">
+                            @foreach($community['partnerYears'] as $year)<option value="{{ $year }}" @selected($community['selectedPartnerYear'] == $year)>{{ $year }}</option>@endforeach
+                        </select></div><button type="submit" class="pd-button">Tampilkan</button>
+                    </form>
+                @endif
+                @if(! $community['partnersImported'])
+                    <p class="pd-context">Belum ada data mitra binaan{{ $community['selectedPartnerYear'] ? ' untuk tahun '.$community['selectedPartnerYear'] : '' }}.</p>
+                @else
+                    <p class="cd-hint">Sumber: {{ $community['partnerFilename'] }} · Tahun data {{ $community['selectedPartnerYear'] }}</p>
+                @endif
                 <div class="cd-category-grid">
                     <button type="button" class="cd-category" data-community-category="cluster" aria-haspopup="dialog" aria-controls="communityDetail">
                         <span><i class="bi bi-grid" aria-hidden="true"></i> Kategori kluster <i class="bi bi-arrow-up-right" aria-hidden="true"></i></span>
                         <strong>{{ count($community['clusters']) }} <small>kluster</small></strong>
-                        <span class="cd-category-description">F&amp;B, Kriya, Batik, Holti, dan Non UMKM</span>
+                        <span class="cd-category-description">{{ count($community['clusters']) ? implode(', ', $community['clusters']) : 'Belum ada kluster' }}</span>
                         <span class="cd-category-link">Lihat rincian <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
                     </button>
                     <button type="button" class="cd-category" data-community-category="scale" aria-haspopup="dialog" aria-controls="communityDetail">
                         <span><i class="bi bi-shop" aria-hidden="true"></i> Skala usaha <i class="bi bi-arrow-up-right" aria-hidden="true"></i></span>
-                        <strong>{{ count($community['scales']) - 1 }} <small>skala UMKM</small></strong>
-                        <span class="cd-category-description">Mikro, Kecil, Menengah; serta mitra lainnya</span>
+                        <strong>{{ count(array_diff($community['scales'], ['Lainnya', 'Belum diketahui'])) }} <small>skala UMKM</small></strong>
+                        <span class="cd-category-description">{{ count($community['scales']) ? implode(', ', $community['scales']) : 'Belum ada skala usaha' }}</span>
                         <span class="cd-category-link">Lihat rincian <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
                     </button>
                 </div>
@@ -77,15 +85,15 @@
                     <div class="cd-area-content">
                         @php
                             $areaTotal = array_sum(array_column($community['areas'], 'count'));
-                            $areaFirst = 100 * $community['areas'][0]['count'] / $areaTotal;
-                            $areaSecond = $areaFirst + 100 * $community['areas'][1]['count'] / $areaTotal;
+                            $areaFirst = $areaTotal ? 100 * $community['areas'][0]['count'] / $areaTotal : 0;
+                            $areaSecond = $areaFirst + ($areaTotal ? 100 * $community['areas'][1]['count'] / $areaTotal : 0);
                         @endphp
-                        <div class="cd-donut" style="--cd-area-first: {{ $areaFirst }}%; --cd-area-second: {{ $areaSecond }}%" role="img" aria-label="Sebaran mitra: {{ collect($community['areas'])->map(fn ($area) => $area['label'].' '.$area['count'])->implode(', ') }}.">
+                        <div class="cd-donut {{ $areaTotal ? '' : 'is-empty' }}" style="--cd-area-first: {{ $areaFirst }}%; --cd-area-second: {{ $areaSecond }}%" role="img" aria-label="Sebaran mitra: {{ collect($community['areas'])->map(fn ($area) => $area['label'].' '.$area['count'])->implode(', ') }}.">
                             <span><strong>{{ count($community['partners']) }}</strong><small>Mitra binaan</small></span>
                         </div>
                         <ul class="cd-area-legend">
                             @foreach($community['areas'] as $area)
-                                <li><i class="cd-area-key cd-area-key-{{ $loop->index }}" aria-hidden="true"></i><span>{{ $area['label'] }}</span><strong>{{ $area['count'] }} <small>({{ number_format(100 * $area['count'] / $areaTotal, 0) }}%)</small></strong></li>
+                                <li><i class="cd-area-key cd-area-key-{{ $loop->index }}" aria-hidden="true"></i><span>{{ $area['label'] }}</span><strong>{{ $area['count'] }} <small>({{ $areaTotal ? number_format(100 * $area['count'] / $areaTotal, 0) : 0 }}%)</small></strong></li>
                             @endforeach
                         </ul>
                     </div>
@@ -96,7 +104,7 @@
 
     <section class="pd-section" aria-labelledby="communityProgramsHeading">
         <div class="pd-section-heading">
-            <div class="pd-heading-copy"><span class="pd-section-number">04</span><div><span class="pd-eyebrow">CAPAIAN PER PRODI</span><h2 id="communityProgramsHeading">Kegiatan dan kontribusi dosen</h2></div></div>
+            <div class="pd-heading-copy"><span class="pd-section-number">02</span><div><span class="pd-eyebrow">CAPAIAN PER PRODI</span><h2 id="communityProgramsHeading">Kegiatan dan kontribusi dosen</h2></div></div>
             <span class="pd-period-label">{{ count($community['programs']) }} prodi / unit &middot; {{ $communityNumber($community['totals']['activities']) }} kegiatan</span>
         </div>
         <div class="pd-department-grid cd-program-grid">

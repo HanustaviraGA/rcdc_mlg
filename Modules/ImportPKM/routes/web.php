@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\ImportPKM\Http\Controllers\CommunityPartnerImportController;
 use Modules\ImportPKM\Http\Controllers\ImportPKMController;
 
 /*
@@ -15,6 +16,8 @@ use Modules\ImportPKM\Http\Controllers\ImportPKMController;
 */
 
 Route::prefix('backoffice/importpkm')->group(function () {
+    Route::post('partners/preview', [CommunityPartnerImportController::class, 'preview'])->middleware('auth')->name('importpkm.partners.preview');
+    Route::post('partners/upload', [CommunityPartnerImportController::class, 'upload'])->middleware('auth')->name('importpkm.partners.upload');
     Route::get('/', [ImportPKMController::class, 'index'])->name('importpkm.index');
     Route::post('preview', [ImportPKMController::class, 'preview'])->middleware('auth')->name('importpkm.preview');
     Route::post('upload', [ImportPKMController::class, 'upload'])->middleware('auth')->name('importpkm.upload');

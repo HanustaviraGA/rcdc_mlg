@@ -179,7 +179,47 @@ class LecturerManagementTest extends TestCase
         $this->assertFalse($data['isDemo']);
         $this->assertSame([37, null], array_column($data['programs'], 'faculty'));
         $this->assertSame([91, 0], array_column($data['programs'], 'activities'));
-        $response->assertSee('href="'.route('publication-dashboard', ['community_period' => $data['selectedPeriod']]).'#communityDevelopment"', false);
+        $response->assertSee('href="'.route('community-dashboard', ['community_period' => $data['selectedPeriod']]).'#communityDevelopment"', false);
+    }
+
+    public function test_home_education_chart_separates_s2_s3_and_ongoing_s3_without_double_counting(): void
+    {
+        DataDosen::find('D001')->update(['pendidikan' => 'S2']);
+        foreach ([
+            'D002' => 'S3', 'D003' => 'S2', 'D004' => 'S2', 'D005' => 'S2',
+            'D006' => ' On Going S3 ', 'D007' => null, 'D008' => ' s-2 ', 'D009' => 'S2', 'D010' => 'S2',
+        ] as $code => $education) {
+            DataDosen::create(['kode_dosen' => $code, 'nama_dosen' => $code, 'pendidikan' => $education]);
+        }
+        DataDosen::find('D009')->delete();
+        (require database_path('migrations/2026_10_22_000000_create_lecturer_snapshots.php'))->up();
+        (require database_path('migrations/2026_10_22_000100_add_education_status_to_lecturers.php'))->up();
+        foreach ([
+            'D003' => 'On Going S3', 'D004' => 'S3', 'D005' => ' on-going  s3 ',
+            'D007' => 'On Going S3', 'D008' => ' ', 'D009' => 'On Going S3', 'D010' => 'On Going S2',
+        ] as $code => $status) {
+            DB::table('database_dosen_new')->where('kode_dosen', $code)->update(['status_pendidikan' => $status]);
+        }
+        // A profile outside the current imported roster must not inflate the chart.
+        DataDosen::create(['kode_dosen' => 'OLD', 'nama_dosen' => 'Outside roster', 'pendidikan' => 'S2', 'status_pendidikan' => 'On Going S3']);
+
+        $response = $this->get(route('home'))->assertOk();
+        $this->assertSame(['S2', 'S3', 'On Going S3'], $response->viewData('pendidikanLabels'));
+        $this->assertSame([3, 2, 4], $response->viewData('pendidikanData'));
+        $this->assertSame(9, array_sum($response->viewData('pendidikanData')));
+    }
+
+    public function test_home_education_chart_keeps_three_categories_before_education_status_migration(): void
+    {
+        Schema::create('v_statistik_prodi', function (Blueprint $table) {
+            $table->string('nama_gugus_binaan');
+            $table->integer('jml_fm');
+        });
+        DataDosen::find('D001')->update(['pendidikan' => 'S2']);
+
+        $response = $this->get(route('home'))->assertOk();
+        $this->assertSame(['S2', 'S3', 'On Going S3'], $response->viewData('pendidikanLabels'));
+        $this->assertSame([1, 0, 0], $response->viewData('pendidikanData'));
     }
 
     public function test_detail_combines_both_sources_limits_to_three_and_links_to_filtered_gallery(): void

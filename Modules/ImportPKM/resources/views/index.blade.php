@@ -40,3 +40,4 @@
     <div class="card card-bordered"><div class="card-header"><h3 class="card-title">Riwayat import per periode</h3></div><div class="card-body" id="pkmImportHistory">@include('importpkm::history')</div></div>
 </div>
 @include('importpkm::javascript')
+@include('importpkm::partner_import')

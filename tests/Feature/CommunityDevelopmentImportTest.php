@@ -6,7 +6,6 @@ use App\Models\User;
 use App\Services\ColumnMapping\ColumnMapperService;
 use App\Services\CommunityDevelopment\CommunityDevelopmentDashboard;
 use App\Services\CommunityDevelopment\CommunityDevelopmentWorkbook;
-use App\Services\Publications\PublicationPerformanceDashboard;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -277,15 +276,14 @@ class CommunityDevelopmentImportTest extends TestCase
         $this->assertSame('New Data Center profile', collect($data['programs'][0]['lecturers'])->firstWhere('code', 'NEW')['name']);
     }
 
-    public function test_public_dashboard_uses_uploaded_periods_and_separately_labels_dummy_partners(): void
+    public function test_comdev_dashboard_uses_uploaded_periods_and_an_empty_partner_state(): void
     {
         $this->import($this->workbook(), filename: 'real-report.xlsx');
-        $this->mock(PublicationPerformanceDashboard::class)->shouldReceive('data')->andReturn(['defaultYear' => 2026, 'years' => ['2026'], 'snapshots' => [], 'programs' => []]);
-        $this->get('/kpi-publikasi')->assertOk()->assertSee('2025/2026 Ganjil')->assertSee('real-report.xlsx')
-            ->assertSee('id="communityPeriod"', false)->assertSee('Data mitra dan area masih berupa contoh.')
+        $this->get('/dashboard-comdev')->assertOk()->assertSee('2025/2026 Ganjil')->assertSee('real-report.xlsx')
+            ->assertSee('id="communityPeriod"', false)->assertSee('Belum ada data mitra binaan')
             ->assertDontSee('Data contoh untuk pratinjau.')->assertDontSee('WRONG NAME FROM WORKBOOK')
             ->assertViewHas('communityDevelopment', fn ($data) => ! $data['isDemo'] && $data['programs'][0]['lecturers'][0]['activities'] === 1);
-        $this->get('/kpi-publikasi?community_period=999')->assertOk()->assertSee('Belum ada data Community Development untuk periode ini.');
+        $this->get('/dashboard-comdev?community_period=999')->assertOk()->assertSee('Belum ada data Community Development untuk periode ini.');
     }
 
     public function test_module_offers_academic_year_options_and_mapping_for_both_sheets(): void

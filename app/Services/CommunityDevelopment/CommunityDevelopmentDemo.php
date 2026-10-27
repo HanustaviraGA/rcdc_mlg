@@ -6,7 +6,7 @@ class CommunityDevelopmentDemo
 {
     /**
      * Sample data from dashboard_community_development_fm.html.
-     * Keep this separate from publication and imported PKM records until a data source is defined.
+     * Lecturer examples shown before the first PKM recap import.
      */
     public function data(): array
     {
@@ -50,23 +50,6 @@ class CommunityDevelopmentDemo
             ];
         }
 
-        $partners = [];
-        foreach ([
-            ['UMKM F&B', 'F&B', 48, 30, 45],
-            ['UMKM Kriya', 'Kriya', 23, 15, 23],
-            ['UMKM Batik', 'Batik & Ecoprint', 10, 5, 10],
-            ['UMKM Holti', 'Holti', 9, 7, 9],
-            ['Mitra Non UMKM', 'NON UMKM', 10, 0, 0],
-        ] as [$prefix, $cluster, $count, $micro, $small]) {
-            for ($i = 1; $i <= $count; $i++) {
-                $partners[] = [
-                    'name' => $prefix.' '.$i,
-                    'cluster' => $cluster,
-                    'scale' => $cluster === 'NON UMKM' ? 'Lainnya' : ($i <= $micro ? 'Mikro' : ($i <= $small ? 'Kecil' : 'Menengah')),
-                ];
-            }
-        }
-
         $faculty = array_sum(array_column($programs, 'faculty'));
         $activities = array_sum(array_column($programs, 'activities'));
 
@@ -75,14 +58,6 @@ class CommunityDevelopmentDemo
             'programs' => $programs,
             // The reference total is 109, but its nine rows sum to 110. Derive totals from the rows.
             'totals' => compact('faculty', 'activities') + ['ratio' => $activities / $faculty],
-            'partners' => $partners,
-            'clusters' => ['F&B', 'Kriya', 'Batik & Ecoprint', 'NON UMKM', 'Holti'],
-            'scales' => ['Mikro', 'Kecil', 'Menengah', 'Lainnya'],
-            'areas' => [
-                ['label' => 'Kab. Malang', 'count' => 70],
-                ['label' => 'Kota Malang', 'count' => 26],
-                ['label' => 'Lainnya', 'count' => 4],
-            ],
         ];
     }
 }

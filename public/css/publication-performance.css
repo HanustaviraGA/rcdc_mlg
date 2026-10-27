@@ -4,6 +4,7 @@
     --pd-soft: #f1f8fc;
     --pd-green: #12764c;
     --pd-red: #a93226;
+    --pd-target-color: #ed7d31;
 }
 
 .performance-page [hidden] { display: none !important; }
@@ -68,7 +69,7 @@
 .performance-page .pd-legend { display: flex; flex-wrap: wrap; gap: 14px; color: #526579; font-size: 11px; }
 .performance-page .pd-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .performance-page .pd-legend i { display: block; width: 10px; height: 10px; border-radius: 3px; }
-.performance-page .pd-target-key { background: #bfd6e9; }
+.performance-page .pd-target-key { background: var(--pd-target-color); }
 .performance-page .pd-actual-key { background: var(--brand-600); }
 .performance-page .pd-scope { margin: -4px 0 16px; color: var(--pd-muted); font-size: 12px; }
 .performance-page .pd-department-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
@@ -79,13 +80,13 @@
 .performance-page .pd-program-name p { margin: 0; font-size: 11px; color: var(--pd-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .performance-page .pd-score { display: inline-flex; align-items: center; gap: 6px; flex: none; padding: 5px 9px; border-radius: 5px; background: #edf1f6; color: #5e7288; font-size: 10px; white-space: nowrap; }
 .performance-page .pd-score strong { font-size: 13px; font-weight: 600; }
-.performance-page .pd-score.is-good { color: #000000; background: #00af50; }
+.performance-page .pd-score.is-good { color: #ffffff; background: #00af50; }
 .performance-page .pd-score.is-warning { color: #000000; background: #ffff00; }
-.performance-page .pd-score.is-low { color: #000000; background: #ff0000; }
+.performance-page .pd-score.is-low { color: #ffffff; background: #ff0000; }
 .performance-page .pd-chart { position: relative; display: flex; align-items: flex-end; justify-content: center; gap: 34px; height: 187px; margin: 0 20px; padding-top: 40px; border-bottom: 1px solid #dce6ee; background: repeating-linear-gradient(to top, transparent 0, transparent 35px, #f0f4f8 35px, #f0f4f8 36px); }
 .performance-page .pd-bar-column { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; width: 64px; }
 .performance-page .pd-bar-value { margin-bottom: 7px; color: #526579; font-size: 12px; font-weight: 500; }
-.performance-page .pd-chart-bar { width: 44px; border-radius: 5px 5px 0 0; background: #bfd6e9; }
+.performance-page .pd-chart-bar { width: 44px; border-radius: 5px 5px 0 0; background: var(--pd-target-color); }
 .performance-page .pd-chart-bar.is-actual { background: var(--brand-600); }
 .performance-page .pd-gap { position: absolute; top: 3px; right: 0; font-size: 10px; color: var(--pd-muted); }
 .performance-page .pd-gap strong { margin-left: 5px; font-size: 12px; font-weight: 500; }

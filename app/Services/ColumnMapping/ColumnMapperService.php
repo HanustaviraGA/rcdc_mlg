@@ -98,6 +98,17 @@ class ColumnMapperService
             'research_file' => $this->getResearchMappingConfig(),
             'pkm_ratio' => $this->getPkmRatioMappingConfig(),
             'pkm_involvement' => $this->getPkmInvolvementMappingConfig(),
+            'pkm_partners' => [
+                'required' => ['name' => 'Nama Usaha', 'cluster' => 'Cluster', 'scale' => 'Skala', 'area' => 'Area'],
+                'optional' => ['joined_year' => 'Tahun Bergabung'],
+                'aliases' => [
+                    'name' => ['nama umkm', 'nama mitra', 'nama usaha / mitra'],
+                    'cluster' => ['kluster', 'kategori kluster', 'cluster umkm'],
+                    'scale' => ['skala usaha', 'skala umkm'],
+                    'area' => ['wilayah', 'kabupaten kota', 'kota / kabupaten'],
+                    'joined_year' => ['tahun gabung', 'tahun bergabung umkm'],
+                ],
+            ],
             default => [],
         };
         foreach (['required', 'optional'] as $group) {
@@ -385,7 +396,7 @@ class ColumnMapperService
             'required' => [
                 'kode_dosen' => 'Kode Dosen',
                 'reported_activities' => 'Jumlah kegiatan yang dilaporkan ke binusmaya',
-                'score' => 'Skor KPI comdev FM', 'status' => 'Keterangan : Minimal 1 Kegiatan PkM'
+                'score' => 'Skor KPI comdev FM', 'status' => 'Keterangan : Minimal 1 Kegiatan PkM',
             ],
             // 'optional' => ['score' => 'Skor KPI comdev FM', 'status' => 'Keterangan : Minimal 1 Kegiatan PkM'],
             'optional' => [],

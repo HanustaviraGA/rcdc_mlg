@@ -491,7 +491,7 @@
             <p>Jumlah FM dan kegiatan pengabdian kepada masyarakat per prodi di BINUS Malang.</p>
             <p class="mt-3 fs-6" id="communityChartPeriod">{{ $communityDevelopment['periodLabel'] }}
               @if($communityDevelopment['isDemo']) &middot; Data contoh untuk pratinjau @endif
-              &middot; <a href="{{ route('publication-dashboard', $communityDevelopment['selectedPeriod'] ? ['community_period' => $communityDevelopment['selectedPeriod']] : []) }}#communityDevelopment">Lihat rekapitulasi capaian prodi <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+              &middot; <a href="{{ route('community-dashboard', $communityDevelopment['selectedPeriod'] ? ['community_period' => $communityDevelopment['selectedPeriod']] : []) }}#communityDevelopment">Lihat rekapitulasi capaian prodi <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
             </p>
           </div>
           {{-- <div class="col-lg-6" data-aos="fade-left" data-aos-delay="300">

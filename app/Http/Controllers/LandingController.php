@@ -49,17 +49,28 @@ class LandingController extends Controller
         $jjaLabels = array_keys($jjaCounts);
         $jjaData = array_values($jjaCounts);
 
-        $pendidikanCounts = [];
+        $pendidikanCounts = ['S2' => 0, 'S3' => 0, 'On Going S3' => 0];
+        $pendidikanColumns = ['pendidikan'];
+        if (\Schema::hasColumn('database_dosen_new', 'status_pendidikan')) {
+            $pendidikanColumns[] = 'status_pendidikan';
+        }
         $pendidikanRows = DataDosen::query()->currentRoster()
-            ->select('pendidikan')
-            ->whereNotNull('pendidikan')
-            ->where('pendidikan', '!=', '')
+            ->select($pendidikanColumns)
             ->get();
+        $educationLabel = fn (?string $value) => match (preg_replace('/[\s-]+/u', '', strtoupper(trim($value ?? '')))) {
+            'S2' => 'S2',
+            'S3' => 'S3',
+            'ONGOINGS3' => 'On Going S3',
+            default => trim($value ?? ''),
+        };
         foreach ($pendidikanRows as $row) {
-            $label = $row->pendidikan;
+            $status = $educationLabel($row->status_pendidikan ?? null);
+            $label = in_array($status, ['S2', 'S3', 'On Going S3'], true) ? $status : $educationLabel($row->pendidikan);
+            if ($label === '') {
+                continue;
+            }
             $pendidikanCounts[$label] = ($pendidikanCounts[$label] ?? 0) + 1;
         }
-        ksort($pendidikanCounts);
         $pendidikanLabels = array_keys($pendidikanCounts);
         $pendidikanData = array_values($pendidikanCounts);
 

@@ -25,7 +25,10 @@ class ImportPKMController extends Controller
             ? DB::table('community_development_imports')->orderByDesc('year_start')->orderBy('semester')->get() : collect();
         $years = $years->merge($imports->pluck('year_start'))->unique()->sortDesc()->values();
 
-        return loadPage('importpkm::index', ['academicYears' => $years, 'defaultYear' => $start, 'imports' => $imports]);
+        $partnerImports = Schema::hasTable('community_partner_imports')
+            ? DB::table('community_partner_imports')->orderByDesc('data_year')->get() : collect();
+
+        return loadPage('importpkm::index', ['academicYears' => $years, 'defaultYear' => $start, 'imports' => $imports, 'partnerImports' => $partnerImports]);
     }
 
     public function preview(Request $request, CommunityDevelopmentWorkbook $workbook)
