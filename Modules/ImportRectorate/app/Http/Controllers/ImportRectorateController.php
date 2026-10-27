@@ -86,7 +86,10 @@ class ImportRectorateController extends Controller
         $monthly = collect();
         $legacyResearch = false;
         foreach (['fm' => 'publication_imports', 'mhs' => 'student_publication_imports', 'hibah' => 'research_imports'] as $type => $table) {
-            $batches = Schema::hasTable($table) ? DB::table($table)->orderBy('updated_at')->get() : collect();
+            // Keep large JSON payloads out of the history query and its sort buffer.
+            $batches = Schema::hasTable($table)
+                ? DB::table($table)->orderBy('updated_at')->get(['year', 'month', 'filename'])
+                : collect();
             foreach ($batches as $batch) {
                 if (! ($batch->year ?? null) || ! ($batch->month ?? null)) {
                     $legacyResearch = $legacyResearch || $type === 'hibah';
