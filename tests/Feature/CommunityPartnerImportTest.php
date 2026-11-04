@@ -107,11 +107,24 @@ class CommunityPartnerImportTest extends TestCase
         $this->postJson(route('importpkm.partners.upload'), $payload)->assertOk();
         $this->assertNull(DB::table('community_partners')->first()->joined_year);
         $before = DB::table('community_partners')->get();
-        foreach ([['name' => 0, 'area' => 1, 'cluster' => 2], ['name' => 0, 'area' => 0, 'cluster' => 2, 'scale' => 3],
+        foreach ([['name' => 0, 'area' => 1, 'cluster' => 2],
             ['name' => 77, 'area' => 1, 'cluster' => 2, 'scale' => 3], ['name' => 'no', 'area' => 1, 'cluster' => 2, 'scale' => 3]] as $mapping) {
             $payload['column_mapping'] = json_encode($mapping);
             $this->postJson(route('importpkm.partners.upload'), $payload)->assertUnprocessable()->assertJsonValidationErrors('column_mapping');
             $this->assertEquals($before, DB::table('community_partners')->get());
+        }
+    }
+
+    public function test_one_source_column_can_feed_several_target_fields_in_xlsx_and_xlsb(): void
+    {
+        $this->actingAs(new User);
+        $sheets = ['Mitra' => [['Nama Usaha', 'Kategori', 'Area'], ['Usaha A', 'Mikro', 'Kota Malang']]];
+        foreach (['xlsx' => $this->makeWorkbook($sheets), 'xlsb' => $this->makeXlsbWorkbook($sheets)] as $extension => $path) {
+            $payload = $this->payload($path, extension: $extension);
+            $payload['column_mapping'] = json_encode(['name' => 0, 'cluster' => 1, 'scale' => 1, 'area' => 2]);
+            $this->postJson(route('importpkm.partners.upload'), $payload)->assertOk()->assertJsonPath('summary.selected', 1);
+            $partner = DB::table('community_partners')->sole();
+            $this->assertSame(['Mikro', 'Mikro', 'Kota Malang'], [$partner->cluster, $partner->scale, $partner->area]);
         }
     }
 

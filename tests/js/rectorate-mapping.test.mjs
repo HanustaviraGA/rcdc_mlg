@@ -229,7 +229,7 @@ test('initial config validates index zero; optional absence is informational; co
     assert.equal(h.button().disabled, true);
 });
 
-test('missing required and duplicate optional mappings stay blocked after content transition and direct confirm', async () => {
+test('missing required mappings stay blocked after content transition and direct confirm; a shared source column is allowed', async () => {
     const h = harness();
     await ready(h, 'fm_file', preview({ code: 0 }));
     assert.equal(h.el('cm-content').hidden, false);
@@ -238,11 +238,12 @@ test('missing required and duplicate optional mappings stay blocked after conten
     assert.equal(h.button().disabled, true);
     await h.change('title', '1');
     assert.equal(h.el('cm-confirm-btn').disabled, false);
+    // One source column may feed several target fields.
     await h.change('extra', '0');
-    assert.equal(h.el('cm-confirm-btn').disabled, true);
-    assert.match(h.el('cm-validation-error-list').innerHTML, /kolom sumber yang sama/);
+    assert.equal(h.el('cm-confirm-btn').disabled, false);
+    assert.equal(h.el('cm-validation-errors').hidden, true);
     await h.confirm();
-    assert.equal(h.button().disabled, true);
+    assert.equal(h.button().disabled, false);
     await h.change('extra', '');
     await h.confirm();
     assert.equal(h.button().disabled, false);
@@ -463,8 +464,9 @@ for (const name of ['fm_file', 'mhs_file', 'research_file']) {
         assert.equal(request.url, '/upload');
         assert.equal(request.options.body.values.get(name), file);
         assert.deepEqual([...request.options.body.values.keys()].sort(), [
-            '_token', 'year', 'month', name, `column_mapping[${name}]`,
+            '_token', 'year', 'month', name, `column_mapping[${name}]`, `sheet[${name}]`,
         ].sort());
+        assert.equal(request.options.body.values.get(`sheet[${name}]`), 'MALANG');
         assert.ok(h.inputs.every(input => input.disabled), 'file selections stay stable during upload');
         assert.equal(h.el('upload-year').disabled, true);
         assert.equal(h.el('upload-month').disabled, true);
@@ -617,4 +619,162 @@ test('deletion stays blocked during upload and works after the refreshed history
     await deleting;
     assert.equal(h.el('monthly-import-summary').innerHTML, '');
     assert.equal(h.el('monthly-import-history').innerHTML, 'empty');
+});
+
+test('choosing another sheet reloads its preview, requires a new confirmation and uploads that sheet', async () => {
+    const h = harness();
+    await ready(h, 'fm_file', { ...preview(), sheets: ['Cover', 'MALANG', 'Data 2026'] });
+    assert.equal(h.el('cm-sheet-picker').hidden, false);
+    assert.deepEqual(h.el('cm-sheet-select').children.map(option => option.value), ['Cover', 'MALANG', 'Data 2026']);
+    assert.equal(h.el('cm-sheet-select').value, 'MALANG');
+    await h.confirm();
+    assert.equal(h.button().disabled, false);
+
+    await h.reopen('fm_file');
+    h.el('cm-sheet-select').value = 'Data 2026';
+    await h.el('cm-sheet-select').fire('change');
+    assert.equal(h.button().disabled, true, 'a new sheet invalidates the confirmed mapping');
+    assert.equal(h.el('cm-sheet-select').disabled, true, 'sheet choice is locked while its preview loads');
+    const reload = h.requests.at(-1);
+    assert.equal(reload.options.body.values.get('sheet'), 'Data 2026');
+    reload.respond({ ...preview({ code: 1, title: 0 }), file_info: { name: 'report.xlsx', sheet: 'Data 2026' }, sheets: ['Cover', 'MALANG', 'Data 2026'] });
+    await h.flush();
+    assert.equal(h.el('cm-sheet-select').disabled, false);
+    assert.equal(h.el('cm-sheet-name').textContent, 'Data 2026');
+    assert.deepEqual(h.selects().map(select => select.value), ['1', '0', '']);
+    await h.confirm();
+
+    const uploading = h.submit();
+    const request = h.requests.at(-1);
+    assert.equal(request.options.body.values.get('sheet[fm_file]'), 'Data 2026');
+    assert.deepEqual(JSON.parse(request.options.body.values.get('column_mapping[fm_file]')), { code: 1, title: 0 });
+    request.respond({ summary_html: 'done', history_html: 'history' });
+    await uploading;
+});
+
+test('an empty sheet keeps the sheet picker so another sheet can be chosen', async () => {
+    const h = harness();
+    await ready(h, 'mhs_file', { ...preview(), file_info: { name: 'report.xlsx', sheet: 'Cover' }, headers: [], preview_data: [], sheets: ['Cover', 'MALANG'] });
+    assert.equal(h.el('cm-error').hidden, false);
+    assert.match(h.el('cm-error-message').textContent, /Sheet Cover tidak berisi data/);
+    assert.equal(h.el('cm-sheet-picker').hidden, false);
+    assert.equal(h.el('cm-sheet-select').disabled, false);
+    h.el('cm-sheet-select').value = 'MALANG';
+    await h.el('cm-sheet-select').fire('change');
+    assert.equal(h.requests.at(-1).options.body.values.get('sheet'), 'MALANG');
+    h.requests.at(-1).respond({ ...preview(), sheets: ['Cover', 'MALANG'] });
+    await h.flush();
+    assert.equal(h.el('cm-content').hidden, false);
+    assert.equal(h.el('cm-confirm-btn').disabled, false);
+});
+
+const rolePreview = (extra = {}) => ({
+    ...preview(), sheets: ['MALANG', 'KPI', 'Rekap', 'Scoring PI'],
+    main_role: { label: 'Publikasi FM', expected: 'MALANG atau Raw', description: 'Daftar publikasi per dosen. Wajib.' },
+    extra_roles: {
+        kpi: {
+            label: 'KPI', expected: 'KPI', description: 'Nilai RTTO per dosen.', sheet: 'KPI', header_row: 1,
+            headers: ['Kode Dosen', 'Skor'], preview_data: [['D001', '4']],
+            mapping_config: { required: { kode_dosen: 'Kode Dosen', rtto_score: 'Score KPI RTTO' }, optional: { score: 'Score KPI' } },
+            suggested_mapping: { kode_dosen: 0 },
+        },
+        realization: {
+            label: 'Realization Template', expected: 'Realization Template', description: 'Opsional.', sheet: null, header_row: null,
+            headers: [], preview_data: [], mapping_config: { required: { unit: 'Unit Name' }, optional: {} }, suggested_mapping: {},
+        },
+        ...extra,
+    },
+});
+
+test('each supporting sheet is a part with its own sheet and mapping, confirmed and uploaded together', async () => {
+    const h = harness();
+    await ready(h, 'fm_file', rolePreview());
+    const tabs = () => h.el('cm-role-list').children;
+    assert.equal(h.el('cm-role-tabs').hidden, false);
+    assert.deepEqual(tabs().map(tab => tab.dataset.role), ['main', 'kpi', 'realization']);
+    assert.match(tabs()[1].innerHTML, /KPI <span[^>]*>KPI<\/span> <i[^>]*text-danger/);
+    assert.equal(h.el('cm-sheet-label').textContent, 'Sheet untuk Publikasi FM (default: MALANG atau Raw)');
+    assert.equal(h.el('cm-confirm-btn').disabled, true, 'the KPI part still misses a required column');
+    assert.match(h.el('cm-validation-error-list').innerHTML, /Sheet KPI: Score KPI RTTO wajib dipetakan/);
+
+    await tabs()[1].fire('click');
+    assert.deepEqual(h.selects().map(select => select.dataset.field), ['kode_dosen', 'rtto_score', 'score']);
+    assert.deepEqual(h.el('cm-sheet-select').children.map(option => option.value), ['', 'MALANG', 'KPI', 'Rekap', 'Scoring PI']);
+    assert.equal(h.el('cm-sheet-select').value, 'KPI');
+    assert.equal(h.el('cm-sheet-name').textContent, 'KPI');
+    await h.change('rtto_score', '1');
+    assert.equal(h.el('cm-confirm-btn').disabled, false);
+
+    await tabs()[2].fire('click');
+    assert.equal(h.el('cm-role-body').hidden, true);
+    assert.equal(h.el('cm-role-notice').hidden, false);
+    assert.match(h.el('cm-role-notice-text').textContent, /Realization Template tidak digunakan/);
+    assert.equal(h.el('cm-sheet-select').value, '');
+    // Switching parts keeps what was chosen in the others.
+    await tabs()[1].fire('click');
+    assert.equal(h.selects().find(select => select.dataset.field === 'rtto_score').value, '1');
+    await h.confirm();
+    assert.equal(h.button().disabled, false);
+    const uploading = h.submit();
+    await h.flush();
+    const body = h.requests.at(-1).options.body.values;
+    assert.deepEqual(JSON.parse(body.get('column_mapping[fm_file]')), { code: 0, title: 1 });
+    assert.deepEqual(JSON.parse(body.get('extra_sheets[fm_file]')), {
+        kpi: { sheet: 'KPI', column_mapping: { kode_dosen: 0, rtto_score: 1 } },
+        realization: { sheet: null, column_mapping: null },
+    });
+    h.requests.at(-1).respond({ summary_html: '', history_html: '' });
+    await uploading;
+});
+
+test('another supporting sheet reloads the preview, keeps the other parts and blocks an empty sheet', async () => {
+    const h = harness();
+    await ready(h, 'fm_file', rolePreview());
+    await h.change('code', '2');
+    await h.el('cm-role-list').children[1].fire('click');
+    h.el('cm-sheet-select').value = 'Scoring PI';
+    await h.el('cm-sheet-select').fire('change');
+    assert.equal(h.button().disabled, true);
+    let reload = h.requests.at(-1);
+    assert.equal(reload.options.body.values.get('sheet'), 'MALANG');
+    assert.deepEqual(JSON.parse(reload.options.body.values.get('extra_sheets')), { kpi: 'Scoring PI', realization: '' });
+    const kpi = rolePreview().extra_roles.kpi;
+    reload.respond(rolePreview({ kpi: { ...kpi, sheet: 'Scoring PI', headers: [], preview_data: [], suggested_mapping: {} } }));
+    await h.flush();
+    assert.equal(h.el('cm-sheet-name').textContent, 'Scoring PI', 'the KPI part stays on screen');
+    assert.equal(h.el('cm-role-notice').hidden, false);
+    assert.match(h.el('cm-role-notice-text').textContent, /Sheet Scoring PI tidak berisi data/);
+    assert.equal(h.el('cm-confirm-btn').disabled, true);
+
+    h.el('cm-sheet-select').value = 'Rekap';
+    await h.el('cm-sheet-select').fire('change');
+    reload = h.requests.at(-1);
+    assert.deepEqual(JSON.parse(reload.options.body.values.get('extra_sheets')), { kpi: 'Rekap', realization: '' });
+    reload.respond(rolePreview({ kpi: { ...kpi, sheet: 'Rekap', headers: ['NIP', 'Nilai'], suggested_mapping: {} } }));
+    await h.flush();
+    assert.deepEqual(h.selects().map(select => select.value), ['', '', '']);
+    await h.change('kode_dosen', '0');
+    await h.change('rtto_score', '1');
+    await h.el('cm-role-list').children[0].fire('click');
+    assert.equal(h.selects().find(select => select.dataset.field === 'code').value, '2', 'the main mapping is kept');
+    await h.confirm();
+    const uploading = h.submit();
+    await h.flush();
+    assert.deepEqual(JSON.parse(h.requests.at(-1).options.body.values.get('extra_sheets[fm_file]')).kpi,
+        { sheet: 'Rekap', column_mapping: { kode_dosen: 0, rtto_score: 1 } });
+    h.requests.at(-1).respond({ summary_html: '', history_html: '' });
+    await uploading;
+});
+
+test('an upload with only its main sheet shows no parts and sends no supporting sheets', async () => {
+    const h = harness();
+    await ready(h, 'research_file', { ...preview(), main_role: { label: 'Hibah penelitian', expected: 'MALANG atau Detail' }, extra_roles: {} });
+    assert.equal(h.el('cm-role-tabs').hidden, true);
+    assert.equal(h.el('cm-sheet-label').textContent, 'Sheet untuk Hibah penelitian (default: MALANG atau Detail)');
+    await h.confirm();
+    const uploading = h.submit('research_file');
+    await h.flush();
+    assert.equal(h.requests.at(-1).options.body.values.has('extra_sheets[research_file]'), false);
+    h.requests.at(-1).respond({ summary_html: '', history_html: '' });
+    await uploading;
 });

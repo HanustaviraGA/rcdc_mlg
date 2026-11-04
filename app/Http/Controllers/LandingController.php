@@ -6,6 +6,7 @@ use App\Models\AttributeDosen;
 use App\Models\Comdevs;
 use App\Models\DataDosen;
 use App\Services\CommunityDevelopment\CommunityDevelopmentDashboard;
+use App\Services\Lecturers\LecturerEducationStatuses;
 use App\Services\Research\ResearchGallery;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
@@ -50,13 +51,14 @@ class LandingController extends Controller
         $jjaData = array_values($jjaCounts);
 
         $pendidikanCounts = ['S2' => 0, 'S3' => 0, 'On Going S3' => 0];
-        $pendidikanColumns = ['pendidikan'];
+        $pendidikanColumns = ['kode_dosen', 'pendidikan'];
         if (\Schema::hasColumn('database_dosen_new', 'status_pendidikan')) {
             $pendidikanColumns[] = 'status_pendidikan';
         }
         $pendidikanRows = DataDosen::query()->currentRoster()
             ->select($pendidikanColumns)
             ->get();
+        app(LecturerEducationStatuses::class)->apply($pendidikanRows);
         $educationLabel = fn (?string $value) => match (preg_replace('/[\s-]+/u', '', strtoupper(trim($value ?? '')))) {
             'S2' => 'S2',
             'S3' => 'S3',

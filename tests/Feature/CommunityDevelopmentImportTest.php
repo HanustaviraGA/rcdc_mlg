@@ -144,11 +144,11 @@ class CommunityDevelopmentImportTest extends TestCase
         $this->assertSame(0, DB::table('community_development_imports')->count());
     }
 
-    public function test_required_and_duplicate_column_mappings_are_rejected_even_with_force(): void
+    public function test_missing_and_out_of_range_column_mappings_are_rejected_even_with_force(): void
     {
         $this->actingAs((new User)->forceFill(['id' => 1]));
         config(['imports.force.pkm' => true]);
-        foreach ([null, 1, 999, -1] as $index) {
+        foreach ([null, 999, -1] as $index) {
             $payload = $this->payload($this->workbook());
             $mapping = json_decode($payload['column_mapping'], true);
             $mapping['keterlibatan']['reported_activities'] = $index;
@@ -156,6 +156,56 @@ class CommunityDevelopmentImportTest extends TestCase
             $this->postJson(route('importpkm.upload'), $payload)->assertUnprocessable()->assertJsonValidationErrors('column_mapping.keterlibatan');
         }
         $this->assertSame(0, DB::table('community_development_imports')->count());
+    }
+
+    public function test_preview_and_upload_use_the_sheets_chosen_for_each_role(): void
+    {
+        $this->actingAs((new User)->forceFill(['id' => 1]));
+        $path = $this->makeWorkbook([
+            'Cover' => [['Laporan Community Development']],
+            'Data FM' => [['ID', 'Reported', 'Grade', 'Keterangan'], ['D1', 2, 6, 'Sudah PkM']],
+            'Rekap Prodi' => [['Prodi', 'Jumlah FM', 'Jumlah Kegiatan', 'Rasio'], ['EBC', 1, 2, '2.0']],
+        ]);
+        $request = fn (string $route, array $data) => $this->postJson(route($route), ['pkm' => new UploadedFile($path, 'comdev.xlsx', null, null, true)] + $data);
+        // Without Rasio/Keterlibatan sheets each role uses the sheet whose header matches best.
+        $preview = $request('importpkm.preview', [])->assertOk()
+            ->assertJsonPath('available_sheets', ['Cover', 'Data FM', 'Rekap Prodi'])
+            ->assertJsonPath('sheets.rasio.sheet', 'Rekap Prodi')->assertJsonPath('sheets.keterlibatan.sheet', 'Data FM');
+        $this->assertSame(['program' => 0, 'faculty' => 1, 'activities' => 2, 'ratio' => 3], $preview->json('sheets.rasio.suggested_mapping'));
+        $request('importpkm.preview', ['sheets' => json_encode(['keterlibatan' => 'Cover'])])->assertOk()
+            ->assertJsonPath('sheets.keterlibatan.sheet', 'Cover')->assertJsonPath('sheets.rasio.sheet', 'Rekap Prodi');
+        foreach (['{"keterlibatan":"Missing"}', '{"other":"Cover"}', '{"rasio":5}', '[broken'] as $sheets) {
+            $request('importpkm.preview', ['sheets' => $sheets])->assertUnprocessable();
+        }
+
+        $upload = ['academic_year' => '2025/2026', 'period' => 'Ganjil',
+            'column_mapping' => json_encode(['rasio' => ['program' => 0, 'faculty' => 1, 'activities' => 2, 'ratio' => 3],
+                'keterlibatan' => ['kode_dosen' => 0, 'reported_activities' => 1, 'score' => 2, 'status' => 3]]),
+            'header_rows' => json_encode(['rasio' => 1, 'keterlibatan' => 1])];
+        $request('importpkm.upload', $upload)->assertUnprocessable()->assertJsonValidationErrors('pkm');
+        $this->assertSame(0, DB::table('community_development_imports')->count());
+        $request('importpkm.upload', $upload + ['sheets' => json_encode(['rasio' => 'Rekap Prodi', 'keterlibatan' => 'Data FM'])])
+            ->assertOk()->assertJsonPath('summary.sheets', ['rasio' => 'Rekap Prodi', 'keterlibatan' => 'Data FM']);
+        $this->assertSame(2, DB::table('community_development_lecturers')->sole()->reported_activities);
+        $this->assertSame('EBC', DB::table('community_development_programs')->where('is_total', false)->sole()->source_program);
+    }
+
+    public function test_one_source_column_can_feed_several_target_fields(): void
+    {
+        $path = $this->makeWorkbook([
+            'Rasio' => [['Prodi', 'FM dan kegiatan', 'Rasio'], ['EBC', 2, '1.0']],
+            'Keterlibatan' => [['ID', 'Kegiatan dan skor', 'Status'], ['D1', 2, 'Sudah PkM']],
+        ]);
+        // Faculty/activities share column 1 on Rasio; reported activities/score share column 1 on Keterlibatan.
+        $mapping = ['rasio' => ['program' => 0, 'faculty' => 1, 'activities' => 1, 'ratio' => 2],
+            'keterlibatan' => ['kode_dosen' => 0, 'reported_activities' => 1, 'score' => 1, 'status' => 2]];
+        $summary = app(CommunityDevelopmentWorkbook::class)->import($path, '2025/2026', 'Ganjil', $mapping, ['rasio' => 1, 'keterlibatan' => 1], 'shared.xlsx');
+        $this->assertSame(1, $summary['selected']);
+        $program = DB::table('community_development_programs')->sole();
+        $this->assertEquals([2, 2], [$program->faculty, $program->activities]);
+        $lecturer = DB::table('community_development_lecturers')->sole();
+        $this->assertEquals([2, 2], [$lecturer->reported_activities, $lecturer->score]);
+        $this->assertSame($mapping, json_decode(DB::table('community_development_imports')->sole()->column_mapping, true));
     }
 
     public function test_confirmed_mapping_is_authoritative_when_headers_and_columns_move(): void

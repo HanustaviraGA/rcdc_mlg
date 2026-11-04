@@ -10,7 +10,7 @@ const indicators = {
 const numberFormat = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 });
 const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-const publicationFilterFields = [['category', 'Submitted'], ['type', 'Jenis'], ['index', 'Tipe Publikasi'], ['quartile', 'Quartile Jurnal'], ['firstAuthor', 'First Author'], ['paperSource', 'Sumber paper']];
+export const publicationFilterFields = [['category', 'Submitted'], ['type', 'Jenis'], ['index', 'Tipe Publikasi'], ['quartile', 'Quartile Jurnal'], ['firstAuthor', 'First Author'], ['paperSource', 'Sumber paper']];
 const normalize = value => String(value ?? '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('id-ID');
 const hasNumber = value => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
 const format = value => hasNumber(value) ? numberFormat.format(Number(value)) : '—';
@@ -69,6 +69,66 @@ export function publicationCounts(rows) {
 export function filterPublications(rows, filters = {}) {
     return rows.filter(row => publicationFilterFields.every(([key]) => !filters[key]?.length
         || filters[key].some(value => normalize(row[key]) === normalize(value))));
+}
+
+// The publication table of one lecturer and its filters, also used by the Dashboard CBDC.
+export const publicationColumns = [['title', 'Judul'], ['author', 'Author'], ['name', 'FM Author'], ['request', 'Request code'], ['firstAuthor', 'First author'], ['weight', 'Bobot asli', true], ['category', 'Submitted'], ['status', 'Status'], ['type', 'Jenis'], ['index', 'Tipe publikasi'], ['source', 'Source title'], ['quartile', 'Quartile jurnal'], ['paperSource', 'Sumber paper']];
+
+/** Sorts table rows by one column; empty values always come last. */
+export function sortRows(rows, key, ascending, numeric = false) {
+    return [...rows].sort((a, b) => {
+        const left = a[key], right = b[key];
+        if (left === null || left === undefined) return right === null || right === undefined ? 0 : 1;
+        if (right === null || right === undefined) return -1;
+        const comparison = numeric ? Number(left) - Number(right) : String(left).localeCompare(String(right), 'id', { numeric: true });
+        return ascending ? comparison : -comparison;
+    });
+}
+
+export function publicationFilterMarkup(rows) {
+    return publicationFilterFields.map(([key, label]) => {
+        const values = [...new Set(rows.map(row => String(row[key] ?? '').trim()))].sort((a, b) => a.localeCompare(b, 'id', { numeric: true }));
+        return `<div class="pd-publication-filter-field"><label id="paperFilterLabel-${key}">${label}</label>
+            <details class="pd-paper-select" data-paper-filter="${key}">
+                <summary aria-labelledby="paperFilterLabel-${key} paperFilterSummary-${key}"><span id="paperFilterSummary-${key}">Semua ${label}</span><i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
+                <div class="pd-paper-options">
+                    <input type="search" class="pd-option-search" placeholder="Cari pilihan…" aria-label="Cari pilihan ${label}">
+                    <div class="pd-option-actions"><button type="button" class="pd-text-button" data-paper-options="all">Pilih Semua</button><button type="button" class="pd-text-button" data-paper-options="clear">Hapus Pilihan</button></div>
+                    <div class="pd-paper-option-list" role="group" aria-labelledby="paperFilterLabel-${key}">${values.map(value => `<label><input type="checkbox" data-paper-option value="${escape(value)}"><span>${escape(value || '(Kosong)')}</span></label>`).join('') || '<p>Belum ada pilihan.</p>'}</div>
+                    <p>Tanpa pilihan = semua data.</p>
+                </div>
+            </details></div>`;
+    }).join('');
+}
+
+/** Stores the checked options of one filter group in `filters` and updates its summary. */
+export function applyPublicationFilter(group, filters) {
+    const key = group.dataset.paperFilter;
+    const values = [...group.querySelectorAll('[data-paper-option]:checked')].map(input => input.value);
+    filters[key] = values;
+    const all = values.length === group.querySelectorAll('[data-paper-option]').length;
+    group.querySelector('summary > span').textContent = !values.length || all ? `Semua ${publicationFilterFields.find(([field]) => field === key)[1]}`
+        : values.map(value => value || '(Kosong)').join(', ');
+    group.classList.toggle('has-selection', values.length > 0 && !all);
+}
+
+/** Option search, "Pilih Semua" and "Hapus Pilihan" of the filter grid; `update` receives the changed group. */
+export function bindPublicationFilters(grid, update) {
+    grid.addEventListener('change', event => {
+        if (event.target.matches('[data-paper-option]')) update(event.target.closest('[data-paper-filter]'));
+    });
+    grid.addEventListener('input', event => {
+        if (!event.target.matches('.pd-option-search')) return;
+        const query = normalize(event.target.value);
+        event.target.closest('[data-paper-filter]').querySelectorAll('.pd-paper-option-list label').forEach(label => { label.hidden = !normalize(label.textContent).includes(query); });
+    });
+    grid.addEventListener('click', event => {
+        const button = event.target.closest('[data-paper-options]');
+        if (!button) return;
+        const group = button.closest('[data-paper-filter]');
+        group.querySelectorAll('[data-paper-option]').forEach(input => { input.checked = button.dataset.paperOptions === 'all'; });
+        update(group);
+    });
 }
 
 function initialize(source) {
@@ -207,7 +267,6 @@ function initialize(source) {
         ['code', 'Kode dosen'], ['name', 'Nama dosen'], ['program', 'Jurusan'], ['rank', 'JJA'], ['faculty', 'Faculty type'],
         ['nonScopus', 'Non Scopus', true], ['scopus', 'Scopus', true], ['firstAuthor', 'First author', true], ['score', 'Skor KPI', true],
     ];
-    const paperColumns = [['title', 'Judul'], ['author', 'Author'], ['name', 'FM Author'], ['request', 'Request code'], ['firstAuthor', 'First author'], ['weight', 'Bobot asli', true], ['category', 'Submitted'], ['status', 'Status'], ['type', 'Jenis'], ['index', 'Tipe publikasi'], ['source', 'Source title'], ['quartile', 'Quartile jurnal'], ['paperSource', 'Sumber paper']];
     const studentColumns = [['name', 'Penulis mahasiswa'], ['title', 'Judul publikasi']];
 
     function setDetailTable(mode, code = null) {
@@ -236,48 +295,22 @@ function initialize(source) {
     }
 
     function renderPublicationFilters() {
-        const rows = facultyPapers();
-        $('performancePublicationFilterGrid').innerHTML = publicationFilterFields.map(([key, label]) => {
-            const values = [...new Set(rows.map(row => String(row[key] ?? '').trim()))].sort((a, b) => a.localeCompare(b, 'id', { numeric: true }));
-            return `<div class="pd-publication-filter-field"><label id="paperFilterLabel-${key}">${label}</label>
-                <details class="pd-paper-select" data-paper-filter="${key}">
-                    <summary aria-labelledby="paperFilterLabel-${key} paperFilterSummary-${key}"><span id="paperFilterSummary-${key}">Semua ${label}</span><i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
-                    <div class="pd-paper-options">
-                        <input type="search" class="pd-option-search" placeholder="Cari pilihan…" aria-label="Cari pilihan ${label}">
-                        <div class="pd-option-actions"><button type="button" class="pd-text-button" data-paper-options="all">Pilih Semua</button><button type="button" class="pd-text-button" data-paper-options="clear">Hapus Pilihan</button></div>
-                        <div class="pd-paper-option-list" role="group" aria-labelledby="paperFilterLabel-${key}">${values.map(value => `<label><input type="checkbox" data-paper-option value="${escape(value)}"><span>${escape(value || '(Kosong)')}</span></label>`).join('') || '<p>Belum ada pilihan.</p>'}</div>
-                        <p>Tanpa pilihan = semua data.</p>
-                    </div>
-                </details></div>`;
-        }).join('');
+        $('performancePublicationFilterGrid').innerHTML = publicationFilterMarkup(facultyPapers());
     }
 
     function updatePublicationFilter(group) {
-        const key = group.dataset.paperFilter;
-        const values = [...group.querySelectorAll('[data-paper-option]:checked')].map(input => input.value);
-        detail.filters[key] = values;
-        const all = values.length === group.querySelectorAll('[data-paper-option]').length;
-        $(`paperFilterSummary-${key}`).textContent = !values.length || all ? `Semua ${publicationFilterFields.find(([field]) => field === key)[1]}`
-            : values.map(value => value || '(Kosong)').join(', ');
-        group.classList.toggle('has-selection', values.length > 0 && !all);
+        applyPublicationFilter(group, detail.filters);
         renderTable();
     }
 
     function tableRows() {
-        const columns = detail.mode === 'faculty' ? facultyColumns : detail.mode === 'papers' ? paperColumns : studentColumns;
+        const columns = detail.mode === 'faculty' ? facultyColumns : detail.mode === 'papers' ? publicationColumns : studentColumns;
         const rows = detail.mode === 'faculty' ? detail.card.faculty : detail.mode === 'papers' ? facultyPapers() : detail.card.students;
         const query = $('performanceDetailSearch').value.toLocaleLowerCase('id-ID').trim();
         const filtered = detail.mode === 'papers' ? filterPublications(rows, detail.filters) : rows;
         const visible = filtered.filter(row => !query || columns.some(([key]) => String(row[key] ?? '').toLocaleLowerCase('id-ID').includes(query)));
         const numeric = columns.find(([key]) => key === detail.sort)?.[2];
-        visible.sort((a, b) => {
-            const left = a[detail.sort], right = b[detail.sort];
-            if (left === null || left === undefined) return right === null || right === undefined ? 0 : 1;
-            if (right === null || right === undefined) return -1;
-            const comparison = numeric ? Number(left) - Number(right) : String(left).localeCompare(String(right), 'id', { numeric: true });
-            return detail.ascending ? comparison : -comparison;
-        });
-        return { columns, rows: visible, total: rows.length };
+        return { columns, rows: sortRows(visible, detail.sort, detail.ascending, numeric), total: rows.length };
     }
 
     function renderTable() {
@@ -324,21 +357,7 @@ function initialize(source) {
         if (event.target === $('performanceDetail') && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) $('performanceDetail').close();
     });
     $('performanceDetailSearch').addEventListener('input', renderTable);
-    $('performancePublicationFilterGrid').addEventListener('change', event => {
-        if (event.target.matches('[data-paper-option]')) updatePublicationFilter(event.target.closest('[data-paper-filter]'));
-    });
-    $('performancePublicationFilterGrid').addEventListener('input', event => {
-        if (!event.target.matches('.pd-option-search')) return;
-        const query = normalize(event.target.value);
-        event.target.closest('[data-paper-filter]').querySelectorAll('.pd-paper-option-list label').forEach(label => { label.hidden = !normalize(label.textContent).includes(query); });
-    });
-    $('performancePublicationFilterGrid').addEventListener('click', event => {
-        const button = event.target.closest('[data-paper-options]');
-        if (!button) return;
-        const group = button.closest('[data-paper-filter]');
-        group.querySelectorAll('[data-paper-option]').forEach(input => { input.checked = button.dataset.paperOptions === 'all'; });
-        updatePublicationFilter(group);
-    });
+    bindPublicationFilters($('performancePublicationFilterGrid'), updatePublicationFilter);
     $('performancePublicationReset').addEventListener('click', () => {
         detail.filters = {};
         $('performanceDetailSearch').value = '';

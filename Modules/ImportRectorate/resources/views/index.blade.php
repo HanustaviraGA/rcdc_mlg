@@ -23,7 +23,7 @@
                         </span>
                     </label>
                     <input class="form-control" id="fm_file" name="fm_file" type="file" accept=".xlsx">
-                    <div class="form-text">Sheet MALANG (atau Raw) dan KPI. Termasuk daftar dosen, bobot Rectorate / RTTO, first author, dan skor KPI.</div>
+                    <div class="form-text">Sheet publikasi MALANG (atau Raw), ditambah sheet pendukung KPI, Realization Template, dan Scoring PI. Termasuk daftar dosen, bobot Rectorate / RTTO, first author, dan skor KPI. Sheet dan kolom setiap bagian dapat dipilih pada preview; sheet pendukung boleh tidak digunakan.</div>
                     <button class="btn btn-primary mt-4" id="fm_file-submit" data-import-file="fm_file" type="submit" disabled>
                         <i class="bi bi-cloud-upload me-1"></i>Upload dan import Publikasi FM
                     </button>
@@ -36,7 +36,7 @@
                         </span>
                     </label>
                     <input class="form-control" id="mhs_file" name="mhs_file" type="file" accept=".xlsx">
-                    <div class="form-text">Membaca sheet MALANG, TITLE, dan LIST untuk publikasi mahasiswa.</div>
+                    <div class="form-text">Sheet publikasi MALANG (atau Raw), ditambah sheet pendukung LIST, TITLE, Realization Template, dan Scoring PI. Sheet dan kolom setiap bagian dapat dipilih pada preview; sheet pendukung boleh tidak digunakan.</div>
                     <button class="btn btn-primary mt-4" id="mhs_file-submit" data-import-file="mhs_file" type="submit" disabled>
                         <i class="bi bi-cloud-upload me-1"></i>Upload dan import Publikasi MHS
                     </button>
@@ -49,7 +49,7 @@
                         </span>
                     </label>
                     <input class="form-control" id="research_file" name="research_file" type="file" accept=".xlsx">
-                    <div class="form-text">Mengutamakan sheet MALANG, lalu Detail. Lokasi Kampus mengikuti kolom yang dipilih pada preview pemetaan. Tahun Anggaran mengikuti isi file; tahun dan bulan laporan mengikuti pilihan di atas.</div>
+                    <div class="form-text">Hanya membaca satu sheet: MALANG, lalu Detail (dapat diganti pada preview). Lokasi Kampus mengikuti kolom yang dipilih pada preview pemetaan. Tahun Anggaran mengikuti isi file; tahun dan bulan laporan mengikuti pilihan di atas.</div>
                     <button class="btn btn-primary mt-4" id="research_file-submit" data-import-file="research_file" type="submit" disabled>
                         <i class="bi bi-cloud-upload me-1"></i>Upload dan import Hibah
                     </button>

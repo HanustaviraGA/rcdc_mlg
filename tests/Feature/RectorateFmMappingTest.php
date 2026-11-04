@@ -181,9 +181,28 @@ class RectorateFmMappingTest extends TestCase
             'non-numeric index' => [array_replace(self::REQUIRED_MAPPING, ['title' => 'A'])],
             'fractional index' => [array_replace(self::REQUIRED_MAPPING, ['title' => 1.5])],
             'boolean index' => [array_replace(self::REQUIRED_MAPPING, ['title' => false])],
-            'duplicate index' => [array_replace(self::REQUIRED_MAPPING, ['title' => 0])],
             'unknown field' => [self::REQUIRED_MAPPING + ['unknown_field' => null]],
         ];
+    }
+
+    public function test_one_source_column_can_feed_several_target_fields(): void
+    {
+        $file = $this->fmWorkbook($this->arbitraryHeaders(9));
+        $mapping = self::REQUIRED_MAPPING + ['source_title' => 5, 'notes' => 5, 'fm_author' => 1];
+        $this->assertTrue(app(ColumnMapperService::class)->validateMapping($mapping, 'fm_file', 9)['valid']);
+
+        $record = app(RawPublicationReader::class)->read($file, 2026, $mapping)['records'][0];
+        $this->assertSame('Mapped publication', $record['title']);
+        $this->assertSame('Mapped publication', $record['source_title']);
+        $this->assertSame('Mapped publication', $record['notes']);
+        $this->assertSame('D001', $record['fm_author']);
+
+        $this->assertSame(1, $this->import($file, $mapping)['selected']);
+        $stored = DB::table('rectorate_dosen')->first();
+        $this->assertSame('Mapped publication', $stored->title);
+        $this->assertSame('Mapped publication', $stored->source_title);
+        $this->assertSame('D001', $stored->kode_dosen);
+        $this->assertSame('D001', $stored->fm_author);
     }
 
     #[DataProvider('invalidMappings')]
@@ -236,6 +255,24 @@ class RectorateFmMappingTest extends TestCase
         $this->assertSame('R1', DB::table('rectorate_dosen')->value('request_code'));
         $this->assertNull(DB::table('rectorate_dosen')->value('first_author'));
         $this->assertNull(DB::table('rectorate_dosen')->value('prodi_kpi'));
+    }
+
+    public function test_upload_reads_the_sheet_chosen_in_the_preview(): void
+    {
+        $headers = $this->arbitraryHeaders(9);
+        $file = $this->makeWorkbook(['Cover' => [['Monthly report']], 'Publikasi 2026' => [$headers, self::REQUIRED_ROW]]);
+        $this->actingAs((new User)->forceFill(['id' => 1]));
+        $upload = fn (array $sheet) => $this->postJson(route('importrectorate.upload'), [
+            'year' => 2026, 'month' => 9, 'fm_file' => $this->upload($file),
+            'column_mapping' => ['fm_file' => json_encode(self::REQUIRED_MAPPING, JSON_THROW_ON_ERROR)],
+        ] + $sheet);
+
+        $upload([])->assertUnprocessable()->assertJsonValidationErrors('rectorate');
+        $upload(['sheet' => ['fm_file' => 'Missing']])->assertUnprocessable()->assertJsonValidationErrors('rectorate');
+        $this->assertSame(0, DB::table('publication_imports')->count());
+        $upload(['sheet' => ['fm_file' => 'Publikasi 2026']])->assertOk()
+            ->assertJsonPath('summaries.fm_file.selected', 1)->assertJsonPath('summaries.fm_file.sheet', 'Publikasi 2026');
+        $this->assertSame('R1', DB::table('rectorate_dosen')->value('request_code'));
     }
 
     public function test_upload_rejects_malformed_json_and_non_object_mappings_without_writes(): void

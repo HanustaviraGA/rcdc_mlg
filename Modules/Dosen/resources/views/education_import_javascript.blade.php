@@ -1,7 +1,7 @@
 <script>
     if (typeof dosenEducationState !== 'undefined' && dosenEducationState.request) dosenEducationState.request.abort();
     var dosenEducationSequence = typeof dosenEducationState !== 'undefined' ? dosenEducationState.sequence + 1 : 0;
-    var dosenEducationState = { file: null, preview: null, request: null, sequence: dosenEducationSequence, loading: false, importing: false, confirmed: false };
+    var dosenEducationState = { file: null, preview: null, request: null, sequence: dosenEducationSequence, sheet: null, loading: false, importing: false, confirmed: false };
 
     function validateDosenEducationMapping() {
         if (!dosenEducationState.preview) return false;
@@ -9,11 +9,12 @@
         const required = { kode_dosen: 'Kode Dosen', status_pendidikan: 'Status Pendidikan' };
         const missing = Object.keys(required).filter(field => !Object.hasOwn(mapping, field));
         const indices = Object.values(mapping);
-        const valid = !missing.length && new Set(indices).size === indices.length
+        // One source column may feed several target fields.
+        const valid = !missing.length
             && indices.every(index => Number.isInteger(index) && index >= 0 && index < dosenEducationState.preview.headers.length);
         document.getElementById('dosenEducationMappingStatus').textContent = missing.length
             ? 'Kolom wajib belum dipetakan: ' + missing.map(field => required[field]).join(', ')
-            : !valid ? 'Gunakan kolom sumber yang valid dan berbeda untuk setiap tujuan.'
+            : !valid ? 'Gunakan kolom sumber yang valid untuk setiap tujuan.'
             : dosenEducationState.confirmed ? 'Pemetaan dikonfirmasi. Status pendidikan siap diperbarui.'
             : 'Pemetaan lengkap. Konfirmasikan sebelum mengunggah.';
         return valid;
@@ -26,6 +27,7 @@
         document.getElementById('dosenEducationSubmit').disabled = busy || !valid || !dosenEducationState.confirmed;
         document.getElementById('dosenEducationSubmit').textContent = dosenEducationState.importing ? 'Mengunggah...' : 'Unggah';
         $('#dosenEducationFile, #dosenEducationYear, #dosenEducationMonth, #dosenEducationMappingRows select').prop('disabled', dosenEducationState.importing);
+        $('#dosenEducationSheet').prop('disabled', busy);
         document.getElementById('dosenEducationPreviewRetry').disabled = busy;
     }
 
@@ -36,13 +38,15 @@
         updateDosenEducationControls();
     }
 
-    function previewDosenEducationWorkbook() {
+    // Without a sheet (new file), the server chooses Detail Jenjang Pendidikan.
+    function previewDosenEducationWorkbook(sheet = null) {
         if (dosenEducationState.importing) return;
         const file = document.getElementById('dosenEducationFile').files[0];
         const sequence = ++dosenEducationState.sequence;
         dosenEducationState.request?.abort();
-        Object.assign(dosenEducationState, { file: file || null, preview: null, request: null, confirmed: false, loading: false });
+        Object.assign(dosenEducationState, { file: file || null, preview: null, request: null, sheet: sheet || null, confirmed: false, loading: false });
         $('#dosenEducationMappingPanel, #dosenEducationPreviewRetry').addClass('d-none');
+        if (!dosenEducationState.sheet) $('#dosenEducationSheetControls').addClass('d-none');
         ['dosenEducationSummary', 'dosenEducationPreviewStatus', 'dosenEducationMappingStatus'].forEach(id => { document.getElementById(id).textContent = ''; });
         updateDosenEducationControls();
         if (!file) return;
@@ -52,8 +56,9 @@
         }
         const data = new FormData();
         data.append('dosen', file);
+        if (dosenEducationState.sheet) data.append('sheet', dosenEducationState.sheet);
         dosenEducationState.loading = true;
-        document.getElementById('dosenEducationPreviewStatus').textContent = 'Membaca sheet Detail Jenjang Pendidikan...';
+        document.getElementById('dosenEducationPreviewStatus').textContent = 'Membaca sheet ' + (dosenEducationState.sheet || 'Detail Jenjang Pendidikan') + '...';
         updateDosenEducationControls();
         const isCurrent = () => sequence === dosenEducationState.sequence && document.getElementById('dosenEducationFile').files[0] === file;
         dosenEducationState.request = $.ajax({
@@ -62,16 +67,24 @@
             success: function (response) {
                 if (!isCurrent()) return;
                 try {
-                    if (response.success === false || !Array.isArray(response.headers) || !response.headers.length
+                    if (response.success === false || !Array.isArray(response.headers)
                         || !Array.isArray(response.preview_data) || !response.mapping_config?.required
-                        || !Number.isInteger(response.header_row) || response.header_row < 1) {
+                        || !Number.isInteger(response.header_row) || response.header_row < 1
+                        || (!response.headers.length && (!Array.isArray(response.sheets) || !response.sheets.length))) {
                         throw new Error(response.message || 'Format pratinjau tidak valid. Silakan coba kembali.');
                     }
-                    dosenEducationState.preview = response;
-                    renderDosenWorkbookPreview(response, {
+                    dosenEducationState.sheet = response.sheet || dosenEducationState.sheet;
+                    const renderOptions = {
                         prefix: 'dosenEducation', state: dosenEducationState, updateControls: updateDosenEducationControls,
                         required: { kode_dosen: 'Kode Dosen', status_pendidikan: 'Status Pendidikan' },
-                    });
+                    };
+                    if (!response.headers.length) {
+                        renderDosenWorkbookPreview(response, renderOptions);
+                        document.getElementById('dosenEducationPreviewStatus').textContent = 'Sheet ' + response.sheet + ' tidak berisi data. Pilih sheet lain.';
+                        return;
+                    }
+                    dosenEducationState.preview = response;
+                    renderDosenWorkbookPreview(response, renderOptions);
                     document.getElementById('dosenEducationPreviewStatus').textContent = 'Pratinjau siap. Periksa dan konfirmasikan pemetaan kolom.';
                 } catch (error) {
                     dosenEducationState.preview = null;
@@ -107,6 +120,7 @@
         data.append('month', document.getElementById('dosenEducationMonth').value);
         data.append('column_mapping', JSON.stringify(getDosenColumnMapping('dosenEducation')));
         data.append('header_row', dosenEducationState.preview.header_row);
+        if (dosenEducationState.preview.sheet) data.append('sheet', dosenEducationState.preview.sheet);
         dosenEducationState.importing = true;
         document.getElementById('dosenEducationSummary').textContent = 'Memperbarui status pendidikan...';
         updateDosenEducationControls();
@@ -124,8 +138,8 @@
                 if (response.summary?.warnings?.length) document.getElementById('dosenEducationSummary').textContent += '\n' + response.summary.warnings.join('\n');
                 SUPER.showMessage({ success: true, title: 'Berhasil', message: response.message });
                 document.getElementById('dosenEducationFile').value = '';
-                Object.assign(dosenEducationState, { file: null, preview: null, confirmed: false });
-                $('#dosenEducationMappingPanel, #dosenEducationPreviewRetry').addClass('d-none');
+                Object.assign(dosenEducationState, { file: null, preview: null, sheet: null, confirmed: false });
+                $('#dosenEducationMappingPanel, #dosenEducationPreviewRetry, #dosenEducationSheetControls').addClass('d-none');
                 document.getElementById('dosenEducationPreviewStatus').textContent = '';
                 init_table();
             },

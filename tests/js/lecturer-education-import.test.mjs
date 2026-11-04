@@ -75,8 +75,8 @@ test('education import requires confirmation of its own mapping and submits only
     assert.equal(h.context.dosenImportState.confirmed, false, 'Data Center workflow remains independent');
 });
 
-test('missing, duplicate and out-of-range education mappings cannot be confirmed', () => {
-    for (const value of ['', '0', '-1', '99', '0.5']) {
+test('missing and out-of-range education mappings cannot be confirmed', () => {
+    for (const value of ['', '-1', '99', '0.5']) {
         const h = harness();
         h.ready();
         h.selections[1].value = value;
@@ -86,6 +86,17 @@ test('missing, duplicate and out-of-range education mappings cannot be confirmed
         assert.equal(h.element('dosenEducationSubmit').disabled, true);
         assert.equal(h.requests.length, 0);
     }
+});
+
+test('one source column may be mapped to several education fields', () => {
+    const h = harness();
+    h.ready();
+    h.selections[1].value = '0';
+    h.context.confirmDosenEducationMapping();
+    assert.equal(h.context.dosenEducationState.confirmed, true);
+    h.context.importDosenEducationWorkbook();
+    assert.equal(h.requests.length, 1);
+    assert.deepEqual(JSON.parse(h.requests[0].options.data.values.get('column_mapping')), { kode_dosen: 0, status_pendidikan: 0 });
 });
 
 test('replacement cancels preview and ignores a late response, and requires fresh confirmation', () => {
@@ -152,4 +163,32 @@ test('reopening the page ignores preview responses from the previous page instan
     old.options.complete();
     assert.equal(old.aborted, true);
     assert.equal(h.context.dosenEducationState.preview, null);
+});
+
+test('a chosen education sheet is previewed and uploaded; retry keeps that sheet', () => {
+    const h = harness();
+    h.ready();
+    h.context.previewDosenEducationWorkbook('Status 2026');
+    assert.equal(h.requests[0].options.data.values.get('sheet'), 'Status 2026');
+    h.requests[0].options.error({ responseJSON: { message: 'Temporary failure' } }, 'error');
+    h.requests[0].options.complete();
+    h.context.previewDosenEducationWorkbook(h.context.dosenEducationState.sheet);
+    assert.equal(h.requests[1].options.data.values.get('sheet'), 'Status 2026');
+    h.requests[1].options.success({ ...h.preview, sheet: 'Status 2026', sheets: ['Detail Jenjang Pendidikan', 'Status 2026'] });
+    h.requests[1].options.complete();
+    h.context.confirmDosenEducationMapping();
+    h.context.importDosenEducationWorkbook();
+    assert.equal(h.requests[2].options.data.values.get('sheet'), 'Status 2026');
+});
+
+test('an empty education sheet is not confirmable and asks for another sheet', () => {
+    const h = harness();
+    h.ready();
+    h.context.previewDosenEducationWorkbook();
+    h.requests[0].options.success({ ...h.preview, sheet: 'Cover', sheets: ['Cover'], headers: [], preview_data: [] });
+    h.requests[0].options.complete();
+    assert.equal(h.context.dosenEducationState.preview, null);
+    assert.match(h.element('dosenEducationPreviewStatus').textContent, /Sheet Cover tidak berisi data/);
+    h.context.confirmDosenEducationMapping();
+    assert.equal(h.element('dosenEducationSubmit').disabled, true);
 });

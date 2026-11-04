@@ -12,16 +12,23 @@ class PublicationImporter
 {
     public function __construct(private RawPublicationReader $reader, private WorkbookKpiReader $kpiReader) {}
 
-    public function import(string $path, string $filename, int $year, int $month, int $period, bool $dryRun = false, ?array $columnMapping = null): array
+    /**
+     * @param  ?array  $extraSheets  Supporting sheets confirmed in the preview (KPI, Realization
+     *                               Template, Scoring PI); null finds them by name.
+     */
+    public function import(string $path, string $filename, int $year, int $month, int $period, bool $dryRun = false, ?array $columnMapping = null, ?string $sheet = null, ?array $extraSheets = null): array
     {
         if ($year < 2000 || $year > 2100 || $month < 1 || $month > 12 || $period !== (int) ceil($month / 3)) {
             throw ValidationException::withMessages(['period' => 'Tahun/bulan tidak valid atau quarter tidak sesuai bulan snapshot.']);
         }
-        $parsed = $this->reader->read($path, $year, $columnMapping);
-        $kpi = $this->kpiReader->read($path, $parsed['records']);
+        $parsed = $this->reader->read($path, $year, $columnMapping, $sheet);
+        $kpi = $this->kpiReader->read($path, $parsed['records'], $extraSheets['kpi'] ?? null, $year);
         $summary = $parsed['summary'] + ['year' => $year, 'month' => $month, 'period' => $period];
         $summary['kpi'] = $kpi['summary'];
-        $summary['report'] = app(ReportWorkbookReader::class)->read($path);
+        $summary['report'] = app(ReportWorkbookReader::class)->read($path, $extraSheets, 'fm_file');
+        if ($extraSheets !== null) {
+            $summary['supporting_sheets'] = array_map(fn ($selection) => ($selection['sheet'] ?? null) ?: null, $extraSheets);
+        }
         $summary['warnings'] = array_merge($summary['warnings'], $kpi['summary']['warnings']);
         $metrics = PublicationWorkbookMetrics::summarize(collect($parsed['records']));
         $summary['workbook_totals'] = array_intersect_key($metrics, array_flip(['titles', 'first_author', 'rectorate_scopus', 'rectorate_non_scopus']));

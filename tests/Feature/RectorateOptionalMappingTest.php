@@ -76,6 +76,43 @@ class RectorateOptionalMappingTest extends TestCase
         $this->assertStringContainsString('research.xlsx', $response->json('history_html'));
     }
 
+    public function test_student_and_research_uploads_read_the_sheet_chosen_in_the_preview(): void
+    {
+        $this->actingAs((new User)->forceFill(['id' => 1]));
+        foreach (['mhs_file' => $this->studentValues(), 'research_file' => $this->researchValues()] as $type => $values) {
+            $headers = array_map(fn ($index) => 'Unrelated column '.$index, range(0, count($values) - 1));
+            $path = $this->makeWorkbook(['Cover' => [['Monthly report']], 'Data 2026' => [$headers, array_values($values)]]);
+            $upload = fn (array $sheet) => $this->postJson(route('importrectorate.upload'), [
+                'year' => 2026, 'month' => 9, $type => new UploadedFile($path, 'source.xlsx', null, null, true),
+                'column_mapping' => [$type => json_encode(array_flip(array_keys($values)), JSON_THROW_ON_ERROR)],
+            ] + $sheet);
+
+            $upload([])->assertUnprocessable();
+            $upload(['sheet' => [$type => 'Data 2026']])->assertOk()
+                ->assertJsonPath("summaries.$type.selected", 1)->assertJsonPath("summaries.$type.sheet", 'Data 2026');
+        }
+        $this->assertSame('Student Article', $this->studentRecord()['title']);
+        $this->assertSame('Data 2026', DB::table('research_imports')->value('sheet'));
+        $this->assertSame('Research project', DB::table('rectorate_research')->value('judul'));
+    }
+
+    public function test_same_research_file_with_another_sheet_is_imported_again(): void
+    {
+        // Automatic header detection (no mapping) is the case where identical files are skipped.
+        $values = $this->researchValues();
+        $headers = array_map(fn ($field) => RectorateResearchReader::HEADERS[$field], array_keys($values));
+        $path = $this->makeWorkbook([
+            'Detail' => [$headers, array_values($values)],
+            'Revisi' => [$headers, array_values(array_replace($values, ['judul' => 'Revised project']))],
+        ]);
+        $import = fn (?string $sheet) => app(RectorateResearchImporter::class)->import($path, 'research.xlsx',
+            year: 2026, month: 9, sheet: $sheet);
+        $import(null);
+        $this->assertTrue($import(null)['already_imported']);
+        $this->assertFalse($import('Revisi')['already_imported']);
+        $this->assertSame('Revised project', DB::table('rectorate_research')->value('judul'));
+    }
+
     public function test_student_required_only_arbitrary_headers_are_mapped_and_persisted(): void
     {
         $values = $this->studentValues();

@@ -7,6 +7,7 @@
         preview: null,
         request: null,
         sequence: dosenImportSequence,
+        sheet: null,
         loading: false,
         importing: false,
         confirmed: false
@@ -34,12 +35,10 @@
             nama_dosen: 'Nama Dosen'
         };
         const missing = Object.keys(required).filter(field => !Object.prototype.hasOwnProperty.call(mapping, field));
-        const indexes = Object.values(mapping);
-        const duplicate = new Set(indexes).size !== indexes.length;
-        const valid = missing.length === 0 && !duplicate;
+        // One source column may feed several target fields.
+        const valid = missing.length === 0;
         document.getElementById('dosenMappingStatus').textContent = missing.length
             ? 'Kolom wajib belum dipetakan: ' + missing.map(field => required[field]).join(', ')
-            : duplicate ? 'Setiap kolom file hanya boleh dipetakan ke satu kolom tujuan.'
             : dosenImportState.confirmed ? 'Pemetaan dikonfirmasi. Data siap diunggah.'
             : 'Pemetaan lengkap. Konfirmasikan sebelum mengunggah.';
         return valid;
@@ -53,6 +52,7 @@
         document.getElementById('dosenImportSubmit').textContent = dosenImportState.importing ? 'Mengunggah…' : 'Unggah';
         // Keep the file editable while previewing; selecting another file cancels that preview.
         $('#dosen, #dosenImportYear, #dosenImportMonth, #dosenMappingRows select').prop('disabled', dosenImportState.importing);
+        $('#dosenSheet').prop('disabled', busy);
         document.getElementById('dosenPreviewRetry').disabled = busy;
     }
 
@@ -68,10 +68,24 @@
         return value === null || value === undefined ? '' : String(value);
     }
 
+    function renderDosenSheetOptions(prefix, preview) {
+        const select = document.getElementById(prefix + 'Sheet');
+        if (!select || !Array.isArray(preview.sheets) || !preview.sheets.length) return;
+        select.replaceChildren(...preview.sheets.map(name => new Option(name, name, false, name === preview.sheet)));
+        select.value = preview.sheet;
+        $('#' + prefix + 'SheetControls').removeClass('d-none');
+    }
+
     function renderDosenWorkbookPreview(preview, options = {}) {
         const prefix = options.prefix || 'dosen';
         const state = options.state || dosenImportState;
         const updateControls = options.updateControls || updateDosenImportControls;
+        renderDosenSheetOptions(prefix, preview);
+        if (!preview.headers.length) {
+            // An empty sheet only offers the sheet list, so another sheet can be chosen.
+            $('#' + prefix + 'MappingPanel').addClass('d-none');
+            return;
+        }
         const mappingRows = document.getElementById(prefix + 'MappingRows');
         const previewHeaders = document.getElementById(prefix + 'PreviewHeaders');
         const previewRows = document.getElementById(prefix + 'PreviewRows');
@@ -136,17 +150,20 @@
         $('#' + prefix + 'MappingPanel').removeClass('d-none');
     }
 
-    function previewDosenWorkbook() {
+    // Without a sheet (new file), the server chooses the default sheet.
+    function previewDosenWorkbook(sheet = null) {
         if (dosenImportState.importing) return;
         const file = document.getElementById('dosen').files[0];
         const sequence = ++dosenImportState.sequence;
         if (dosenImportState.request) dosenImportState.request.abort();
         dosenImportState.request = null;
         dosenImportState.file = file || null;
+        dosenImportState.sheet = sheet || null;
         dosenImportState.preview = null;
         dosenImportState.confirmed = false;
         dosenImportState.loading = false;
         $('#dosenMappingPanel, #dosenPreviewRetry').addClass('d-none');
+        if (!dosenImportState.sheet) $('#dosenSheetControls').addClass('d-none');
         document.getElementById('dosenImportSummary').textContent = '';
         document.getElementById('dosenPreviewStatus').textContent = '';
         document.getElementById('dosenMappingStatus').textContent = '';
@@ -159,6 +176,7 @@
 
         const formData = new FormData();
         formData.append('dosen', file);
+        if (dosenImportState.sheet) formData.append('sheet', dosenImportState.sheet);
         dosenImportState.loading = true;
         document.getElementById('dosenPreviewStatus').textContent = 'Membaca file dan menyiapkan pratinjau…';
         updateDosenImportControls();
@@ -173,8 +191,15 @@
             success: function (response) {
                 if (!isCurrent()) return;
                 try {
-                    if (response.success === false || !Array.isArray(response.headers) || !response.headers.length || !Array.isArray(response.preview_data) || !response.mapping_config || !Number.isInteger(Number(response.header_row)) || Number(response.header_row) < 1) {
+                    if (response.success === false || !Array.isArray(response.headers) || !Array.isArray(response.preview_data) || !response.mapping_config || !Number.isInteger(Number(response.header_row)) || Number(response.header_row) < 1) {
                         throw new Error(response.message || 'Format pratinjau tidak valid. Silakan coba kembali.');
+                    }
+                    dosenImportState.sheet = response.sheet || dosenImportState.sheet;
+                    if (!response.headers.length) {
+                        if (!Array.isArray(response.sheets) || !response.sheets.length) throw new Error('Format pratinjau tidak valid. Silakan coba kembali.');
+                        renderDosenWorkbookPreview(response);
+                        document.getElementById('dosenPreviewStatus').textContent = 'Sheet ' + response.sheet + ' tidak berisi data. Pilih sheet lain.';
+                        return;
                     }
                     dosenImportState.preview = response;
                     renderDosenWorkbookPreview(response);
@@ -217,6 +242,7 @@
         formData.append('month', month);
         formData.append('column_mapping', JSON.stringify(getDosenColumnMapping()));
         formData.append('header_row', Number(dosenImportState.preview.header_row));
+        if (dosenImportState.preview.sheet) formData.append('sheet', dosenImportState.preview.sheet);
         dosenImportState.importing = true;
         document.getElementById('dosenImportSummary').textContent = 'Mengunggah data…';
         updateDosenImportControls();
@@ -244,8 +270,9 @@
                 document.getElementById('dosen').value = '';
                 dosenImportState.file = null;
                 dosenImportState.preview = null;
+                dosenImportState.sheet = null;
                 dosenImportState.confirmed = false;
-                $('#dosenMappingPanel, #dosenPreviewRetry').addClass('d-none');
+                $('#dosenMappingPanel, #dosenPreviewRetry, #dosenSheetControls').addClass('d-none');
                 document.getElementById('dosenPreviewStatus').textContent = '';
                 // Uploading history must not silently change the current-year listing.
                 const years = document.getElementById('dosenAvailableYears');

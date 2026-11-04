@@ -15,7 +15,46 @@ Nilai default semua pengaturan adalah `false` (validasi normal).
 Gunakan `true` untuk mengaktifkan force pada fitur yang dipilih. Flag fitur lain
 tetap terpisah. Flag hanya dibaca dari konfigurasi server, bukan parameter upload.
 
-Kolom wajib tetap harus dipetakan ke indeks kolom yang valid dan berbeda.
+Kolom wajib tetap harus dipetakan ke indeks kolom yang valid. Satu kolom file
+boleh dipetakan ke lebih dari satu kolom tujuan pada semua upload XLSX/XLSB
+(FM, MHS, Hibah, Data Center, Status Pendidikan, Rasio/Keterlibatan, mitra UMKM);
+nilainya disalin ke setiap kolom tujuan tersebut.
+
+Semua upload dengan pemetaan kolom menyediakan pilihan sheet pada pratinjau.
+Sheet default tetap dipilih otomatis: FM/MHS memakai MALANG atau Raw, Hibah memakai
+MALANG atau Detail, Data Center memakai Malang/FM Malang/FM BINUS Malang, Status
+Pendidikan memakai Detail Jenjang Pendidikan, Community Development memakai Rasio
+dan Keterlibatan (masing-masing dapat diganti), dan mitra UMKM memakai sheet pertama.
+Jika sheet default tidak ada, pratinjau menampilkan sheet pertama beserta daftar
+seluruh sheet. Pada Community Development, setiap bagian memakai sheet dengan header
+paling cocok. Sheet kosong tetap menampilkan daftar sheet agar sheet lain dapat
+dipilih. Mengganti sheet memuat ulang pratinjau, dan pemetaan harus dikonfirmasi
+ulang. Upload membaca sheet yang dikonfirmasi. Tanpa pilihan sheet, importer memakai
+sheet default dan menolak file yang tidak memiliki sheet tersebut. Hibah dengan file
+identik tetap diimpor ulang jika sheet dipilih.
+
+Selain sheet publikasi, FM dan MHS membaca sheet pendukung. Pratinjau Import Rectorate
+menampilkan setiap bagian dengan pilihan sheet dan pemetaan kolomnya sendiri:
+
+| Upload | Bagian | Sheet default | Kolom wajib (opsional) |
+| --- | --- | --- | --- |
+| FM | Publikasi FM | MALANG, lalu Raw | Lihat `fm_file` |
+| FM | KPI | KPI | Kode Dosen, Nama Dosen, Jurusan Binaan, JJA, Faculty Type, Non Scopus RTTO, Scopus RTTO, Score KPI RTTO (Non Scopus/Scopus Rectorate, Non Scopus, Scopus, Jumlah First Author, Score KPI sebagai pembanding) |
+| FM, MHS | Realization Template | Realization Template | Unit Name (Target, Realization) |
+| FM, MHS | Scoring PI | Scoring PI | Unit Name (Score 1–6) |
+| MHS | Publikasi MHS | MALANG, lalu Raw | Lihat `mhs_file` |
+| MHS | LIST | LIST | Prodi, MHS Author, Title |
+| MHS | TITLE | TITLE | Prodi (label baris rekap), Jumlah Scopus; header adalah baris berisi Tipe Publikasi lalu Scopus |
+| Hibah | Hibah penelitian | MALANG, lalu Detail | Lihat `research_file`; tidak ada sheet pendukung |
+
+Sheet pendukung opsional dapat diatur **Tidak digunakan**, dan hasilnya sama seperti
+file tanpa sheet tersebut. Semua bagian dikonfirmasi sekaligus. Upload mengirim
+`extra_sheets[<tipe>]` (JSON `{"kpi": {"sheet": "Rekap KPI", "column_mapping": {...}}}`;
+`sheet` bernilai `null` berarti tidak digunakan). Preview menerima `extra_sheets`
+(JSON nama sheet per bagian, `""` berarti tidak digunakan) dan mengembalikan
+`main_role` serta `extra_roles`. Tanpa `extra_sheets`, sheet pendukung tetap dicari
+berdasarkan nama dan header bawaannya.
+
 Daftar kolom FM/MHS/Hibah tetap mengikuti `ColumnMapperService`. Data Center dan
 Status Pendidikan memakai pemetaan masing-masing. Community Development memakai
 konfigurasi `pkm_ratio`, `pkm_involvement`, dan `pkm_partners` pada `ColumnMapperService`.
@@ -35,6 +74,19 @@ mengembalikan data sebelumnya. Filter kampus dan kategori publikasi FM/MHS tetap
 berlaku. Hibah tidak difilter berdasarkan lokasi; Lokasi Kampus mengikuti kolom
 yang dikonfirmasi pada preview pemetaan.
 
+## Status Pendidikan dosen
+
+Jalankan migrasi `2026_11_03_000000_create_lecturer_education_statuses.php`. Upload
+Status Pendidikan disimpan per Kode Dosen dan periode pada tabel
+`lecturer_education_statuses`, terpisah dari baris Data Center. Upload Data Center
+tetap menghapus lalu mengisi ulang periodenya, tetapi tidak menyentuh tabel ini.
+Status berlaku sejak periode upload hingga ada upload status untuk dosen tersebut
+pada periode yang lebih baru. Upload untuk periode lama tidak menimpa periode yang
+lebih baru, dan nilai kosong mengosongkan status dosen. Dashboard LRC, grafik
+pendidikan pada landing page, dan detail dosen membaca status dari tabel ini. Dosen
+tanpa status upload memakai kolom `status_pendidikan` pada barisnya. Migrasi menyalin
+status yang sudah tersimpan pada baris Data Center setiap periode.
+
 ## Import Community Development
 
 Jalankan migrasi `2026_10_23_000000_create_community_development_imports.php` sebelum
@@ -46,13 +98,17 @@ nama file, pemetaan, baris header, serta waktu import terakhir.
 
 Kontrak internal (autentikasi sesi dan CSRF seperti import dosen):
 
-- `POST /backoffice/importpkm/preview`: multipart `pkm` (.xlsx, maks. 20 MB).
-  Respons `success`, `sheets.rasio` dan `sheets.keterlibatan`, masing-masing berisi
-  `header_row`, `headers`, `preview_data`, `suggested_mapping`, `mapping_config`.
+- `POST /backoffice/importpkm/preview`: multipart `pkm` (.xlsx, maks. 20 MB), opsional
+  `sheets` (JSON nama sheet per bagian, misalnya `{"rasio":"Rekap","keterlibatan":"Data FM"}`).
+  Respons `success`, `available_sheets`, serta `sheets.rasio` dan `sheets.keterlibatan`,
+  masing-masing berisi `sheet`, `header_row`, `headers`, `preview_data`,
+  `suggested_mapping`, `mapping_config`.
 - `POST /backoffice/importpkm/upload`: multipart `pkm`, `academic_year`
   (`2025/2026`), `period` (`Ganjil`/`Genap`), `column_mapping` (JSON dengan kunci
   `rasio` dan `keterlibatan`, indeks kolom mulai nol), `header_rows` (JSON berisi
-  nomor baris header masing-masing sheet, mulai satu). Respons memuat `summary`,
+  nomor baris header masing-masing sheet, mulai satu), opsional `sheets` (format
+  seperti pada preview; tanpa `sheets` dipakai sheet Rasio dan Keterlibatan). Respons
+  memuat `summary` (termasuk `sheets`),
   `warnings`, `message`, dan `history_html`. Pemetaan/periode/file tidak valid
   mengembalikan 422; pengguna belum masuk mendapat 401 untuk permintaan JSON.
 
@@ -89,8 +145,9 @@ Pada Modules/ImportPKM tersedia formulir **Import mitra binaan / UMKM** tersendi
 Pilih tahun data dan file `.xlsx` atau `.xlsb` (maksimal 20 MB), kemudian pilih
 sheet dan baris header jika deteksi awal belum sesuai. Petakan **Nama Usaha,
 Cluster, Skala, Area**, serta **Tahun Bergabung** bila tersedia; konfirmasikan
-pemetaan sebelum mengimpor. Indeks pemetaan mulai nol. Pemetaan ganda, indeks
-di luar kolom, dan kolom wajib yang tidak dipetakan ditolak. Kolom opsional yang
+pemetaan sebelum mengimpor. Indeks pemetaan mulai nol. Satu kolom file boleh
+dipakai untuk beberapa kolom tujuan. Indeks di luar kolom dan kolom wajib yang
+tidak dipetakan ditolak. Kolom opsional yang
 tidak dipetakan tetap kosong. Kolom pemilik, KTP, kontak dan alamat tidak disimpan.
 
 Nama, kluster dan area wajib terisi. Skala kosong untuk kluster NON UMKM menjadi

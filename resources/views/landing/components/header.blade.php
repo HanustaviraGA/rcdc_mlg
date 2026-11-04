@@ -31,8 +31,25 @@
             <li><a href="services.html">Services</a></li>
             <li><a href="projects.html">Projects</a></li> --}}
             <li><a href="{{ route('lecturers') }}" @if (Request::is('lecturers')) class="active" @endif>Lecturers</a></li>
-            <li><a href="{{ route('publication-dashboard') }}" @if (Request::routeIs('publication-dashboard')) class="active" aria-current="page" @endif>Dashboard KPI</a></li>
-            <li><a href="{{ route('community-dashboard') }}" @if (Request::routeIs('community-dashboard')) class="active" aria-current="page" @endif>Dashboard Comdev</a></li>
+            @php
+              // The public dashboards share one menu so the header stays short.
+              $dashboards = [
+                  'publication-dashboard' => 'Dashboard Riset',
+                  'community-dashboard' => 'Dashboard ComDev',
+                  'lrc-dashboard' => 'Dashboard LRC',
+                  'cbdc-dashboard' => 'Dashboard CBDC',
+              ];
+              $onDashboard = Request::routeIs(...array_keys($dashboards));
+            @endphp
+            <li class="dropdown" data-nav-dashboards>
+              {{-- On a dashboard the menu starts open on mobile, with the current page marked. --}}
+              <a href="#" @if ($onDashboard) class="active" @endif aria-haspopup="true"><span>Dashboard</span> <i class="bi bi-chevron-down toggle-dropdown" aria-hidden="true"></i></a>
+              <ul @if ($onDashboard) class="dropdown-active" @endif>
+                @foreach ($dashboards as $route => $label)
+                  <li><a href="{{ route($route) }}" @if (Request::routeIs($route)) class="active" aria-current="page" @endif>{{ $label }}</a></li>
+                @endforeach
+              </ul>
+            </li>
             <li><a href="{{ route('research-gallery.index') }}" @if (Request::routeIs('research-gallery.*')) class="active" aria-current="page" @endif>Research Gallery</a></li>
             <li><a href="{{ route('outletpublikasi.public') }}" @if (Request::routeIs('outletpublikasi.public')) class="active" @endif>Outlet Publikasi</a></li>
             {{-- <li class="dropdown"><a href="#"><span>More Pages</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>

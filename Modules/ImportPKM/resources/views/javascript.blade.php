@@ -3,7 +3,7 @@
     const root = document.getElementById('pkmImport');
     if (!root) return;
     window.pkmImportState?.request?.abort();
-    const state = { file: null, preview: null, request: null, sequence: 0, loading: false, importing: false, confirmed: false };
+    const state = { file: null, preview: null, request: null, sequence: 0, sheets: null, loading: false, importing: false, confirmed: false };
     window.pkmImportState = state;
     const $ = id => root.querySelector('#' + id);
     const fileInput = $('pkmWorkbook');
@@ -18,9 +18,9 @@
         if (!state.preview) return false;
         const mapping = mappings();
         return sheetKeys.every(key => {
+            // One source column may feed several target fields.
             const required = Object.keys(state.preview.sheets[key].mapping_config.required);
-            const indexes = Object.values(mapping[key]).filter(index => index !== null);
-            return required.every(field => mapping[key][field] !== undefined && mapping[key][field] !== null) && new Set(indexes).size === indexes.length;
+            return required.every(field => mapping[key][field] !== undefined && mapping[key][field] !== null);
         });
     }
     function updateControls() {
@@ -29,14 +29,18 @@
         $('pkmImportSubmit').disabled = busy || !valid || !state.confirmed;
         $('pkmImportSubmit').textContent = state.importing ? 'Mengimpor…' : 'Import data';
         $('pkmMappingConfirm').disabled = busy || !valid || state.confirmed;
-        $('pkmMappingStatus').textContent = !state.preview ? '' : !valid ? 'Petakan seluruh kolom wajib. Satu kolom Excel hanya boleh digunakan sekali pada masing-masing sheet.' : state.confirmed ? 'Pemetaan dikonfirmasi. Data siap diimpor.' : 'Pemetaan lengkap. Konfirmasikan sebelum mengimpor.';
-        root.querySelectorAll('select, input').forEach(input => { input.disabled = state.importing; });
+        const empty = state.preview ? sheetKeys.map(key => state.preview.sheets[key]).filter(sheet => !sheet.headers.length) : [];
+        $('pkmMappingStatus').textContent = !state.preview ? '' : empty.length ? 'Sheet ' + empty.map(sheet => sheet.sheet).join(', ') + ' tidak berisi data. Pilih sheet lain.' : !valid ? 'Petakan seluruh kolom wajib pada masing-masing sheet.' : state.confirmed ? 'Pemetaan dikonfirmasi. Data siap diimpor.' : 'Pemetaan lengkap. Konfirmasikan sebelum mengimpor.';
+        // Sheet choices stay locked while another preview loads.
+        root.querySelectorAll('select, input').forEach(input => { input.disabled = state.importing || (state.loading && input.dataset.sheetFor !== undefined); });
         $('pkmPreviewRetry').disabled = busy;
     }
     function renderPreview(preview) {
         sheetKeys.forEach(key => {
             const sheet = preview.sheets[key];
-            $('pkm-' + key + '-info').textContent = 'Sheet ' + sheet.sheet + ' · Baris header ' + sheet.header_row;
+            $('pkm-' + key + '-sheet').replaceChildren(...preview.available_sheets.map(name => new Option(name, name, false, name === sheet.sheet)));
+            $('pkm-' + key + '-sheet').value = sheet.sheet;
+            $('pkm-' + key + '-info').textContent = sheet.headers.length ? 'Sheet ' + sheet.sheet + ' · Baris header ' + sheet.header_row : 'Sheet ' + sheet.sheet + ' tidak berisi data.';
             const body = $('pkm-' + key + '-mapping');
             body.replaceChildren();
             Object.entries({ ...sheet.mapping_config.required, ...sheet.mapping_config.optional }).forEach(([field, label]) => {
@@ -74,13 +78,17 @@
         if (!response.ok || payload.success !== true) throw payload;
         return payload;
     }
-    async function previewFile() {
+    // Without sheets (new file), the server picks the Rasio/Keterlibatan sheets.
+    async function previewFile(sheets = null) {
         if (state.importing) return;
         const sequence = ++state.sequence;
         state.request?.abort();
         state.file = fileInput.files[0] || null;
+        state.sheets = sheets;
         state.preview = null; state.confirmed = false; state.loading = false;
-        $('pkmMappingPanel').hidden = true; $('pkmPreviewRetry').hidden = true;
+        // Changing a sheet keeps the panel, so its sheet choices stay visible.
+        if (!sheets) $('pkmMappingPanel').hidden = true;
+        $('pkmPreviewRetry').hidden = true;
         setMessage('pkmImportErrors', ''); setMessage('pkmImportSummary', '');
         $('pkmPreviewStatus').textContent = '';
         updateControls();
@@ -90,6 +98,7 @@
         $('pkmPreviewStatus').textContent = 'Membaca sheet Rasio dan Keterlibatan…';
         updateControls();
         const data = new FormData(); data.append('pkm', state.file);
+        if (sheets) data.append('sheets', JSON.stringify(sheets));
         try {
             const result = await request(root.dataset.previewUrl, data, state.request.signal);
             if (!isCurrent(sequence) || fileInput.files[0] !== state.file) return;
@@ -101,8 +110,10 @@
             $('pkmPreviewStatus').textContent = ''; $('pkmPreviewRetry').hidden = false;
         } finally { if (isCurrent(sequence)) { state.loading = false; state.request = null; updateControls(); } }
     }
-    fileInput.addEventListener('change', previewFile);
-    $('pkmPreviewRetry').addEventListener('click', previewFile);
+    const chosenSheets = () => Object.fromEntries(sheetKeys.map(key => [key, $('pkm-' + key + '-sheet').value]));
+    fileInput.addEventListener('change', () => previewFile());
+    sheetKeys.forEach(key => $('pkm-' + key + '-sheet').addEventListener('change', () => previewFile(chosenSheets())));
+    $('pkmPreviewRetry').addEventListener('click', () => previewFile(state.sheets));
     $('pkmMappingConfirm').addEventListener('click', () => { if (!state.loading && !state.importing && validMapping() && fileInput.files[0] === state.file) { state.confirmed = true; updateControls(); } });
     function periodLabel() { $('pkmPeriodLabel').textContent = $('pkmAcademicYear').value + ' ' + $('pkmSemester').value; }
     $('pkmAcademicYear').addEventListener('change', periodLabel); $('pkmSemester').addEventListener('change', periodLabel); periodLabel();
@@ -114,6 +125,7 @@
         data.append('pkm', state.file); data.append('academic_year', $('pkmAcademicYear').value); data.append('period', $('pkmSemester').value);
         data.append('column_mapping', JSON.stringify(mappings()));
         data.append('header_rows', JSON.stringify(Object.fromEntries(sheetKeys.map(key => [key, state.preview.sheets[key].header_row]))));
+        data.append('sheets', JSON.stringify(Object.fromEntries(sheetKeys.map(key => [key, state.preview.sheets[key].sheet]))));
         state.importing = true; state.request = new AbortController(); updateControls();
         setMessage('pkmImportErrors', ''); setMessage('pkmImportSummary', '');
         try {
@@ -124,7 +136,7 @@
             if (response.warnings?.length) message += '\n' + response.warnings.join('\n');
             setMessage('pkmImportSummary', message);
             if (response.history_html) $('pkmImportHistory').innerHTML = response.history_html;
-            fileInput.value = ''; state.file = null; state.preview = null; state.confirmed = false;
+            fileInput.value = ''; state.file = null; state.preview = null; state.sheets = null; state.confirmed = false;
             $('pkmMappingPanel').hidden = true; $('pkmPreviewStatus').textContent = '';
         } catch (error) {
             if (isCurrent(sequence) && error.name !== 'AbortError') setMessage('pkmImportErrors', errorText(error));

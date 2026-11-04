@@ -7,6 +7,7 @@ use App\Models\AttributeDosen;
 use App\Models\DataDosen;
 use App\Models\Dosen;
 use App\Models\IdentitasDosen;
+use App\Services\Lecturers\LecturerEducationStatuses;
 use App\Services\Lecturers\LecturerEducationWorkbook;
 use App\Services\Lecturers\LecturerSnapshots;
 use App\Services\Lecturers\LecturerWorkbook;
@@ -128,6 +129,7 @@ class DosenController extends Controller
             'month' => ['required', 'integer', 'between:1,12'],
             'column_mapping' => ['required', 'json'],
             'header_row' => ['required', 'integer', 'min:1', 'max:1000'],
+            'sheet' => ['nullable', 'string', 'max:255'],
         ]);
         $mapping = json_decode($validated['column_mapping'], true);
         if (! is_array($mapping)) {
@@ -135,7 +137,7 @@ class DosenController extends Controller
         }
         $file = $request->file('dosen');
         $summary = $workbook->import($file->getRealPath(), (int) $validated['year'], (int) $validated['month'],
-            $mapping, (int) $validated['header_row'], $file->getClientOriginalName());
+            $mapping, (int) $validated['header_row'], $file->getClientOriginalName(), $validated['sheet'] ?? null);
 
         $masterMessage = $summary['updated_current_master']
             ? ' Master tahun berjalan diperbarui.' : ' Master tahun berjalan tidak diubah.';
@@ -153,6 +155,9 @@ class DosenController extends Controller
 
         [$year, $month] = $this->period($request);
         $dosen = app(LecturerSnapshots::class)->query($year, $month)->where('kode_dosen', $kodeDosen)->first();
+        if ($dosen) {
+            app(LecturerEducationStatuses::class)->apply([$dosen], $year, $month);
+        }
         $identitas = IdentitasDosen::where('kode_dosen', $kodeDosen)->first();
         $attributes = AttributeDosen::where('kode_dosen', $kodeDosen)
             ->get(['attribute_dosen', 'attribute_icon']);
@@ -167,17 +172,23 @@ class DosenController extends Controller
     public function preview(Request $request, LecturerWorkbook $workbook)
     {
         abort_unless(auth()->check(), 403);
-        $request->validate(['dosen' => ['required', 'file', 'mimes:xlsx', 'max:20480']]);
+        $validated = $request->validate([
+            'dosen' => ['required', 'file', 'mimes:xlsx', 'max:20480'],
+            'sheet' => ['nullable', 'string', 'max:255'],
+        ]);
 
-        return response()->json($workbook->preview($request->file('dosen')->getRealPath()));
+        return response()->json($workbook->preview($request->file('dosen')->getRealPath(), $validated['sheet'] ?? null));
     }
 
     public function previewEducation(Request $request, LecturerEducationWorkbook $workbook)
     {
         abort_unless(auth()->check(), 403);
-        $request->validate(['dosen' => ['required', 'file', 'mimes:xlsx', 'max:20480']]);
+        $validated = $request->validate([
+            'dosen' => ['required', 'file', 'mimes:xlsx', 'max:20480'],
+            'sheet' => ['nullable', 'string', 'max:255'],
+        ]);
 
-        return response()->json($workbook->preview($request->file('dosen')->getRealPath()));
+        return response()->json($workbook->preview($request->file('dosen')->getRealPath(), $validated['sheet'] ?? null));
     }
 
     public function importEducation(Request $request, LecturerEducationWorkbook $workbook)
@@ -189,13 +200,14 @@ class DosenController extends Controller
             'month' => ['required', 'integer', 'between:1,12'],
             'column_mapping' => ['required', 'json'],
             'header_row' => ['required', 'integer', 'min:1', 'max:1000'],
+            'sheet' => ['nullable', 'string', 'max:255'],
         ]);
         $mapping = json_decode($validated['column_mapping'], true);
         if (! is_array($mapping)) {
             throw ValidationException::withMessages(['column_mapping' => 'Format pemetaan kolom tidak valid.']);
         }
         $summary = $workbook->import($request->file('dosen')->getRealPath(), (int) $validated['year'],
-            (int) $validated['month'], $mapping, (int) $validated['header_row']);
+            (int) $validated['month'], $mapping, (int) $validated['header_row'], $validated['sheet'] ?? null);
 
         return response()->json([
             'success' => true, 'summary' => $summary,

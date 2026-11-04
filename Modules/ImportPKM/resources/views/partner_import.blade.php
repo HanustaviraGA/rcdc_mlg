@@ -1,8 +1,8 @@
 <div id="partnerImport" class="mt-8" data-preview-url="{{ route('importpkm.partners.preview') }}" data-upload-url="{{ route('importpkm.partners.upload') }}" data-csrf="{{ csrf_token() }}">
     <form id="partnerImportForm" class="card card-bordered mb-5" enctype="multipart/form-data">
-        <div class="card-header"><h3 class="card-title">Import mitra binaan / UMKM</h3><a href="{{ route('community-dashboard') }}" target="_blank" rel="noopener" class="btn btn-sm btn-light-primary align-self-center">Lihat Dashboard Comdev</a></div>
+        <div class="card-header"><h3 class="card-title">Import mitra binaan / UMKM</h3><a href="{{ route('community-dashboard') }}" target="_blank" rel="noopener" class="btn btn-sm btn-light-primary align-self-center">Lihat Dashboard ComDev</a></div>
         <div class="card-body">
-            <p class="text-muted">Unggah data mitra untuk menghitung jumlah mitra, kluster, skala usaha, dan sebaran area pada Dashboard Comdev.</p>
+            <p class="text-muted">Unggah data mitra untuk menghitung jumlah mitra, kluster, skala usaha, dan sebaran area pada Dashboard ComDev.</p>
             <div class="row g-5 mb-5">
                 <div class="col-md-4"><label for="partnerDataYear" class="required form-label fw-bold">Tahun data</label><input type="number" min="2000" max="2100" required id="partnerDataYear" class="form-control" value="{{ now()->year }}"></div>
                 <div class="col-md-8"><label for="partnerWorkbook" class="required form-label fw-bold">File Excel (.xlsx / .xlsb)</label><input type="file" accept=".xlsx,.xlsb" required id="partnerWorkbook" class="form-control"></div>

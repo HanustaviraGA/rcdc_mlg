@@ -1,0 +1,11 @@
+{
+    "name": "CharacterBuilding",
+    "alias": "characterbuilding",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\CharacterBuilding\\Providers\\CharacterBuildingServiceProvider"
+    ],
+    "files": []
+}

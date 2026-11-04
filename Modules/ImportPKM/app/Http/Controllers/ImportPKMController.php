@@ -33,9 +33,29 @@ class ImportPKMController extends Controller
 
     public function preview(Request $request, CommunityDevelopmentWorkbook $workbook)
     {
-        $request->validate(['pkm' => ['required', 'file', 'mimes:xlsx', 'max:20480']]);
+        $validated = $request->validate([
+            'pkm' => ['required', 'file', 'mimes:xlsx', 'max:20480'],
+            'sheets' => ['nullable', 'json'],
+        ]);
 
-        return response()->json($workbook->preview($request->file('pkm')->getRealPath()));
+        return response()->json($workbook->preview($request->file('pkm')->getRealPath(), $this->sheetSelection($validated)));
+    }
+
+    /**
+     * Optional sheet names per role, e.g. {"rasio": "Rasio", "keterlibatan": "Data FM"}.
+     */
+    private function sheetSelection(array $validated): ?array
+    {
+        if (! isset($validated['sheets'])) {
+            return null;
+        }
+        $sheets = json_decode($validated['sheets'], true);
+        if (! is_array($sheets) || array_diff_key($sheets, CommunityDevelopmentWorkbook::SHEETS)
+            || array_filter($sheets, fn ($sheet) => $sheet !== null && (! is_string($sheet) || mb_strlen($sheet) > 255))) {
+            throw ValidationException::withMessages(['sheets' => 'Pilihan sheet tidak valid.']);
+        }
+
+        return $sheets;
     }
 
     public function upload(Request $request, CommunityDevelopmentWorkbook $workbook)
@@ -46,6 +66,7 @@ class ImportPKMController extends Controller
             'period' => ['required', 'in:Ganjil,Genap'],
             'column_mapping' => ['required', 'json'],
             'header_rows' => ['required', 'json'],
+            'sheets' => ['nullable', 'json'],
         ]);
         $mapping = json_decode($validated['column_mapping'], true);
         $headers = json_decode($validated['header_rows'], true);
@@ -54,7 +75,7 @@ class ImportPKMController extends Controller
         }
         $file = $request->file('pkm');
         $summary = $workbook->import($file->getRealPath(), $validated['academic_year'], $validated['period'],
-            $mapping, $headers, $file->getClientOriginalName());
+            $mapping, $headers, $file->getClientOriginalName(), $this->sheetSelection($validated));
 
         return response()->json(['success' => true, 'summary' => $summary,
             'message' => 'Import '.$summary['period_label'].' selesai: '.$summary['programs'].' prodi, '.$summary['selected'].' dosen; '.$summary['matched'].' kode cocok dengan data dosen.',

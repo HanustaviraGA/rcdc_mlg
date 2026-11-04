@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\CharacterBuildingDashboardController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LandingController;
+use App\Http\Controllers\LrcDashboardController;
 use App\Http\Controllers\SpreadsheetController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -14,6 +16,8 @@ Route::get('/lecturers/detail/{kode_dosen}', [LandingController::class, 'lecture
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('index');
 Route::get('/kpi-publikasi', [\App\Http\Controllers\PublicationPerformanceController::class, 'index'])->name('publication-dashboard');
 Route::get('/dashboard-comdev', [\App\Http\Controllers\CommunityDevelopmentController::class, 'index'])->name('community-dashboard');
+Route::get('/dashboard-lrc', [LrcDashboardController::class, 'index'])->name('lrc-dashboard');
+Route::get('/dashboard-cbdc', [CharacterBuildingDashboardController::class, 'index'])->name('cbdc-dashboard');
 Route::get('/kpi-publikasi-old', [\App\Http\Controllers\PublicationPerformanceController::class, 'legacy'])->name('publication-dashboard.legacy');
 Route::get('/dashboard/kpi-publikasi', function (Request $request) {
     return redirect()->route('publication-dashboard', $request->query(), 301);

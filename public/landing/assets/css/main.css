@@ -346,7 +346,8 @@ h6 {
     color: var(--nav-dropdown-hover-color);
   }
 
-  .navmenu .dropdown:hover>ul {
+  .navmenu .dropdown:hover>ul,
+  .navmenu .dropdown:focus-within>ul {
     opacity: 1;
     top: 100%;
     visibility: visible;

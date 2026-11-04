@@ -142,9 +142,13 @@
                         </div>
                         <label for="dosen" class="required form-label">Data Center (.xlsx)</label>
                         <input type="file" accept=".xlsx" required id="dosen" name="dosen" class="form-control form-control-outline" onchange="previewDosenWorkbook()">
-                        <p class="text-muted mt-3">Membaca sheet Malang (atau FM Malang / FM BINUS Malang). Periksa contoh data dan konfirmasikan pemetaan sebelum mengunggah. Hanya Kode Dosen dan Nama Dosen yang wajib dipetakan; kolom opsional boleh tidak dipetakan atau memiliki nilai kosong dan tidak menghalangi unggahan. Setelah validasi berhasil, seluruh data dosen pada tahun dan bulan terpilih diganti dengan isi file sesuai pemetaan terbaru. Dosen yang tidak ada dalam file dihapus dari periode tersebut; kolom yang tidak dipetakan dikosongkan. Data periode lain tetap tersimpan. Unggahan historis tidak mengubah master tahun berjalan.</p>
+                        <p class="text-muted mt-3">Secara otomatis membaca sheet Malang (atau FM Malang / FM BINUS Malang); pilih sheet lain pada pratinjau bila data berada di sheet berbeda. Periksa contoh data dan konfirmasikan pemetaan sebelum mengunggah. Hanya Kode Dosen dan Nama Dosen yang wajib dipetakan; kolom opsional boleh tidak dipetakan atau memiliki nilai kosong dan tidak menghalangi unggahan. Setelah validasi berhasil, seluruh data dosen pada tahun dan bulan terpilih diganti dengan isi file sesuai pemetaan terbaru. Dosen yang tidak ada dalam file dihapus dari periode tersebut; kolom yang tidak dipetakan dikosongkan. Data periode lain tetap tersimpan. Unggahan historis tidak mengubah master tahun berjalan.</p>
                         <p id="dosenPreviewStatus" role="status" aria-live="polite"></p>
-                        <button type="button" id="dosenPreviewRetry" class="btn btn-sm btn-light-primary d-none mb-3" onclick="previewDosenWorkbook()">Coba pratinjau lagi</button>
+                        <button type="button" id="dosenPreviewRetry" class="btn btn-sm btn-light-primary d-none mb-3" onclick="previewDosenWorkbook(dosenImportState.sheet)">Coba pratinjau lagi</button>
+                        <div id="dosenSheetControls" class="d-none mb-4">
+                            <label for="dosenSheet" class="form-label fw-bold">Sheet data dosen</label>
+                            <select id="dosenSheet" class="form-select" onchange="previewDosenWorkbook(this.value)"></select>
+                        </div>
                         <div id="dosenMappingPanel" class="d-none">
                             <p id="dosenSheetInfo" class="fw-bold"></p>
                             <h2 class="fs-5">Pemetaan kolom</h2>

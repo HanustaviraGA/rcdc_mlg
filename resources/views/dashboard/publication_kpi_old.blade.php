@@ -1,5 +1,5 @@
 @extends('landing.layout')
-@section('title', 'Dashboard KPI Publikasi FM')
+@section('title', 'Dashboard Riset')
 @section('page_class', 'publication-page')
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/publication-kpi.css') }}?v={{ filemtime(public_path('css/publication-kpi.css')) }}">
@@ -12,7 +12,7 @@
         <div class="portal-hero-grid">
             <div>
                 <span class="portal-eyebrow">PUBLIKASI &amp; KINERJA RISET</span>
-                <h1>Dashboard KPI <span>Publikasi.</span></h1>
+                <h1>Dashboard <span>Riset.</span></h1>
                 <p class="portal-intro">Telusuri capaian publikasi Faculty Member BINUS Malang, perkembangan program studi, dan potensi kolaborasi riset.</p>
                 <p class="portal-caption">Publication Performance Intelligence Dashboard · Peta publikasi dan riset</p>
                 <a class="portal-link" href="{{ route('research-gallery.index') }}">Jelajahi Research Gallery <i class="bi bi-arrow-right" aria-hidden="true"></i></a>

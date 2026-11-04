@@ -31,10 +31,32 @@ class RectorateMappingPreviewTest extends TestCase
         $this->assertSame('Raw', $service->preview($path, 'fm_file')['sheet']);
         $this->assertSame('Raw', $service->preview($path, 'mhs_file')['sheet']);
 
-        $unsupported = $this->makeWorkbook(['Data' => [['Header'], ['Value']]]);
+        // Without a default sheet the preview shows the first sheet; any sheet can then be chosen.
+        $custom = $this->makeWorkbook(['Cover' => [['Report title']], 'Data' => [['Header'], ['Value']]]);
         foreach (['fm_file', 'mhs_file', 'research_file'] as $type) {
-            $this->assertFalse($service->preview($unsupported, $type)['success']);
+            $preview = $service->preview($custom, $type);
+            $this->assertTrue($preview['success'], $type);
+            $this->assertSame(['Cover', 'Data'], $preview['sheets']);
+            $this->assertSame('Cover', $preview['sheet']);
+            $chosen = $service->preview($custom, $type, 'Data');
+            $this->assertSame(['Data', ['Header'], [['Value']]], [$chosen['sheet'], $chosen['headers'], $chosen['preview_data']]);
+            $this->assertSame('Detail', $service->preview($path, $type, 'Detail')['sheet'], 'a chosen sheet overrides the default');
+            $missing = $service->preview($custom, $type, 'Missing');
+            $this->assertFalse($missing['success']);
+            $this->assertSame(['Cover', 'Data'], $missing['sheets']);
         }
+    }
+
+    public function test_preview_endpoint_reads_the_chosen_sheet_and_lists_all_sheets(): void
+    {
+        $this->actingAs((new User)->forceFill(['id' => 1]));
+        $path = $this->makeWorkbook(['Raw' => [['Default'], ['Value']], 'Data 2026' => [['Code', 'Title'], ['D001', 'Paper']]]);
+        $request = fn (array $data) => $this->postJson(route('importrectorate.preview-columns'),
+            ['file' => new UploadedFile($path, 'mapping.xlsx', null, null, true), 'type' => 'fm_file'] + $data);
+        $request([])->assertOk()->assertJsonPath('file_info.sheet', 'Raw')->assertJsonPath('sheets', ['Raw', 'Data 2026']);
+        $request(['sheet' => 'Data 2026'])->assertOk()->assertJsonPath('file_info.sheet', 'Data 2026')
+            ->assertJsonPath('headers', ['Code', 'Title'])->assertJsonPath('preview_data.0.1', 'Paper');
+        $request(['sheet' => 'Missing'])->assertUnprocessable()->assertJsonPath('sheets', ['Raw', 'Data 2026']);
     }
 
     public function test_status_suggestions_use_selected_year_without_guessing_another_year(): void

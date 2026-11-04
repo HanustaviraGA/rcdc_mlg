@@ -3,6 +3,7 @@
 namespace Modules\ImportRectorate\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Services\ColumnMapping\WorkbookSheetRoles;
 use App\Services\Publications\PublicationImporter;
 use App\Services\Publications\StudentPublicationImporter;
 use App\Services\Research\RectorateResearchImporter;
@@ -20,8 +21,9 @@ class ImportRectorateController extends Controller
         return loadPage('importrectorate::index', $this->history());
     }
 
-    public function store(Request $request, RectorateResearchImporter $importer)
+    public function store(Request $request, RectorateResearchImporter $importer, ?WorkbookSheetRoles $roles = null)
     {
+        $roles ??= app(WorkbookSheetRoles::class);
         abort_unless(Auth::check(), 403);
 
         $validated = $request->validate([
@@ -32,6 +34,10 @@ class ImportRectorateController extends Controller
             'month' => ['required', 'integer', 'between:1,12'],
             'column_mapping' => ['nullable', 'array'],
             'column_mapping.*' => ['nullable', 'string'],
+            'sheet' => ['nullable', 'array'],
+            'sheet.*' => ['nullable', 'string', 'max:255'],
+            'extra_sheets' => ['nullable', 'array'],
+            'extra_sheets.*' => ['nullable', 'string'],
         ]);
 
         // Parse column mapping dari JSON string per tipe file
@@ -48,8 +54,13 @@ class ImportRectorateController extends Controller
                 $columnMappings[$type] = $decoded;
             }
         }
+        // Supporting sheets (KPI, LIST, TITLE, ...) confirmed in the preview, each with its mapping.
+        $extraSheets = [];
+        foreach (['fm_file', 'mhs_file', 'research_file'] as $type) {
+            $extraSheets[$type] = $roles->selection($type, $request->input("extra_sheets.$type"), "extra_sheets.$type");
+        }
 
-        $summaries = DB::transaction(function () use ($request, $validated, $importer, $columnMappings) {
+        $summaries = DB::transaction(function () use ($request, $validated, $importer, $columnMappings, $extraSheets) {
             $year = (int) $validated['year'];
             $month = (int) $validated['month'];
             $results = [];
@@ -59,10 +70,12 @@ class ImportRectorateController extends Controller
                 }
                 $file = $request->file($type);
                 $mapping = $columnMappings[$type] ?? null;
+                // The sheet confirmed in the preview; without it each importer uses its default sheet.
+                $sheet = $validated['sheet'][$type] ?? null;
                 $results[$type] = match ($type) {
-                    'fm_file' => app(PublicationImporter::class)->import($file->getRealPath(), $file->getClientOriginalName(), $year, $month, (int) ceil($month / 3), columnMapping: $mapping),
-                    'mhs_file' => app(StudentPublicationImporter::class)->import($file->getRealPath(), $file->getClientOriginalName(), $year, $month, columnMapping: $mapping),
-                    default => $importer->import($file->getRealPath(), $file->getClientOriginalName(), year: $year, month: $month, columnMapping: $mapping),
+                    'fm_file' => app(PublicationImporter::class)->import($file->getRealPath(), $file->getClientOriginalName(), $year, $month, (int) ceil($month / 3), columnMapping: $mapping, sheet: $sheet, extraSheets: $extraSheets[$type]),
+                    'mhs_file' => app(StudentPublicationImporter::class)->import($file->getRealPath(), $file->getClientOriginalName(), $year, $month, columnMapping: $mapping, sheet: $sheet, extraSheets: $extraSheets[$type]),
+                    default => $importer->import($file->getRealPath(), $file->getClientOriginalName(), year: $year, month: $month, columnMapping: $mapping, sheet: $sheet),
                 };
             }
 

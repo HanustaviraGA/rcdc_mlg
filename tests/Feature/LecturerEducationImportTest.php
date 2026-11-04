@@ -4,8 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\DataDosen;
 use App\Models\User;
+use App\Services\Lecturers\LecturerEducationStatuses;
 use App\Services\Lecturers\LecturerEducationWorkbook;
 use App\Services\Lecturers\LecturerWorkbook;
+use App\Services\LrcDashboard\LrcDashboard;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +40,7 @@ class LecturerEducationImportTest extends TestCase
         DataDosen::create(['kode_dosen' => 'D2', 'nama_dosen' => 'Second lecturer', 'pendidikan' => 'S3']);
         (require database_path('migrations/2026_10_22_000000_create_lecturer_snapshots.php'))->up();
         (require database_path('migrations/2026_10_22_000100_add_education_status_to_lecturers.php'))->up();
+        (require database_path('migrations/2026_11_03_000000_create_lecturer_education_statuses.php'))->up();
     }
 
     protected function tearDown(): void
@@ -126,6 +129,39 @@ class LecturerEducationImportTest extends TestCase
         $this->assertSame(1, $summary['unchanged']);
     }
 
+    public function test_preview_and_import_use_the_sheet_chosen_by_the_user(): void
+    {
+        $this->actingAs((new User)->forceFill(['id' => 1]));
+        $path = $this->makeWorkbook(['Cover' => [['Laporan pendidikan']], 'Pendidikan 2026' => [
+            ['Title line'], ['Kode Dosen', 'Pendidikan'], ['D1', 'On Going S3'],
+        ]]);
+        $request = fn (string $route, array $data) => $this->postJson(route($route), ['dosen' => $this->upload($path)] + $data);
+        // Without Detail Jenjang Pendidikan the preview shows the first sheet instead of failing.
+        $request('dosen.education.preview', [])->assertOk()
+            ->assertJsonPath('sheet', 'Cover')->assertJsonPath('sheets', ['Cover', 'Pendidikan 2026']);
+        $request('dosen.education.preview', ['sheet' => 'Pendidikan 2026'])->assertOk()
+            ->assertJsonPath('header_row', 2)->assertJsonPath('suggested_mapping', ['kode_dosen' => 0, 'status_pendidikan' => 1]);
+        $request('dosen.education.preview', ['sheet' => 'Missing'])->assertUnprocessable();
+
+        $import = ['year' => 2026, 'month' => 10, 'header_row' => 2, 'column_mapping' => json_encode(['kode_dosen' => 0, 'status_pendidikan' => 1])];
+        $request('dosen.education.import', $import)->assertUnprocessable()->assertJsonValidationErrors('dosen');
+        $this->assertNull(DataDosen::find('D1')->status_pendidikan);
+        $request('dosen.education.import', $import + ['sheet' => 'Pendidikan 2026'])->assertOk()
+            ->assertJsonPath('summary.sheet', 'Pendidikan 2026')->assertJsonPath('summary.updated', 1);
+        $this->assertSame('On Going S3', DataDosen::find('D1')->status_pendidikan);
+    }
+
+    public function test_one_source_column_can_feed_several_target_fields(): void
+    {
+        $this->actingAs((new User)->forceFill(['id' => 1]));
+        $path = $this->makeWorkbook([LecturerEducationWorkbook::SHEET => [['Kode Dosen'], ['D1']]]);
+        $this->postJson(route('dosen.education.import'), [
+            'dosen' => $this->upload($path), 'year' => 2026, 'month' => 10, 'header_row' => 1,
+            'column_mapping' => json_encode(['kode_dosen' => 0, 'status_pendidikan' => 0]),
+        ])->assertOk()->assertJsonPath('summary.updated', 1);
+        $this->assertSame('D1', DataDosen::find('D1')->status_pendidikan);
+    }
+
     public function test_historical_update_keeps_current_master_and_other_periods_unchanged(): void
     {
         foreach ([[2025, 10], [2026, 9]] as [$year, $month]) {
@@ -140,15 +176,84 @@ class LecturerEducationImportTest extends TestCase
         $this->assertNull(DB::table('lecturer_snapshot_rows')->where('lecturer_import_id', $batch->id)->where('kode_dosen', 'D1')->value('status_pendidikan'));
     }
 
-    public function test_data_center_reupload_keeps_separately_imported_status_and_new_period_starts_empty(): void
+    public function test_data_center_reupload_keeps_separately_imported_status(): void
     {
         $this->import($this->workbook());
         $path = $this->makeWorkbook(['Malang' => [['Kode Dosen', 'Nama Dosen'], ['D1', 'Updated name']]]);
         app(LecturerWorkbook::class)->import($path, 2026, 10);
         $this->assertSame('On Going S3', DataDosen::find('D1')->status_pendidikan);
         $this->assertSame('On Going S3', DB::table('lecturer_snapshot_rows')->where('kode_dosen', 'D1')->value('status_pendidikan'));
-        app(LecturerWorkbook::class)->import($path, 2026, 11);
+    }
+
+    public function test_a_new_data_center_period_keeps_every_lecturers_uploaded_status(): void
+    {
+        Schema::create('identitas_dosen', function (Blueprint $table) {
+            $table->string('id_identitas')->primary();
+            $table->string('kode_dosen');
+        });
+        Schema::create('database_attribute_dosen', function (Blueprint $table) {
+            $table->string('id_attribute')->primary();
+            $table->string('kode_dosen');
+            $table->text('attribute_dosen');
+            $table->text('attribute_icon');
+        });
+        $this->import($this->workbook([['D1', 'On Going S3'], ['D2', 'S3']]));
+        $this->travelTo(now()->setDate(2026, 11, 3));
+        // The Data Center replaces its period and rows as before, without the status.
+        app(LecturerWorkbook::class)->import($this->makeWorkbook(['Malang' => [
+            ['Kode Dosen', 'Nama Dosen', 'Pendidikan'], ['D1', 'First lecturer', 'S2'], ['D2', 'Second lecturer', 'S3'],
+        ]]), 2026, 11);
         $this->assertNull(DataDosen::find('D1')->status_pendidikan);
+
+        $education = app(LrcDashboard::class)->data()['chartDetails']['pendidikan'];
+        $this->assertSame(['D2'], array_column($education[1], 'code'));
+        $this->assertSame(['D1'], array_column($education[2], 'code'), 'On Going S3 is still shown after the new period');
+        $this->actingAs((new User)->forceFill(['id' => 1]));
+        foreach ([[], ['year' => 2026, 'month' => 11], ['year' => 2026, 'month' => 10]] as $period) {
+            $this->postJson(route('dosen.detail'), ['kode_dosen' => 'D1'] + $period)
+                ->assertOk()->assertJsonPath('dosen.status_pendidikan', 'On Going S3');
+        }
+    }
+
+    public function test_a_status_applies_until_a_later_period_uploads_another(): void
+    {
+        $statuses = app(LecturerEducationStatuses::class);
+        $dataCenter = $this->makeWorkbook(['Malang' => [['Kode Dosen', 'Nama Dosen'], ['D1', 'First lecturer'], ['D2', 'Second lecturer']]]);
+        app(LecturerWorkbook::class)->import($dataCenter, 2026, 11);
+        $this->import($this->workbook([['D1', 'On Going S3']]));
+        $this->assertSame(['D1' => 'On Going S3'], $statuses->asOf(2026, 11)->all());
+        $this->assertSame([], $statuses->asOf(2026, 9)->all());
+
+        // A later upload compares with the carried status, then replaces it from its own period on.
+        $summary = $this->import($this->workbook([['D1', 'On Going S3'], ['D2', 'S3']]), 2026, 11);
+        $this->assertSame([1, 1], [$summary['updated'], $summary['unchanged']]);
+        $this->import($this->workbook([['D1', 'S3']]), 2026, 11);
+        $this->import($this->workbook([['D1', 'S2']]), 2026, 10);
+        $this->assertSame('S2', $statuses->asOf(2026, 10)->get('D1'));
+        $this->assertSame(['D1' => 'S3', 'D2' => 'S3'], $statuses->asOf(2026, 11)->all());
+        $this->assertSame(['D1' => 'S3', 'D2' => 'S3'], $statuses->asOf(2027, 1)->all(), 'carried into later years');
+
+        // A blank upload clears the status instead of falling back to an older period.
+        $this->import($this->workbook([['D1', '']]), 2026, 11);
+        $lecturers = DataDosen::query()->orderBy('kode_dosen')->get();
+        $statuses->apply($lecturers, 2026, 11);
+        $this->assertSame([null, 'S3'], $lecturers->pluck('status_pendidikan')->all());
+        $this->assertSame(3, DB::table('lecturer_education_statuses')->count());
+    }
+
+    public function test_migration_keeps_statuses_already_uploaded_to_data_center_rows(): void
+    {
+        (require database_path('migrations/2026_11_03_000000_create_lecturer_education_statuses.php'))->down();
+        app(LecturerWorkbook::class)->import($this->makeWorkbook(['Malang' => [['Kode Dosen', 'Nama Dosen'], ['d1', 'First lecturer']]]), 2025, 12);
+        $batches = DB::table('lecturer_imports')->pluck('id', 'year');
+        DB::table('lecturer_snapshot_rows')->where('lecturer_import_id', $batches[2025])->update(['status_pendidikan' => 'S3']);
+        DB::table('lecturer_snapshot_rows')->where('lecturer_import_id', $batches[2026])->where('kode_dosen', 'D1')
+            ->update(['status_pendidikan' => 'On Going S3']);
+
+        (require database_path('migrations/2026_11_03_000000_create_lecturer_education_statuses.php'))->up();
+        $this->assertEquals([['D1', 2025, 12, 'S3'], ['D1', 2026, 10, 'On Going S3']], DB::table('lecturer_education_statuses')
+            ->orderBy('year')->get()->map(fn ($row) => [$row->kode_dosen, $row->year, $row->month, $row->status_pendidikan])->all());
+        $this->assertSame([], app(LecturerEducationStatuses::class)->asOf(2025, 11)->all());
     }
 
     public function test_invalid_workbooks_and_conflicting_duplicates_keep_all_data_intact(): void
@@ -188,6 +293,7 @@ class LecturerEducationImportTest extends TestCase
         }
         $this->assertSame(0, DB::table('database_dosen_new')->whereNotNull('status_pendidikan')->count());
         $this->assertSame(0, DB::table('lecturer_snapshot_rows')->whereNotNull('status_pendidikan')->count());
+        $this->assertSame(0, DB::table('lecturer_education_statuses')->count());
     }
 
     public function test_routes_require_authentication_and_reject_invalid_mappings(): void
@@ -196,7 +302,7 @@ class LecturerEducationImportTest extends TestCase
             $this->postJson(route($route))->assertUnauthorized();
         }
         $this->actingAs((new User)->forceFill(['id' => 1]));
-        foreach (['null', '{broken', '[]', '{"kode_dosen":0,"status_pendidikan":0}',
+        foreach (['null', '{broken', '[]',
             '{"kode_dosen":0,"status_pendidikan":"7"}', '{"kode_dosen":0,"status_pendidikan":99}',
             '{"kode_dosen":0,"status_pendidikan":7,"pendidikan":1}'] as $mapping) {
             $this->postJson(route('dosen.education.import'), [
@@ -209,6 +315,14 @@ class LecturerEducationImportTest extends TestCase
 
     public function test_migration_can_be_rolled_back_without_removing_lecturer_data(): void
     {
+        (require database_path('migrations/2026_11_03_000000_create_lecturer_education_statuses.php'))->down();
+        $this->assertFalse(Schema::hasTable('lecturer_education_statuses'));
+        try {
+            $this->import($this->workbook());
+            $this->fail('Import needs the education status table.');
+        } catch (ValidationException $exception) {
+            $this->assertStringContainsString('Migrasi status pendidikan', $exception->getMessage());
+        }
         (require database_path('migrations/2026_10_22_000100_add_education_status_to_lecturers.php'))->down();
         $this->assertFalse(Schema::hasColumn('database_dosen_new', 'status_pendidikan'));
         $this->assertFalse(Schema::hasColumn('lecturer_snapshot_rows', 'status_pendidikan'));

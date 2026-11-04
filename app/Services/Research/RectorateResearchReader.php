@@ -37,7 +37,7 @@ class RectorateResearchReader
         'evidence' => 'Evidence',
     ];
 
-    public function read(string $path, ?array $columnMapping = null): array
+    public function read(string $path, ?array $columnMapping = null, ?string $sheet = null): array
     {
         $reader = new Reader;
         $rows = [];
@@ -49,12 +49,23 @@ class RectorateResearchReader
         try {
             $reader->open($path);
             $sheets = [];
-            foreach ($reader->getSheets() as $index => $sheet) {
-                $sheets[$this->normalize($sheet->getName())] = ['index' => $index, 'name' => $sheet->getName()];
+            $names = [];
+            foreach ($reader->getSheets() as $index => $entry) {
+                $sheets[$this->normalize($entry->getName())] = ['index' => $index, 'name' => $entry->getName()];
+                $names[$index] = $entry->getName();
             }
-            $sheet = $sheets['malang'] ?? $sheets['detail'] ?? null;
-            if ($sheet === null) {
-                $this->invalid('Sheet MALANG atau Detail tidak ditemukan. Tidak ada data yang diubah.');
+            if ($sheet !== null) {
+                // The sheet chosen in the mapping preview.
+                $index = array_search($sheet, $names, true);
+                if ($index === false) {
+                    $this->invalid("Sheet {$sheet} tidak ditemukan. Tidak ada data yang diubah.");
+                }
+                $sheet = ['index' => $index, 'name' => $names[$index]];
+            } else {
+                $sheet = $sheets['malang'] ?? $sheets['detail'] ?? null;
+                if ($sheet === null) {
+                    $this->invalid('Sheet MALANG atau Detail tidak ditemukan. Pilih sheet hibah pada pratinjau. Tidak ada data yang diubah.');
+                }
             }
             $summary['sheet'] = $sheet['name'];
             $reader->changeSheet($sheet['index']);

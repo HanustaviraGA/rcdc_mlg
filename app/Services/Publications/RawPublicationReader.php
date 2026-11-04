@@ -14,7 +14,7 @@ class RawPublicationReader
 {
     public const SUBMITTED = ['Non Scopus FM', 'Scopus FM'];
 
-    public function read(string $path, int $year, ?array $userMapping = null): array
+    public function read(string $path, int $year, ?array $userMapping = null, ?string $sheet = null): array
     {
         $reader = new Reader((new ReaderConfiguration)->setReturnUnformatted(true));
         $summary = ['sheet' => 'Raw', 'read' => 0, 'excluded_campus' => 0, 'excluded_submitted' => 0,
@@ -27,14 +27,25 @@ class RawPublicationReader
         try {
             $reader->open($path);
             $sheets = [];
-            foreach ($reader->getSheets() as $index => $sheet) {
-                $sheets[strtolower(trim($sheet->getName()))] = $index;
+            $names = [];
+            foreach ($reader->getSheets() as $index => $entry) {
+                $sheets[strtolower(trim($entry->getName()))] = $index;
+                $names[$index] = $entry->getName();
             }
-            $sheetIndex = $sheets['malang'] ?? $sheets['raw'] ?? null;
-            if ($sheetIndex === null) {
-                $this->invalid('Sheet Raw atau MALANG tidak ditemukan. Data sebelumnya tetap tersimpan.');
+            if ($sheet !== null) {
+                // The sheet chosen in the mapping preview.
+                $sheetIndex = array_search($sheet, $names, true);
+                if ($sheetIndex === false) {
+                    $this->invalid("Sheet {$sheet} tidak ditemukan. Data sebelumnya tetap tersimpan.");
+                }
+                $summary['sheet'] = $sheet;
+            } else {
+                $sheetIndex = $sheets['malang'] ?? $sheets['raw'] ?? null;
+                if ($sheetIndex === null) {
+                    $this->invalid('Sheet Raw atau MALANG tidak ditemukan. Pilih sheet publikasi pada pratinjau. Data sebelumnya tetap tersimpan.');
+                }
+                $summary['sheet'] = isset($sheets['malang']) ? 'MALANG' : 'Raw';
             }
-            $summary['sheet'] = isset($sheets['malang']) ? 'MALANG' : 'Raw';
             $reader->changeSheet($sheetIndex);
             $map = null;
             $headers = [];

@@ -12,6 +12,7 @@
     const fileInputs = [...form.querySelectorAll('input[type="file"]')];
     const modal = document.getElementById('column-mapping-modal');
     const confirmButton = document.getElementById('cm-confirm-btn');
+    const sheetSelect = document.getElementById('cm-sheet-select');
     const csrfToken = '{{ csrf_token() }}';
     // A confirmation belongs to the actual File object, never just its name/type.
     const files = new Map();
@@ -28,10 +29,7 @@
                 updateActionButtons();
                 return;
             }
-            files.set(input.name, {
-                file: input.files[0], preview: null, mapping: null,
-                draft: null, status: 'pending',
-            });
+            files.set(input.name, newState(input.files[0]));
             updateActionButtons();
             openMappingModal(input);
         });
@@ -57,6 +55,52 @@
     });
 
     modal.addEventListener('hide.bs.modal', closePreview);
+
+    // The picker belongs to the part on screen. Another sheet has other columns, so its
+    // preview and mapping start over; the other parts keep their sheets and mappings.
+    sheetSelect.addEventListener('change', () => {
+        if (!active || processing) return;
+        const { input, state } = active;
+        if (state.role === 'main') {
+            if (!sheetSelect.value || (sheetSelect.value === state.sheet && state.preview)) return;
+            state.sheet = sheetSelect.value;
+            state.draft = null;
+        } else {
+            // An empty value: this optional sheet is not used.
+            const sheet = sheetSelect.value || null;
+            if (sheet === (state.extra[state.role]?.sheet ?? null) && state.preview) return;
+            state.extra[state.role] = { sheet, draft: null, mapping: null };
+        }
+        state.preview = null;
+        state.mapping = null;
+        state.status = 'pending';
+        updateFileInputBadge(input);
+        updateActionButtons();
+        openMappingModal(input);
+    });
+
+    function newState(file) {
+        return { file, preview: null, mapping: null, draft: null, status: 'pending', sheet: null, sheets: [], extra: {}, role: 'main' };
+    }
+
+    function renderSheetPicker(state) {
+        const role = state.role || 'main';
+        const info = active?.state === state ? active.roles?.[role] : null;
+        const names = state.sheets || [];
+        document.getElementById('cm-sheet-picker').hidden = !names.length;
+        const options = (role === 'main' ? [] : [['', '— Tidak digunakan —']]).concat(names.map(name => [name, name]));
+        sheetSelect.replaceChildren(...options.map(([value, text]) => {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = text;
+            return option;
+        }));
+        sheetSelect.value = (role === 'main' ? state.sheet : state.extra[role]?.sheet) ?? '';
+        document.getElementById('cm-sheet-label').textContent = info
+            ? `Sheet untuk ${info.label}${info.expected ? ` (default: ${info.expected})` : ''}`
+            : 'Sheet yang digunakan';
+        document.getElementById('cm-sheet-help').textContent = `${info?.description ? `${info.description} ` : ''}Sheet default dipilih otomatis. Pilih sheet lain bila data berada di sheet berbeda; preview dan pemetaan akan dimuat ulang.`;
+    }
 
     function selectedState(input) {
         const state = files.get(input.name);
@@ -96,11 +140,12 @@
         closePreview();
         let state = selectedState(input);
         if (!state) {
-            state = { file: input.files[0], preview: null, mapping: null, draft: null, status: 'pending' };
+            state = newState(input.files[0]);
             files.set(input.name, state);
         }
         const session = { input, state, config: null, headers: [], previewData: [], phase: 'loading' };
         active = session;
+        renderSheetPicker(state);
         setMappingModalState('loading');
         bootstrap.Modal.getOrCreateInstance(modal).show();
 
@@ -118,6 +163,11 @@
             formData.append('file', state.file);
             formData.append('type', input.name);
             formData.append('year', form.querySelector('[name="year"]').value);
+            // Without a chosen sheet the server uses the importer's default sheet.
+            if (state.sheet) formData.append('sheet', state.sheet);
+            // Supporting sheets already shown keep their choice ('' = not used).
+            const chosen = Object.entries(state.extra).filter(([, extra]) => extra.sheet !== undefined);
+            if (chosen.length) formData.append('extra_sheets', JSON.stringify(Object.fromEntries(chosen.map(([role, extra]) => [role, extra.sheet ?? '']))));
             formData.append('_token', csrfToken);
             const response = await fetch('{{ route("importrectorate.preview-columns") }}', {
                 method: 'POST', headers: { 'Accept': 'application/json' },
@@ -126,6 +176,17 @@
             const data = await response.json();
             // Abort is best-effort; identity guards also reject already-resolved responses.
             if (active !== session || selectedState(input) !== state) return;
+            // The upload always reads the sheet shown in this preview.
+            if (Array.isArray(data.sheets)) state.sheets = data.sheets;
+            if (response.ok && data.success && data.file_info?.sheet) state.sheet = data.file_info.sheet;
+            if (response.ok && data.success) {
+                Object.entries(data.extra_roles || {}).forEach(([role, entry]) => {
+                    const extra = state.extra[role] ??= { draft: null, mapping: null };
+                    if (extra.sheet !== undefined && extra.sheet !== (entry.sheet ?? null)) extra.draft = null;
+                    extra.sheet = entry.sheet ?? null;
+                });
+            }
+            renderSheetPicker(state);
             if (!response.ok || !data.success) {
                 throw new Error(Object.values(data.errors || {}).flat().join(' ') || data.message || 'Gagal membaca file.');
             }
@@ -147,22 +208,122 @@
 
     function renderMappingModal(data, session) {
         const config = data.mapping_config;
+        if (Array.isArray(data.headers) && !data.headers.length && data.file_info?.sheet) {
+            throw new Error(`Sheet ${data.file_info.sheet} tidak berisi data. Pilih sheet lain.`);
+        }
         if (!config || !config.required || !config.optional || !Array.isArray(data.headers) || !data.headers.length) {
             throw new Error('Konfigurasi pemetaan atau header file tidak tersedia. Silakan coba lagi.');
         }
-        // Set config BEFORE rendering controls and running the initial validation.
-        session.config = config;
-        session.headers = data.headers;
-        session.previewData = data.preview_data || [];
+        // The main sheet, then each supporting sheet (KPI, LIST, ...) with its own columns.
+        const main = data.main_role || {};
+        session.roles = {
+            main: {
+                label: main.label || 'Data utama', expected: main.expected || '', description: main.description || '',
+                sheet: data.file_info?.sheet || data.sheet || '-', config, headers: data.headers,
+                previewData: data.preview_data || [], suggested: data.suggested_mapping || {},
+            },
+        };
+        Object.entries(data.extra_roles || {}).forEach(([role, entry]) => {
+            session.roles[role] = {
+                label: entry.label || role, expected: entry.expected || '', description: entry.description || '',
+                sheet: entry.sheet ?? null, config: entry.mapping_config || { required: {}, optional: {} },
+                headers: entry.headers || [], previewData: entry.preview_data || [], suggested: entry.suggested_mapping || {},
+            };
+        });
         document.getElementById('cm-file-name').textContent = data.file_info?.name || session.state.file.name;
-        document.getElementById('cm-sheet-name').textContent = data.file_info?.sheet || data.sheet || '-';
-        document.getElementById('cm-col-count').textContent = session.headers.length;
-        renderMappingRows(session, session.state.draft ?? session.state.mapping ?? data.suggested_mapping ?? {});
-        renderPreviewTable(session.headers, session.previewData);
         confirmButton.onclick = () => confirmMapping(session);
         setMappingModalState('content');
+        showRole(session, session.roles[session.state.role] ? session.state.role : 'main');
+    }
+
+    function showRole(session, role) {
+        const data = session.roles[role];
+        session.role = role;
+        session.state.role = role;
+        // Set config BEFORE rendering controls and running the validation.
+        session.config = data.config;
+        session.headers = data.headers;
+        session.previewData = data.previewData;
+        renderSheetPicker(session.state);
+        document.getElementById('cm-sheet-name').textContent = data.sheet || 'Tidak digunakan';
+        document.getElementById('cm-col-count').textContent = data.headers.length;
+        const mappable = role === 'main' || (!!data.sheet && data.headers.length > 0);
+        document.getElementById('cm-role-body').hidden = !mappable;
+        document.getElementById('cm-role-notice').hidden = mappable;
+        document.getElementById('cm-role-notice-text').textContent = data.sheet
+            ? `Sheet ${data.sheet} tidak berisi data. Pilih sheet lain atau Tidak digunakan.`
+            : `Sheet ${data.label} tidak digunakan. ${data.description}`;
+        renderMappingRows(session, mappable ? storedMapping(session, role) : {});
+        renderPreviewTable(mappable ? session.headers : [], mappable ? session.previewData : []);
         revalidateMapping();
         updatePreviewHighlight();
+    }
+
+    function renderRoleTabs(session, issues) {
+        const roles = Object.entries(session.roles);
+        document.getElementById('cm-role-tabs').hidden = roles.length < 2;
+        document.getElementById('cm-role-list').replaceChildren(...roles.map(([role, data]) => {
+            const button = document.createElement('button');
+            const current = role === session.role;
+            button.type = 'button';
+            button.dataset.role = role;
+            button.className = `btn btn-sm ${current ? 'btn-primary' : 'btn-light'}`;
+            button.setAttribute('aria-pressed', String(current));
+            button.innerHTML = `${escHtml(data.label)} <span class="badge ${current ? 'bg-white text-primary' : 'bg-secondary-subtle text-secondary'} ms-1">${escHtml(data.sheet || 'Tidak digunakan')}</span>`
+                + (issues[role]?.length ? ' <i class="bi bi-exclamation-circle-fill text-danger" title="Perlu diperbaiki"></i>' : '');
+            button.addEventListener('click', () => {
+                if (active === session && !processing && session.role !== role) showRole(session, role);
+            });
+            return button;
+        }));
+    }
+
+    // The mapping a part shows: its own changes, its confirmation, or the server suggestion.
+    function storedMapping(session, role) {
+        const state = session.state;
+        const own = role === 'main' ? state : state.extra[role];
+        return own?.draft ?? own?.mapping ?? session.roles[role].suggested ?? {};
+    }
+
+    // What a select would keep of a stored mapping: whole column indexes of this sheet.
+    function usableMapping(mapping, headers) {
+        return Object.fromEntries(Object.entries(mapping)
+            .filter(([, index]) => index !== null && index !== undefined && /^\d+$/.test(String(index)) && Number(index) < headers.length)
+            .map(([field, index]) => [field, Number(index)]));
+    }
+
+    function roleMapping(session, role) {
+        return role === session.role ? getCurrentMappingFromSelects() : usableMapping(storedMapping(session, role), session.roles[role].headers);
+    }
+
+    function roleIssues(session, role, mapping) {
+        const data = session.roles[role];
+        const problems = [];
+        const optional = [];
+        const invalid = new Set();
+        // An optional supporting sheet may be left out.
+        if (role !== 'main' && !data.sheet) return { problems, optional, invalid };
+        if (role !== 'main' && !data.headers.length) {
+            problems.push(`Sheet ${data.sheet} untuk ${data.label} tidak berisi data. Pilih sheet lain atau Tidak digunakan.`);
+            return { problems, optional, invalid };
+        }
+        const fields = { ...data.config.required, ...data.config.optional };
+        Object.entries(fields).forEach(([field, label]) => {
+            const index = mapping[field];
+            if (index === undefined) {
+                if (Object.hasOwn(data.config.required, field)) {
+                    problems.push(`${label} wajib dipetakan.`);
+                    invalid.add(field);
+                } else {
+                    optional.push(label);
+                }
+            } else if (!Number.isInteger(index) || index < 0 || index >= data.headers.length) {
+                // One source column may feed several target fields.
+                problems.push(`Kolom sumber untuk ${label} tidak valid.`);
+                invalid.add(field);
+            }
+        });
+        return { problems, optional, invalid };
     }
 
     function renderMappingRows(session, mapping) {
@@ -207,7 +368,8 @@
             select.addEventListener('change', () => {
                 if (active !== session) return;
                 session.state.mapping = null;
-                session.state.draft = getCurrentMappingFromSelects();
+                if (session.role === 'main') session.state.draft = getCurrentMappingFromSelects();
+                else (session.state.extra[session.role] ??= {}).draft = getCurrentMappingFromSelects();
                 session.state.status = 'pending';
                 updateExampleValue(tr, select.value);
                 updatePreviewHighlight();
@@ -277,33 +439,16 @@
             confirmButton.disabled = true;
             return false;
         }
+        const session = active;
         const mapping = getCurrentMappingFromSelects();
-        const problems = [];
-        const optional = [];
-        const used = new Map();
-        const invalid = new Set();
-        const fields = { ...active.config.required, ...active.config.optional };
-        Object.entries(fields).forEach(([field, label]) => {
-            const index = mapping[field];
-            if (index === undefined) {
-                if (Object.hasOwn(active.config.required, field)) {
-                    problems.push(`${label} wajib dipetakan.`);
-                    invalid.add(field);
-                } else {
-                    optional.push(label);
-                }
-            } else if (!Number.isInteger(index) || index < 0 || index >= active.headers.length) {
-                problems.push(`Kolom sumber untuk ${label} tidak valid.`);
-                invalid.add(field);
-            } else if (used.has(index)) {
-                const other = used.get(index);
-                problems.push(`${label} dan ${fields[other]} menggunakan kolom sumber yang sama. Pilih kolom yang berbeda.`);
-                invalid.add(field);
-                invalid.add(other);
-            } else {
-                used.set(index, field);
-            }
+        const { problems, optional, invalid } = roleIssues(session, session.role, mapping);
+        // Every part is confirmed at once, so the other parts must be valid too.
+        const issues = { [session.role]: [...problems] };
+        Object.keys(session.roles).filter(role => role !== session.role).forEach(role => {
+            issues[role] = roleIssues(session, role, roleMapping(session, role)).problems;
+            if (issues[role].length) problems.push(`Sheet ${session.roles[role].label}: ${issues[role].join(' ')}`);
         });
+        renderRoleTabs(session, issues);
         document.querySelectorAll('#cm-mapping-rows select').forEach(select => {
             const field = select.dataset.field;
             const bad = invalid.has(field);
@@ -329,9 +474,15 @@
 
     function confirmMapping(session) {
         if (processing || active !== session || selectedState(session.input) !== session.state || !revalidateMapping()) return;
-        session.state.mapping = getCurrentMappingFromSelects();
-        session.state.draft = { ...session.state.mapping };
-        session.state.status = 'confirmed';
+        const state = session.state;
+        state.mapping = roleMapping(session, 'main');
+        state.draft = { ...state.mapping };
+        Object.keys(session.roles).filter(role => role !== 'main').forEach(role => {
+            const sheet = session.roles[role].sheet ?? null;
+            const mapping = sheet ? roleMapping(session, role) : null;
+            state.extra[role] = { sheet, mapping, draft: mapping && { ...mapping } };
+        });
+        state.status = 'confirmed';
         updateFileInputBadge(session.input);
         updateActionButtons();
         bootstrap.Modal.getOrCreateInstance(modal).hide();
@@ -345,6 +496,7 @@
         document.getElementById('cm-error-message').textContent = message;
         document.getElementById('cm-validation-banner').hidden = true;
         document.getElementById('cm-ready-badge').hidden = true;
+        sheetSelect.disabled = phase === 'loading' || processing;
         // Only validation may enable confirmation, not a visibility transition.
         confirmButton.disabled = true;
         if (phase !== 'content') confirmButton.onclick = null;
@@ -404,6 +556,14 @@
         // Each request contains only the source chosen with its own upload button.
         formData.append(input.name, state.file);
         formData.append(`column_mapping[${input.name}]`, JSON.stringify(state.mapping));
+        if (state.sheet) formData.append(`sheet[${input.name}]`, state.sheet);
+        // Each supporting sheet confirmed in the preview, or null when it is not used.
+        const roles = Object.keys(state.preview?.extra_roles || {});
+        if (roles.length) {
+            formData.append(`extra_sheets[${input.name}]`, JSON.stringify(Object.fromEntries(roles.map(role => [role, {
+                sheet: state.extra[role]?.sheet ?? null, column_mapping: state.extra[role]?.mapping ?? null,
+            }]))));
+        }
         const originalLabel = button.innerHTML;
         setProcessing(true);
         closePreview();

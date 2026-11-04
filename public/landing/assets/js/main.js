@@ -41,6 +41,8 @@
    */
   document.querySelectorAll('#navmenu a').forEach(navmenu => {
     navmenu.addEventListener('click', () => {
+      // A dropdown's own link opens its list instead of leaving the menu.
+      if (navmenu.parentElement.classList.contains('dropdown')) return;
       if (document.querySelector('.mobile-nav-active')) {
         mobileNavToogle();
       }
@@ -49,14 +51,15 @@
   });
 
   /**
-   * Toggle mobile nav dropdowns
+   * Toggle mobile nav dropdowns from the whole parent link, not only its chevron. On desktop
+   * the list opens on hover or keyboard focus, so the parent link only stays in place.
    */
-  document.querySelectorAll('.navmenu .toggle-dropdown').forEach(navmenu => {
+  document.querySelectorAll('.navmenu .dropdown > a').forEach(navmenu => {
     navmenu.addEventListener('click', function(e) {
       e.preventDefault();
-      this.parentNode.classList.toggle('active');
-      this.parentNode.nextElementSibling.classList.toggle('dropdown-active');
-      e.stopImmediatePropagation();
+      if (!document.querySelector('.mobile-nav-active')) return;
+      this.classList.toggle('active');
+      this.nextElementSibling.classList.toggle('dropdown-active');
     });
   });
 

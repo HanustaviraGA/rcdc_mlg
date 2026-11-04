@@ -24,10 +24,14 @@
                     </div>
                     <label for="dosenEducationFile" class="required form-label">Status Pendidikan (.xlsx)</label>
                     <input type="file" accept=".xlsx" required id="dosenEducationFile" class="form-control" onchange="previewDosenEducationWorkbook()">
-                    <p class="text-muted mt-3">Membaca sheet <strong>Detail Jenjang Pendidikan</strong>. Secara otomatis, Kode Dosen diambil dari kolom A dan Status Pendidikan dari kolom H (Pendidikan), misalnya S3 atau On Going S3. Periksa pratinjau dan konfirmasikan pemetaan sebelum mengunggah. Maksimal 20 MB.</p>
-                    <p class="text-muted">Unggah Data Center pada tahun dan bulan terpilih terlebih dahulu. Hanya status pendidikan dosen yang cocok berdasarkan Kode Dosen pada periode tersebut yang diperbarui. Nilai Pendidikan yang kosong mengosongkan status dosen tersebut. Dosen lain dan Pendidikan Terakhir tetap tersimpan.</p>
+                    <p class="text-muted mt-3">Secara otomatis membaca sheet <strong>Detail Jenjang Pendidikan</strong>; pilih sheet lain pada pratinjau bila data berada di sheet berbeda. Secara otomatis, Kode Dosen diambil dari kolom A dan Status Pendidikan dari kolom H (Pendidikan), misalnya S3 atau On Going S3. Periksa pratinjau dan konfirmasikan pemetaan sebelum mengunggah. Maksimal 20 MB.</p>
+                    <p class="text-muted">Unggah Data Center pada tahun dan bulan terpilih terlebih dahulu. Hanya status pendidikan dosen yang cocok berdasarkan Kode Dosen pada periode tersebut yang diperbarui. Nilai Pendidikan yang kosong mengosongkan status dosen tersebut. Dosen lain dan Pendidikan Terakhir tetap tersimpan. Status disimpan terpisah dari Data Center, sehingga tetap berlaku pada periode berikutnya dan setelah Data Center diunggah ulang, sampai diperbarui lagi.</p>
                     <p id="dosenEducationPreviewStatus" role="status" aria-live="polite"></p>
-                    <button type="button" id="dosenEducationPreviewRetry" class="btn btn-sm btn-light-primary d-none mb-3" onclick="previewDosenEducationWorkbook()">Coba pratinjau lagi</button>
+                    <button type="button" id="dosenEducationPreviewRetry" class="btn btn-sm btn-light-primary d-none mb-3" onclick="previewDosenEducationWorkbook(dosenEducationState.sheet)">Coba pratinjau lagi</button>
+                    <div id="dosenEducationSheetControls" class="d-none mb-4">
+                        <label for="dosenEducationSheet" class="form-label fw-bold">Sheet status pendidikan</label>
+                        <select id="dosenEducationSheet" class="form-select" onchange="previewDosenEducationWorkbook(this.value)"></select>
+                    </div>
                     <div id="dosenEducationMappingPanel" class="d-none">
                         <p id="dosenEducationSheetInfo" class="fw-bold"></p>
                         <h3 class="fs-5">Pemetaan kolom</h3>

@@ -10,35 +10,46 @@ class ColumnMapperService
     /**
      * Baca header dari file Excel dan berikan preview data
      */
-    public function preview(string $path, ?string $importType = null): array
+    public function preview(string $path, ?string $importType = null, ?string $sheet = null): array
     {
         $reader = new Reader;
         $sheets = [];
+        $names = [];
         $previewData = [];
 
         try {
             $reader->open($path);
 
             // Ambil semua sheets
-            foreach ($reader->getSheets() as $index => $sheet) {
-                $sheets[$this->normalize($sheet->getName())] = [
+            foreach ($reader->getSheets() as $index => $entry) {
+                $sheets[$this->normalize($entry->getName())] = [
                     'index' => $index,
-                    'name' => $sheet->getName(),
+                    'name' => $entry->getName(),
                 ];
+                $names[$index] = $entry->getName();
             }
 
-            // Cari sheet yang tersedia
-            $sheetToRead = $this->selectBestSheet($sheets, $importType);
+            // A chosen sheet must exist; otherwise use the importer's default sheet,
+            // or the first sheet so the user can pick the right one.
+            if ($sheet !== null) {
+                $index = array_search($sheet, $names, true);
+                $selected = $index === false ? null : ['index' => $index, 'name' => $names[$index]];
+            } else {
+                $default = $this->selectBestSheet($sheets, $importType);
+                $selected = $default !== null ? $sheets[$default]
+                    : ($names ? ['index' => array_key_first($names), 'name' => reset($names)] : null);
+            }
 
-            if ($sheetToRead === null) {
+            if ($selected === null) {
                 return [
                     'success' => false,
-                    'message' => 'Tidak ada sheet yang sesuai ditemukan',
-                    'available_sheets' => array_column($sheets, 'name'),
+                    'message' => $sheet !== null ? "Sheet {$sheet} tidak ditemukan pada file." : 'Workbook tidak memiliki sheet.',
+                    'available_sheets' => array_values($names),
+                    'sheets' => array_values($names),
                 ];
             }
 
-            $reader->changeSheet($sheets[$sheetToRead]['index']);
+            $reader->changeSheet($selected['index']);
 
             $rowCount = 0;
             $headers = null;
@@ -76,8 +87,8 @@ class ColumnMapperService
 
             return [
                 'success' => true,
-                'sheet' => $sheets[$sheetToRead]['name'],
-                'sheets' => array_values(array_column($sheets, 'name')),
+                'sheet' => $selected['name'],
+                'sheets' => array_values($names),
                 'headers' => $headers ?? [],
                 'preview_data' => $previewData,
                 'total_columns' => count($headers ?? []),
@@ -96,6 +107,7 @@ class ColumnMapperService
             'fm_file' => $this->getFmMappingConfig(),
             'mhs_file' => $this->getMhsMappingConfig(),
             'research_file' => $this->getResearchMappingConfig(),
+            'fm_kpi', 'mhs_list', 'mhs_title', 'report_realization', 'report_scoring' => $this->getSupportingSheetConfig($importType),
             'pkm_ratio' => $this->getPkmRatioMappingConfig(),
             'pkm_involvement' => $this->getPkmInvolvementMappingConfig(),
             'pkm_partners' => [
@@ -156,20 +168,7 @@ class ColumnMapperService
             }
         }
 
-        $used = [];
-        foreach ($mapping as $field => $index) {
-            if ($index === '' || $index === null || ! isset($fields[$field])
-                || ! (is_int($index) || (is_string($index) && ctype_digit($index)))) {
-                continue;
-            }
-            $index = (int) $index;
-            if (isset($used[$index]) && $used[$index] !== $field) {
-                $errors[$field] = "Kolom sumber {$index} sudah dipetakan ke '{$fields[$used[$index]]}'.";
-            } else {
-                $used[$index] = $field;
-            }
-        }
-
+        // One source column may feed several target fields.
         foreach ($required as $field => $label) {
             if (! array_key_exists($field, $mapping) || $mapping[$field] === '' || $mapping[$field] === null) {
                 $errors[$field] = "Kolom '{$label}' wajib dipetakan";
@@ -377,6 +376,52 @@ class ColumnMapperService
     private function normalize(string $value): string
     {
         return strtolower(trim(preg_replace('/\s+/u', ' ', str_replace("\xC2\xA0", ' ', $value))));
+    }
+
+    /**
+     * Columns of the supporting sheets read next to MALANG/Raw (see WorkbookSheetRoles).
+     * Labels follow the headers those sheets normally carry.
+     */
+    private function getSupportingSheetConfig(string $importType): array
+    {
+        return match ($importType) {
+            'fm_kpi' => [
+                'required' => [
+                    'kode_dosen' => 'Kode Dosen', 'name' => 'Nama Dosen', 'program' => 'Jurusan Binaan',
+                    'academic_rank' => 'JJA', 'faculty_type' => 'Faculty Type', 'rtto_non_scopus' => 'Non Scopus RTTO',
+                    'rtto_scopus' => 'Scopus RTTO', 'rtto_score' => 'Score KPI RTTO',
+                ],
+                // Values Excel already calculated; only compared with the system calculation.
+                'optional' => [
+                    'rectorate_non_scopus' => 'Non Scopus Rectorate', 'rectorate_scopus' => 'Scopus Rectorate',
+                    'non_scopus' => 'Non Scopus', 'scopus' => 'Scopus', 'first_author' => 'Jumlah First Author', 'score' => 'Score KPI',
+                ],
+                'aliases' => ['kode_dosen' => ['kode_dosen'], 'program' => ['jurusan', 'prodi'], 'faculty_type' => ['tipe faculty']],
+            ],
+            'mhs_list' => [
+                'required' => ['program' => 'Prodi', 'name' => 'MHS Author', 'title' => 'Title'],
+                'optional' => [],
+                'aliases' => ['program' => ['prodi mhs', 'program studi'], 'name' => ['nama mahasiswa', 'fm author'], 'title' => ['judul']],
+            ],
+            'mhs_title' => [
+                'required' => ['label' => 'Prodi (label baris rekap)', 'count' => 'Jumlah Scopus'],
+                'optional' => [],
+                'aliases' => ['label' => ['tipe publikasi', 'row labels', 'prodi'], 'count' => ['scopus', 'count of title']],
+            ],
+            'report_realization' => [
+                'required' => ['unit' => 'Unit Name'],
+                'optional' => ['target' => 'Target', 'realization' => 'Realization'],
+                'aliases' => ['unit' => ['unit', 'nama unit'], 'realization' => ['realisasi']],
+            ],
+            'report_scoring' => [
+                'required' => ['unit' => 'Unit Name'],
+                'optional' => array_combine(
+                    array_map(fn ($score) => "score_{$score}", range(1, 6)),
+                    array_map(fn ($score) => "Score {$score}", range(1, 6))
+                ),
+                'aliases' => ['unit' => ['unit', 'nama unit']],
+            ],
+        };
     }
 
     private function getPkmRatioMappingConfig(): array

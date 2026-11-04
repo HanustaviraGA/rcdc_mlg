@@ -44,17 +44,17 @@ class LecturerWorkbook
         'no_hp_2' => 'No HP2', 'email_1' => 'Email 1', 'email_2' => 'Email 2',
         'bn_id' => 'Binusian ID', 'nama_kelompok_rumpun_ilmu' => 'Nama Kelompok Rumpun Ilmu',
         'nama_rumpun_ilmu' => 'Nama Rumpun Ilmu', 'tipe_faculty' => 'Tipe Faculty',
-        'note' => 'NOTE',
+        'note' => 'NOTE', 'agama' => 'Agama',
     ];
 
     private const REQUIRED_FIELDS = ['kode_dosen', 'nama_dosen', 'nama_gugus_binaan', 'jja', 'tipe_faculty', 'status', 'pendidikan'];
 
-    public function preview(string $path): array
+    public function preview(string $path, ?string $sheet = null): array
     {
         $reader = new Reader;
         try {
             $reader->open($path);
-            $sheet = $this->selectSheet($reader);
+            $sheet = $this->selectSheet($reader, $sheet, true);
             $reader->changeSheet($sheet['index']);
             $candidates = [];
             foreach ($reader as $number => $row) {
@@ -67,8 +67,12 @@ class LecturerWorkbook
                     break;
                 }
             }
+            $required = array_intersect_key(self::HEADERS, array_flip(self::REQUIRED_FIELDS));
+            $config = ['required' => $required, 'optional' => array_diff_key(self::HEADERS, $required)];
             if (! $candidates) {
-                $this->invalid('Sheet dosen kosong.');
+                // Keep the sheet list so another sheet can be chosen.
+                return ['sheet' => $sheet['name'], 'sheets' => $sheet['sheets'], 'header_row' => 1, 'headers' => [],
+                    'preview_data' => [], 'mapping_config' => $config, 'suggested_mapping' => []];
             }
             $header = $candidates[0];
             foreach ($candidates as $candidate) {
@@ -84,12 +88,11 @@ class LecturerWorkbook
                     $mapping[$field] = $matches[0];
                 }
             }
-            $required = array_intersect_key(self::HEADERS, array_flip(self::REQUIRED_FIELDS));
 
             return [
-                'sheet' => $sheet['name'], 'header_row' => $header['number'], 'headers' => array_values($header['cells']),
+                'sheet' => $sheet['name'], 'sheets' => $sheet['sheets'], 'header_row' => $header['number'], 'headers' => array_values($header['cells']),
                 'preview_data' => array_values(array_map(fn ($row) => array_values($row['cells']), array_slice(array_filter($candidates, fn ($row) => $row['number'] > $header['number']), 0, 5))),
-                'mapping_config' => ['required' => $required, 'optional' => array_diff_key(self::HEADERS, $required)],
+                'mapping_config' => $config,
                 'suggested_mapping' => $mapping,
             ];
         } finally {
@@ -102,18 +105,35 @@ class LecturerWorkbook
         return $value instanceof DateTimeInterface ? $value->format('Y-m-d') : trim((string) $value);
     }
 
-    private function selectSheet(Reader $reader): array
+    /**
+     * A chosen sheet must exist. Without a choice, use the Malang sheet; a preview
+     * falls back to the first sheet so the user can pick the right one.
+     */
+    private function selectSheet(Reader $reader, ?string $requested = null, bool $fallback = false): array
     {
         $sheets = [];
+        $names = [];
         foreach ($reader->getSheets() as $index => $sheet) {
             $sheets[$this->normalize($sheet->getName())] = ['index' => $index, 'name' => $sheet->getName()];
+            $names[$index] = $sheet->getName();
+        }
+        if ($requested !== null) {
+            $index = array_search($requested, $names, true);
+            if ($index === false) {
+                $this->invalid("Sheet {$requested} tidak ditemukan pada file.");
+            }
+
+            return ['index' => $index, 'name' => $names[$index], 'sheets' => array_values($names)];
         }
         $selected = $sheets['malang'] ?? $sheets['fm malang'] ?? $sheets['fm binus malang'] ?? null;
+        if ($selected === null && $fallback && $names) {
+            $selected = ['index' => array_key_first($names), 'name' => reset($names)];
+        }
         if ($selected === null) {
-            $this->invalid('Sheet Malang, FM Malang, atau FM BINUS Malang tidak ditemukan.');
+            $this->invalid('Sheet Malang, FM Malang, atau FM BINUS Malang tidak ditemukan. Pilih sheet data dosen pada pratinjau.');
         }
 
-        return $selected;
+        return $selected + ['sheets' => array_values($names)];
     }
 
     private function userMap(array $mapping, array $headers): array
@@ -133,10 +153,7 @@ class LecturerWorkbook
                 $errors["column_mapping.$field"] = 'Sumber kolom tidak valid.';
             }
         }
-        $indices = array_filter($mapping, is_int(...));
-        if (count(array_unique($indices)) !== count($indices)) {
-            $errors['column_mapping'] = 'Setiap kolom file hanya boleh dipetakan ke satu kolom tujuan.';
-        }
+        // One source column may feed several target fields.
         foreach (self::REQUIRED_FIELDS as $field) {
             if (! isset($mapping[$field]) || $mapping[$field] === '') {
                 $errors["column_mapping.$field"] = 'Kolom '.self::HEADERS[$field].' wajib dipetakan.';
@@ -149,7 +166,7 @@ class LecturerWorkbook
         return $mapping;
     }
 
-    public function read(string $path, ?array $columnMapping = null, ?int $headerRow = null): array
+    public function read(string $path, ?array $columnMapping = null, ?int $headerRow = null, ?string $sheet = null): array
     {
         if ($columnMapping !== null && ($headerRow === null || $headerRow < 1 || $headerRow > 1000)) {
             throw ValidationException::withMessages(['header_row' => 'Baris header pemetaan tidak valid.']);
@@ -162,7 +179,7 @@ class LecturerWorkbook
         $policy = new ImportPolicy('dosen_data_center', 'dosen');
         try {
             $reader->open($path);
-            $sheet = $this->selectSheet($reader);
+            $sheet = $this->selectSheet($reader, $sheet);
             $reader->changeSheet($sheet['index']);
             foreach ($reader as $number => $row) {
                 $row = array_map(fn ($value) => $value instanceof DateTimeInterface ? $value->format('Y-m-d') : trim((string) $value), $row);
@@ -241,7 +258,7 @@ class LecturerWorkbook
         ])];
     }
 
-    public function import(string $path, ?int $year = null, ?int $month = null, ?array $columnMapping = null, ?int $headerRow = null, ?string $filename = null): array
+    public function import(string $path, ?int $year = null, ?int $month = null, ?array $columnMapping = null, ?int $headerRow = null, ?string $filename = null, ?string $sheet = null): array
     {
         if ($year === null && $month === null && Schema::hasTable('lecturer_imports')) {
             $year = (int) now()->year;
@@ -250,7 +267,7 @@ class LecturerWorkbook
         if (($year === null) !== ($month === null) || ($year !== null && ($year < 2000 || $year > 2100 || $month < 1 || $month > 12))) {
             $this->invalid('Tahun dan bulan update tidak valid.');
         }
-        $parsed = $this->read($path, $columnMapping, $headerRow);
+        $parsed = $this->read($path, $columnMapping, $headerRow, $sheet);
 
         return DB::transaction(function () use ($parsed, $year, $month, $columnMapping, $filename) {
             $created = 0;

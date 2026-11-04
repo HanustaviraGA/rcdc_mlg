@@ -10,11 +10,11 @@
 @section('content')
 <section class="portal-hero">
     <div class="container">
-        <nav class="portal-breadcrumb" aria-label="Breadcrumb"><a href="{{ route('home') }}">Home</a><span aria-hidden="true">/</span><span aria-current="page">Dashboard Comdev</span></nav>
+        <nav class="portal-breadcrumb" aria-label="Breadcrumb"><a href="{{ route('home') }}">Home</a><span aria-hidden="true">/</span><span aria-current="page">Dashboard ComDev</span></nav>
         <div class="portal-hero-grid">
             <div>
                 <span class="portal-eyebrow">PENGABDIAN &amp; KOMUNITAS BINAAN</span>
-                <h1>Dashboard <span>Comdev.</span></h1>
+                <h1>Dashboard <span>ComDev.</span></h1>
                 <p class="portal-intro">Telusuri kegiatan pengabdian dosen dan perkembangan komunitas binaan BINUS Malang.</p>
                 <p class="portal-caption">Community Development · Kontribusi dosen dan kemitraan masyarakat</p>
                 @auth<a class="portal-link" href="{{ url('/dashboard/importpkm') }}">Import data PKM dan mitra <i class="bi bi-arrow-right" aria-hidden="true"></i></a>@endauth

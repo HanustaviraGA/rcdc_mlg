@@ -209,6 +209,22 @@ class LecturerManagementTest extends TestCase
         $this->assertSame(9, array_sum($response->viewData('pendidikanData')));
     }
 
+    public function test_home_education_chart_uses_the_uploaded_status_that_data_center_uploads_cannot_erase(): void
+    {
+        DataDosen::find('D001')->update(['pendidikan' => 'S2']);
+        DataDosen::create(['kode_dosen' => 'D002', 'nama_dosen' => 'D002', 'pendidikan' => 'S2']);
+        (require database_path('migrations/2026_10_22_000000_create_lecturer_snapshots.php'))->up();
+        (require database_path('migrations/2026_10_22_000100_add_education_status_to_lecturers.php'))->up();
+        (require database_path('migrations/2026_11_03_000000_create_lecturer_education_statuses.php'))->up();
+        // The master column was emptied by a Data Center upload; the uploaded status still counts.
+        DB::table('lecturer_education_statuses')->insert([
+            'kode_dosen' => 'D001', 'year' => now()->year - 1, 'month' => 12, 'status_pendidikan' => 'On Going S3',
+        ]);
+
+        $response = $this->get(route('home'))->assertOk();
+        $this->assertSame([1, 0, 1], $response->viewData('pendidikanData'));
+    }
+
     public function test_home_education_chart_keeps_three_categories_before_education_status_migration(): void
     {
         Schema::create('v_statistik_prodi', function (Blueprint $table) {

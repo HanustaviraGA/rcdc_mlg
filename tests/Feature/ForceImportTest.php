@@ -42,6 +42,7 @@ class ForceImportTest extends TestCase
         DataDosen::create(['kode_dosen' => 'D1', 'nama_dosen' => 'Original', 'pendidikan' => 'S2']);
         (require database_path('migrations/2026_10_22_000000_create_lecturer_snapshots.php'))->up();
         (require database_path('migrations/2026_10_22_000100_add_education_status_to_lecturers.php'))->up();
+        (require database_path('migrations/2026_11_03_000000_create_lecturer_education_statuses.php'))->up();
         Schema::create('rectorate_dosen', function (Blueprint $table) {
             $table->string('id_rectorate')->primary();
             foreach (['request_code', 'author', 'fm_author', 'kode_dosen', 'jja', 'pendidikan', 'type', 's_f', 'dept',

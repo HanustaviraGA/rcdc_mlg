@@ -2,7 +2,7 @@
     <form id="pkmImportForm" class="card card-bordered mb-5" enctype="multipart/form-data">
         <div class="card-header"><h3 class="card-title">Import Community Development FM</h3></div>
         <div class="card-body">
-            <p class="text-muted">Unggah workbook dengan sheet <strong>Rasio</strong> dan <strong>Keterlibatan</strong>. Petakan kolom pada kedua sheet sebelum mengimpor.</p>
+            <p class="text-muted">Unggah workbook berisi data <strong>Rasio</strong> dan <strong>Keterlibatan</strong>. Sheet bernama Rasio dan Keterlibatan dipilih otomatis; sheet lain dapat dipilih pada pratinjau. Petakan kolom pada kedua sheet sebelum mengimpor.</p>
             <div class="row g-5 mb-5">
                 <div class="col-md-6"><label for="pkmAcademicYear" class="required form-label fw-bold">Tahun akademik</label>
                     <select required name="academic_year" id="pkmAcademicYear" class="form-select">
@@ -24,6 +24,10 @@
                 @foreach(['rasio' => 'Rasio', 'keterlibatan' => 'Keterlibatan'] as $key => $name)
                     <section class="border rounded p-5 mb-5" aria-labelledby="pkm-{{ $key }}-title">
                         <h4 id="pkm-{{ $key }}-title">Pemetaan sheet {{ $name }}</h4>
+                        <div class="mb-3" style="max-width: 420px">
+                            <label for="pkm-{{ $key }}-sheet" class="form-label fw-bold">Sheet untuk {{ $name }}</label>
+                            <select id="pkm-{{ $key }}-sheet" class="form-select form-select-sm" data-sheet-for="{{ $key }}"></select>
+                        </div>
                         <p class="text-muted fs-7" id="pkm-{{ $key }}-info"></p>
                         <div class="table-responsive"><table class="table table-row-bordered align-middle"><thead><tr><th>Kolom sistem</th><th>Kolom Excel</th><th>Contoh nilai</th></tr></thead><tbody id="pkm-{{ $key }}-mapping"></tbody></table></div>
                         <details class="mt-4"><summary class="text-primary">Lihat pratinjau data</summary><div class="table-responsive mt-3"><table class="table table-row-bordered fs-7"><thead id="pkm-{{ $key }}-headers"></thead><tbody id="pkm-{{ $key }}-preview"></tbody></table></div></details>

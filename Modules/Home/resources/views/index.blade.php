@@ -1,5 +1,5 @@
 <div class="mb-5">
-    <a href="{{ route('publication-dashboard') }}" class="btn btn-primary">Dashboard KPI Publikasi FM</a>
+    <a href="{{ route('publication-dashboard') }}" class="btn btn-primary">Dashboard Riset</a>
     <a href="{{ url('/dashboard/importrectorate') }}" class="btn btn-light-primary">Import Riset / Hibah Rectorate</a>
 </div>
 <div class="row">

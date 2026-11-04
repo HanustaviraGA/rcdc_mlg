@@ -56,7 +56,7 @@ function harness() {
     return { context, element, requests, preview, map, ready, selections };
 }
 
-test('required index zero is valid; missing and duplicate selections cannot be confirmed', () => {
+test('required index zero is valid; missing selections cannot be confirmed; one column may feed several fields', () => {
     const h = harness();
     h.ready();
     h.context.updateDosenImportControls();
@@ -70,7 +70,12 @@ test('required index zero is valid; missing and duplicate selections cannot be c
     assert.equal(h.context.dosenImportState.confirmed, false);
     assert.match(h.element('dosenMappingStatus').textContent, /Kode Dosen/);
     h.map('0', '0');
-    assert.equal(h.context.validateDosenMapping(), false);
+    assert.equal(h.context.validateDosenMapping(), true);
+    h.context.confirmDosenMapping();
+    assert.equal(h.context.dosenImportState.confirmed, true);
+    h.context.onAdd();
+    assert.equal(h.requests.length, 1);
+    assert.deepEqual(JSON.parse(h.requests[0].options.data.values.get('column_mapping')), { kode_dosen: 0, nama_dosen: 0 });
 });
 
 test('required-only upload ignores every unselected optional mapping', () => {
@@ -194,4 +199,37 @@ test('reopening the backoffice page does not redeclare lexical state or accept a
     pending.options.complete();
     assert.equal(h.context.dosenImportState.preview, null);
     assert.equal(h.context.dosenImportState.confirmed, false);
+});
+
+test('a chosen sheet is previewed and uploaded; an empty sheet only offers another sheet', () => {
+    const h = harness();
+    const file = { name: 'lecturers.xlsx' };
+    h.element('dosen').files = [file];
+    h.context.previewDosenWorkbook();
+    assert.equal(h.requests[0].options.data.values.has('sheet'), false, 'a new file uses the default sheet');
+    h.requests[0].options.success({ ...h.preview, sheet: 'Cover', sheets: ['Cover', 'Data'], headers: [], preview_data: [] });
+    h.requests[0].options.complete();
+    assert.equal(h.context.dosenImportState.preview, null);
+    assert.match(h.element('dosenPreviewStatus').textContent, /Sheet Cover tidak berisi data/);
+
+    h.context.previewDosenWorkbook('Data');
+    assert.equal(h.requests[1].options.data.values.get('sheet'), 'Data');
+    h.requests[1].options.success({ ...h.preview, sheet: 'Data', sheets: ['Cover', 'Data'] });
+    h.requests[1].options.complete();
+    h.map();
+    h.context.confirmDosenMapping();
+    h.context.onAdd();
+    assert.equal(h.requests[2].options.data.values.get('sheet'), 'Data');
+});
+
+test('selecting another file resets the chosen sheet to the default', () => {
+    const h = harness();
+    h.element('dosen').files = [{ name: 'lecturers.xlsx' }];
+    h.context.previewDosenWorkbook('Data');
+    h.requests[0].options.success({ ...h.preview, sheet: 'Data', sheets: ['Malang', 'Data'] });
+    h.requests[0].options.complete();
+    h.element('dosen').files = [{ name: 'other.xlsx' }];
+    h.context.previewDosenWorkbook();
+    assert.equal(h.context.dosenImportState.sheet, null);
+    assert.equal(h.requests[1].options.data.values.has('sheet'), false);
 });

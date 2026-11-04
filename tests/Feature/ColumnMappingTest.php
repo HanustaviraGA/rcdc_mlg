@@ -208,6 +208,16 @@ class ColumnMappingTest extends TestCase
         $this->assertEmpty($config);
     }
 
+    public function test_one_source_column_can_feed_every_target_field_of_each_import_type(): void
+    {
+        foreach (['fm_file', 'mhs_file', 'research_file', 'pkm_ratio', 'pkm_involvement', 'pkm_partners'] as $type) {
+            $config = $this->service->getMappingConfig($type);
+            $mapping = array_fill_keys(array_keys($config['required'] + $config['optional']), 0);
+            $this->assertTrue($this->service->validateMapping($mapping, $type, 1)['valid'], $type);
+            $this->assertSame($mapping, $this->service->resolveMapping(['Shared'], $type, $mapping), $type);
+        }
+    }
+
     public function test_row_validation_uses_required_fields_from_each_mapping_config(): void
     {
         foreach (['fm_file', 'mhs_file', 'research_file'] as $type) {

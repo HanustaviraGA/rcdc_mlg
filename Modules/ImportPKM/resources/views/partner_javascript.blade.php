@@ -13,8 +13,9 @@
     const mapping = () => Object.fromEntries([...root.querySelectorAll('#partnerMappingRows select')].map(select => [select.dataset.field, select.value === '' ? null : Number(select.value)]));
     function valid() {
         if (!state.preview) return false;
-        const values = mapping(), indexes = Object.values(values).filter(value => value !== null);
-        return Object.keys(state.preview.mapping_config.required).every(field => Number.isInteger(values[field])) && new Set(indexes).size === indexes.length;
+        // One source column may feed several target fields.
+        const values = mapping();
+        return Object.keys(state.preview.mapping_config.required).every(field => Number.isInteger(values[field]));
     }
     function controls() {
         const busy = state.loading || state.importing;
@@ -23,7 +24,7 @@
         $('partnerImportSubmit').textContent = state.importing ? 'Mengimpor…' : 'Import data mitra';
         $('partnerMappingConfirm').disabled = busy || state.confirmed || !valid();
         $('partnerPreviewRetry').disabled = busy;
-        $('partnerMappingStatus').textContent = !state.preview ? '' : !valid() ? 'Petakan semua kolom wajib. Setiap kolom Excel hanya boleh dipakai sekali.' : state.confirmed ? 'Pemetaan dikonfirmasi. Data siap diimpor.' : 'Periksa kolom lalu konfirmasikan pemetaan.';
+        $('partnerMappingStatus').textContent = !state.preview ? '' : !valid() ? 'Petakan semua kolom wajib.' : state.confirmed ? 'Pemetaan dikonfirmasi. Data siap diimpor.' : 'Periksa kolom lalu konfirmasikan pemetaan.';
     }
     function render(preview) {
         $('partnerSheet').replaceChildren(...preview.sheets.map(name => new Option(name, name, false, name === preview.sheet)));

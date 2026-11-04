@@ -16,6 +16,20 @@
             </div>
             <div class="modal-body p-0">
 
+                {{-- Every sheet the upload reads (FM/MHS also read supporting sheets); pick one to map it --}}
+                <div id="cm-role-tabs" class="px-5 pt-4" hidden>
+                    <div class="fw-bold mb-1">Sheet yang dibutuhkan</div>
+                    <div class="form-text mt-0 mb-2">Pilih tiap bagian untuk menentukan sheet file yang mewakilinya, lalu petakan kolomnya. Sheet opsional boleh tidak digunakan. Semua bagian dikonfirmasi sekaligus.</div>
+                    <div id="cm-role-list" class="d-flex flex-wrap gap-2" role="group" aria-label="Sheet yang dibutuhkan"></div>
+                </div>
+
+                {{-- Sheet picker of the selected part: stays visible when the chosen sheet is empty or unreadable --}}
+                <div id="cm-sheet-picker" class="px-5 pt-4" hidden>
+                    <label for="cm-sheet-select" class="form-label fw-bold mb-1" id="cm-sheet-label">Sheet yang digunakan</label>
+                    <select id="cm-sheet-select" class="form-select form-select-sm" style="max-width: 420px"></select>
+                    <div class="form-text" id="cm-sheet-help">Sheet default dipilih otomatis. Pilih sheet lain bila data berada di sheet berbeda; preview dan pemetaan akan dimuat ulang.</div>
+                </div>
+
                 {{-- Loading state --}}
                 <div id="cm-loading" class="text-center py-10">
                     <div class="spinner-border text-primary mb-3" role="status"></div>
@@ -70,12 +84,18 @@
                         </div>
                     </div>
 
+                    {{-- A supporting sheet that is not used, or empty, has nothing to map --}}
+                    <div id="cm-role-notice" class="px-5 pb-5" hidden>
+                        <div class="alert alert-secondary mb-0"><i class="bi bi-info-circle me-1"></i><span id="cm-role-notice-text"></span></div>
+                    </div>
+
+                    <div id="cm-role-body">
                     {{-- Mapping Table --}}
                     <div class="p-5">
                         <h6 class="fw-bold mb-3">Pemetaan Kolom Sistem → Kolom File</h6>
                         <p class="text-muted small mb-4">
                             Sistem secara otomatis mendeteksi kolom yang sesuai. Ubah pemetaan jika ada kolom yang tidak cocok.
-                            Kolom dengan tanda <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Wajib</span> harus dipetakan ke kolom sumber yang berbeda.
+                            Kolom dengan tanda <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Wajib</span> harus dipetakan. Satu kolom sumber boleh dipakai untuk lebih dari satu kolom sistem.
                             Kolom opsional boleh tidak dipetakan. Konfirmasi pemetaan, lalu klik tombol <strong>Upload dan import</strong> pada jenis data yang sesuai di halaman utama.
                         </p>
 
@@ -111,6 +131,7 @@
                                 <tbody id="cm-preview-body"></tbody>
                             </table>
                         </div>
+                    </div>
                     </div>
                 </div>
             </div>

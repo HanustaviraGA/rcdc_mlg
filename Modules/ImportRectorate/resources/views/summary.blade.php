@@ -3,6 +3,10 @@
         <b>{{ ['fm_file' => 'Publikasi FM', 'mhs_file' => 'Publikasi MHS', 'research_file' => 'Hibah'][$type] }} berhasil diproses</b>
         @if($summary['force_import'] ?? false)<p class="mb-2">Force import aktif. {{ $summary['skipped_rows'] ?? 0 }} baris dilewati; periksa peringatan di bawah.</p>@endif
         <p class="mb-2">{{ $summary['selected'] }} baris dari {{ $summary['sheet'] }}; bulan {{ $summary['month'] }}/{{ $summary['year'] }}.</p>
+        @if(!empty($summary['supporting_sheets']))
+            @php($roles = app(\App\Services\ColumnMapping\WorkbookSheetRoles::class)->supporting($type))
+            <p class="mb-2">Sheet pendukung: {{ collect($summary['supporting_sheets'])->map(fn ($sheet, $role) => ($roles[$role]['label'] ?? $role).' → '.($sheet ?? 'tidak digunakan'))->implode('; ') }}.</p>
+        @endif
         @if(isset($summary['projects']))<p class="mb-2">{{ $summary['projects'] }} proyek; {{ $summary['researchers'] }} peneliti.</p>@endif
         @if(isset($summary['kpi']['lecturers']))<p class="mb-2">{{ $summary['kpi']['lecturers'] }} dosen dari sheet KPI.</p>@endif
         @if(isset($summary['list_count']))<p class="mb-2">{{ $summary['list_count'] }} entri LIST; {{ $summary['scopus'] }} baris Scopus.</p>@endif

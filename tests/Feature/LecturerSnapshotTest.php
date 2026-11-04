@@ -265,6 +265,54 @@ class LecturerSnapshotTest extends TestCase
         $this->assertSame(1, DB::table('lecturer_imports')->count());
     }
 
+    public function test_preview_and_upload_use_the_sheet_chosen_by_the_user(): void
+    {
+        [$path, $mapping] = $this->withRequiredColumns([
+            'Cover' => [['Laporan Data Center']],
+            'Dosen 2026' => [['Report title'], ['Kode Dosen', 'Nama Dosen'], ['D9', 'Chosen sheet']],
+        ], ['kode_dosen' => 0, 'nama_dosen' => 1], 'Dosen 2026', 2);
+        $file = new UploadedFile($path, 'datacenter.xlsx', null, null, true);
+        $this->actingAs((new User)->forceFill(['id' => 1]));
+        // Without a Malang sheet the preview shows the first sheet instead of failing.
+        $this->postJson(route('dosen.preview'), ['dosen' => $file])->assertOk()
+            ->assertJsonPath('sheet', 'Cover')->assertJsonPath('sheets', ['Cover', 'Dosen 2026']);
+        $this->postJson(route('dosen.preview'), ['dosen' => $file, 'sheet' => 'Dosen 2026'])->assertOk()
+            ->assertJsonPath('sheet', 'Dosen 2026')->assertJsonPath('header_row', 2)
+            ->assertJsonPath('suggested_mapping.kode_dosen', 0)->assertJsonPath('preview_data.0.1', 'Chosen sheet');
+        $this->postJson(route('dosen.preview'), ['dosen' => $file, 'sheet' => 'Missing'])->assertUnprocessable();
+
+        $upload = fn (array $sheet) => $this->postJson(route('dosen.read'), [
+            'dosen' => $file, 'year' => 2025, 'month' => 6, 'header_row' => 2,
+            'column_mapping' => json_encode($mapping, JSON_THROW_ON_ERROR),
+        ] + $sheet);
+        $upload([])->assertUnprocessable()->assertJsonValidationErrors('dosen');
+        $upload(['sheet' => 'Missing'])->assertUnprocessable()->assertJsonValidationErrors('dosen');
+        $this->assertNull(DB::table('lecturer_imports')->where(['year' => 2025, 'month' => 6])->first());
+        $upload(['sheet' => 'Dosen 2026'])->assertOk()->assertJsonPath('summary.sheet', 'Dosen 2026');
+        $this->assertSame('Chosen sheet', app(LecturerSnapshots::class)->rows(2025, 6)['D9']->nama_dosen);
+        $this->assertSame('Dosen 2026', DB::table('lecturer_imports')->where(['year' => 2025, 'month' => 6])->value('sheet'));
+    }
+
+    public function test_an_empty_chosen_sheet_still_lists_the_other_sheets(): void
+    {
+        $path = $this->makeWorkbook(['Kosong' => [], 'Malang' => [['Kode Dosen', 'Nama Dosen'], ['D1', 'Lecturer']]]);
+        $preview = app(LecturerWorkbook::class)->preview($path, 'Kosong');
+        $this->assertSame(['Kosong', [], ['Kosong', 'Malang']], [$preview['sheet'], $preview['headers'], $preview['sheets']]);
+    }
+
+    public function test_one_source_column_can_feed_several_target_fields(): void
+    {
+        [$path, $mapping] = $this->withRequiredColumns(['Malang' => [
+            ['ID', 'Person', 'Email'], ['D1', 'Shared name', 'shared@example.test'],
+        ]], ['kode_dosen' => 0, 'nama_dosen' => 1, 'note' => 1, 'email_1' => 2, 'email_2' => 2]);
+        $summary = app(LecturerWorkbook::class)->import($path, 2025, 2, $mapping, 1);
+        $this->assertSame(count($mapping), $summary['mapped_columns']);
+        $this->assertSame([], $summary['unknown_columns']);
+        $row = app(LecturerSnapshots::class)->rows(2025, 2)['D1'];
+        $this->assertSame(['Shared name', 'Shared name'], [$row->nama_dosen, $row->note]);
+        $this->assertSame(['shared@example.test', 'shared@example.test'], [$row->email_1, $row->email_2]);
+    }
+
     public function test_default_admin_table_is_current_year_and_historical_filter_is_isolated(): void
     {
         app(LecturerWorkbook::class)->import($this->makeWorkbook(['Malang' => [['Kode Dosen', 'Nama Dosen'], ['D1', 'Previous year']]]), 2025, 1);

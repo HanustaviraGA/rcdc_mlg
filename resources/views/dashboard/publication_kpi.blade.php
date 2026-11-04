@@ -1,5 +1,5 @@
 @extends('landing.layout')
-@section('title', 'Dashboard KPI Publikasi')
+@section('title', 'Dashboard Riset')
 @section('description', 'Pantau target dan realisasi publikasi FM dan mahasiswa BINUS Malang, menurut tahun, kuartal, dan program studi.')
 @section('page_class', 'publication-page performance-page')
 @push('styles')
@@ -9,11 +9,11 @@
 @section('content')
 <section class="portal-hero">
     <div class="container">
-        <nav class="portal-breadcrumb" aria-label="Breadcrumb"><a href="{{ route('home') }}">Home</a><span aria-hidden="true">/</span><span aria-current="page">Dashboard KPI</span></nav>
+        <nav class="portal-breadcrumb" aria-label="Breadcrumb"><a href="{{ route('home') }}">Home</a><span aria-hidden="true">/</span><span aria-current="page">Dashboard Riset</span></nav>
         <div class="portal-hero-grid">
             <div>
                 <span class="portal-eyebrow">PUBLIKASI &amp; KINERJA RISET</span>
-                <h1>Dashboard KPI <span>Publikasi.</span></h1>
+                <h1>Dashboard <span>Riset.</span></h1>
                 <p class="portal-intro">Pantau target dan realisasi publikasi, telusuri capaian setiap program studi, dan lihat kontribusi dosen serta mahasiswa BINUS Malang.</p>
                 <p class="portal-caption">Publication Performance Intelligence Dashboard &middot; Target, capaian, dan arah pengembangan</p>
                 <a class="portal-link" href="{{ route('research-gallery.index') }}">Jelajahi Research Gallery <i class="bi bi-arrow-right" aria-hidden="true"></i></a>

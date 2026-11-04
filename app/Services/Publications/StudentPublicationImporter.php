@@ -3,6 +3,7 @@
 namespace App\Services\Publications;
 
 use App\Services\ColumnMapping\ColumnMapperService;
+use App\Services\ColumnMapping\WorkbookSheetRoles;
 use App\Services\Imports\ImportPolicy;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -11,17 +12,28 @@ class StudentPublicationImporter
 {
     public function __construct(private ReportWorkbookReader $reader) {}
 
-    public function import(string $path, string $filename, int $year, int $month, bool $dryRun = false, ?array $columnMapping = null): array
+    /**
+     * @param  ?array  $extraSheets  Supporting sheets confirmed in the preview (LIST, TITLE,
+     *                               Realization Template, Scoring PI); null finds them by name.
+     */
+    public function import(string $path, string $filename, int $year, int $month, bool $dryRun = false, ?array $columnMapping = null, ?string $sheet = null, ?array $extraSheets = null): array
     {
         if ($year < 2000 || $year > 2100 || $month < 1 || $month > 12) {
             $this->invalid('Tahun/bulan laporan tidak valid.');
         }
-        $sheets = $this->reader->sheets($path, ['MALANG', 'RAW', 'TITLE', 'LIST']);
-        $sheet = isset($sheets['MALANG']) ? 'MALANG' : 'RAW';
-        if (! isset($sheets[$sheet])) {
-            $this->invalid('Sheet MALANG atau Raw tidak ditemukan.');
+        // A sheet chosen in the mapping preview replaces the MALANG/Raw default. LIST and TITLE
+        // are found by name unless the preview confirmed another sheet (or none) for them.
+        $chosen = $sheet === null ? null : strtoupper(trim($sheet));
+        $listSelection = $extraSheets['list'] ?? null;
+        $titleSelection = $extraSheets['title'] ?? null;
+        $named = array_keys(array_filter(['TITLE' => $titleSelection, 'LIST' => $listSelection], fn ($selection) => $selection === null));
+        $sheets = $this->reader->sheets($path, array_merge(['MALANG', 'RAW'], $named, $chosen === null ? [] : [$chosen]));
+        $key = $chosen ?? (isset($sheets['MALANG']) ? 'MALANG' : 'RAW');
+        if (! isset($sheets[$key])) {
+            $this->invalid($chosen === null ? 'Sheet MALANG atau Raw tidak ditemukan. Pilih sheet publikasi pada pratinjau.' : "Sheet {$sheet} tidak ditemukan atau kosong.");
         }
-        $rows = $sheets[$sheet];
+        $rows = $sheets[$key];
+        $sheet ??= $key;
         $headerRow = array_key_first($rows);
         $sourceHeaders = $rows[$headerRow] ?? [];
         $headers = array_map($this->normalize(...), $rows[$headerRow] ?? []);
@@ -73,22 +85,35 @@ class StudentPublicationImporter
         $scopus = array_values(array_filter($records, fn ($r) => $this->normalize($r['type']) === 'scopus' && $this->normalize($r['submitted']) === 'scopus mahasiswa'));
         $derivedList = array_map(fn ($r) => ['program' => $r['program'], 'name' => $r['name'], 'title' => $r['title']], $scopus);
         $list = $derivedList;
-        if (isset($sheets['LIST'])) {
+        $roles = app(WorkbookSheetRoles::class);
+        if ($listSelection === null ? isset($sheets['LIST']) : $this->used($listSelection)) {
             try {
                 $list = [];
-                $listRows = $sheets['LIST'];
-                $headerRow = array_key_first($listRows);
-                $listHeaders = array_map($this->normalize(...), $listRows[$headerRow] ?? []);
-                unset($listRows[$headerRow]);
-                foreach (['prodi', 'mhs author', 'title'] as $header) {
-                    if (count(array_keys($listHeaders, $header, true)) !== 1) {
-                        $this->invalid("Kolom {$header} tidak valid pada LIST.");
+                // Field => [column, name shown in messages].
+                $columns = [];
+                if ($listSelection === null) {
+                    $listRows = $sheets['LIST'];
+                    $headerRow = array_key_first($listRows);
+                    $listHeaders = array_map($this->normalize(...), $listRows[$headerRow] ?? []);
+                    unset($listRows[$headerRow]);
+                    foreach (['program' => 'prodi', 'name' => 'mhs author', 'title' => 'title'] as $field => $header) {
+                        if (count(array_keys($listHeaders, $header, true)) !== 1) {
+                            $this->invalid("Kolom {$header} tidak valid pada LIST.");
+                        }
+                        $columns[$field] = [array_search($header, $listHeaders, true), $header];
+                    }
+                } else {
+                    $table = $roles->read($path, 'mhs_file', 'list', $listSelection, $year);
+                    $labels = app(ColumnMapperService::class)->getMappingConfig('mhs_list')['required'];
+                    $listRows = array_map(fn ($cells) => array_map(fn ($value) => trim((string) $value), $cells), $table['rows']);
+                    foreach (['program', 'name', 'title'] as $field) {
+                        $columns[$field] = [$table['map'][$field], $labels[$field]];
                     }
                 }
                 foreach ($listRows as $number => $cells) {
                     $row = [];
-                    foreach (['program' => 'prodi', 'name' => 'mhs author', 'title' => 'title'] as $field => $header) {
-                        $row[$field] = $cells[array_search($header, $listHeaders, true)] ?? '';
+                    foreach ($columns as $field => [$index, $header]) {
+                        $row[$field] = $cells[$index] ?? '';
                         if ($row[$field] === '') {
                             $this->invalid("LIST baris {$number}: {$header} wajib diisi.");
                         }
@@ -104,10 +129,30 @@ class StudentPublicationImporter
                 $list = $derivedList;
             }
         } else {
-            $summary['warnings'][] = 'Sheet LIST tidak ada; daftar mahasiswa dibentuk dari MALANG/Raw.';
+            $summary['warnings'][] = $listSelection === null
+                ? 'Sheet LIST tidak ada; daftar mahasiswa dibentuk dari MALANG/Raw.'
+                : 'Sheet LIST tidak digunakan; daftar mahasiswa dibentuk dari sheet publikasi.';
         }
         $titleCounts = [];
-        if (isset($sheets['TITLE'])) {
+        if ($titleSelection !== null) {
+            if ($this->used($titleSelection)) {
+                $table = $roles->read($path, 'mhs_file', 'title', $titleSelection, $year);
+                // The recap rows below the confirmed header: a label and its Scopus count.
+                foreach ($table['rows'] as $cells) {
+                    $count = trim((string) ($cells[$table['map']['count']] ?? ''));
+                    if (! is_numeric($count)) {
+                        continue;
+                    }
+                    $label = trim((string) ($cells[$table['map']['label']] ?? ''));
+                    $titleCounts[$this->normalize($label) === 'grand total' ? 'BINUS' : ReportPrograms::code($label)] = (int) $count;
+                }
+                if (! $titleCounts) {
+                    $policy->accept("Rekap Scopus pada sheet {$table['sheet']} tidak ditemukan; rekap dihitung dari daftar Scopus.");
+                }
+            } else {
+                $summary['warnings'][] = 'Sheet TITLE tidak digunakan; rekap dihitung dari daftar Scopus.';
+            }
+        } elseif (isset($sheets['TITLE'])) {
             $offset = null;
             foreach ($sheets['TITLE'] as $cells) {
                 foreach ($cells as $i => $cell) {
@@ -135,7 +180,7 @@ class StudentPublicationImporter
                 $summary['warnings'][] = "{$code}: TITLE {$count}, LIST ".($listCounts[$code] ?? 0).'.';
             }
         }
-        $report = $this->reader->read($path);
+        $report = $this->reader->read($path, $extraSheets, 'mhs_file');
         foreach ($report['realization'] as $code => $row) {
             $actual = $titleCounts[$code] ?? $listCounts[$code] ?? 0;
             if ($row['realization'] !== null && abs($row['realization'] - $actual) > 0.001) {
@@ -144,6 +189,9 @@ class StudentPublicationImporter
         }
         $summary += ['selected' => count($records), 'scopus' => count($scopus), 'list_count' => count($list),
             'title_counts' => $titleCounts, 'list_counts' => $listCounts, 'report' => $report];
+        if ($extraSheets !== null) {
+            $summary['supporting_sheets'] = array_map(fn ($selection) => $this->used($selection) ? $selection['sheet'] : null, $extraSheets);
+        }
         $summary = $policy->summary($summary);
         if ($dryRun) {
             return $summary + ['dry_run' => true];
@@ -155,6 +203,11 @@ class StudentPublicationImporter
         ]], ['year', 'month'], ['filename', 'sha256', 'summary', 'records', 'publication_list', 'updated_at']);
 
         return $summary;
+    }
+
+    private function used(array $selection): bool
+    {
+        return ($selection['sheet'] ?? null) !== null && $selection['sheet'] !== '';
     }
 
     private function normalize(string $value): string

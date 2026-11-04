@@ -11,7 +11,7 @@ class RectorateResearchImporter
 {
     public function __construct(private RectorateResearchReader $reader) {}
 
-    public function import(string $path, string $filename, bool $dryRun = false, ?int $year = null, ?int $month = null, ?array $columnMapping = null): array
+    public function import(string $path, string $filename, bool $dryRun = false, ?int $year = null, ?int $month = null, ?array $columnMapping = null, ?string $sheet = null): array
     {
         if (($year === null) !== ($month === null)) {
             throw ValidationException::withMessages(['month' => 'Tahun dan bulan laporan harus diisi bersama.']);
@@ -21,7 +21,7 @@ class RectorateResearchImporter
         if ($year < 2000 || $year > 2100 || $month < 1 || $month > 12) {
             throw ValidationException::withMessages(['month' => 'Tahun/bulan laporan tidak valid.']);
         }
-        $parsed = $this->reader->read($path, $columnMapping);
+        $parsed = $this->reader->read($path, $columnMapping, $sheet);
         $summary = $parsed['summary'] + compact('year', 'month');
         $known = Schema::hasTable('lecturer_imports')
             ? app(LecturerSnapshots::class)->rows($year, $month)->keys()->all()
@@ -39,7 +39,7 @@ class RectorateResearchImporter
         }
         $sha256 = hash_file('sha256', $path);
 
-        return DB::transaction(function () use ($parsed, $summary, $filename, $sha256, $year, $month, $columnMapping) {
+        return DB::transaction(function () use ($parsed, $summary, $filename, $sha256, $year, $month, $columnMapping, $sheet) {
             $snapshot = compact('year', 'month');
             // Lock the monthly snapshot before checking or replacing its contents.
             DB::table('research_imports')->upsert([$snapshot + [
@@ -48,9 +48,9 @@ class RectorateResearchImporter
             ]], ['year', 'month'], ['year']);
             $batch = DB::table('research_imports')->where($snapshot)->lockForUpdate()->first();
             $previousSummary = json_decode($batch->summary, true) ?: [];
-            // Explicit mappings can change the imported data even when the file is identical.
+            // Explicit mappings or sheets can change the imported data even when the file is identical.
             // Rebuild legacy batches once to include rows excluded by the old campus filter.
-            if ($columnMapping === null && ($previousSummary['campus_filter'] ?? true) === false
+            if ($columnMapping === null && $sheet === null && ($previousSummary['campus_filter'] ?? true) === false
                 && $batch->sha256 === $sha256 && DB::table('rectorate_research')->where('research_import_id', $batch->id)->exists()) {
                 // The roster may have changed since the original upload; retain the rows but
                 // refresh the stored and returned unmatched-code diagnostics.
