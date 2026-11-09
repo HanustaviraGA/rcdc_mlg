@@ -33,7 +33,7 @@ Permintaan tanpa JSON diarahkan kembali ke `/dashboard/importrectorate` dengan p
 | Bagian | Sumber |
 | --- | --- |
 | Publikasi FM | MALANG, fallback Raw; KPI menyimpan RTTO |
-| Rekap FM | Realization Template dan rentang Scoring PI; prodi tanpa rekap memakai bobot asli Scopus dari MALANG |
+| Rekap FM | Mengikuti `PUBLICATION_FM_BASIS`. `realization`: Realization Template dan rentang Scoring PI, hanya prodi yang tercantum di template (fallback bobot asli bila template tidak ada). `campus`: bobot asli Scopus dari MALANG untuk semua prodi termasuk CBDC/LC. Tabel dosen per prodi tetap lengkap |
 | Rincian KPI dosen | MAX bobot Rectorate/RTTO per kategori; Score KPI RTTO, first author dari MALANG; profil KPI periode terpilih dengan fallback master |
 | Publikasi MHS | MALANG, fallback Raw; filter Kampus MALANG, Kode Dosen Mahasiswa, Submitted Scopus/Non Scopus Mahasiswa |
 | Rekap Scopus MHS | Blok Scopus pada TITLE, fallback jumlah LIST; target dan rentang skor dari Realization Template/Scoring PI |

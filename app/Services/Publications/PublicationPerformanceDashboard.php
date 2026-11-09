@@ -71,7 +71,7 @@ class PublicationPerformanceDashboard
         $years = collect($original['years'])->merge($snapshots->pluck('year'))->push((int) now()->year)->map(fn ($year) => (string) $year)
             ->unique()->sort()->values();
 
-        return ['years' => $years->all(), 'defaultYear' => (string) now()->year,
+        return ['years' => $years->all(), 'defaultYear' => (string) now()->year, 'fmBasis' => FmRealizationBasis::configured(),
             'snapshots' => $snapshots->all(), 'programs' => collect(ReportPrograms::FULL_LABELS)->except('BINUS')->all()];
     }
 
@@ -111,18 +111,23 @@ class PublicationPerformanceDashboard
                 'firstAuthor' => $metrics['first_author'], 'score' => $metrics['score']];
         })->values();
         $metadata = $summary['report'] ?? [];
+        $basis = new FmRealizationBasis($metadata);
         $memberPrograms = $members->pluck('program', 'code');
         $paperProgram = fn ($row) => ReportPrograms::code($this->profileValue($row->prodi_kpi ?? null, $row->dept ?? null,
             $memberPrograms->get($row->kode_dosen), 'Lainnya'));
+        // The cards, lecturers and publications follow the campus total of the configured basis.
+        $members = $members->filter(fn ($member) => $basis->counts($member['program']))->values();
+        $papers = $papers->filter(fn ($row) => $basis->counts($paperProgram($row)))->values();
         $programs = $members->pluck('program')->merge($papers->map($paperProgram))
-            ->merge(array_keys($metadata['realization'] ?? []))->reject(fn ($code) => ! $code || $code === 'BINUS')->unique();
-        $cards = $programs->map(function ($program) use ($members, $papers, $metadata, $paperProgram) {
+            ->merge(array_keys($metadata['realization'] ?? []))
+            ->reject(fn ($code) => ! $code || $code === 'BINUS' || ! $basis->counts($code))->unique();
+        $cards = $programs->map(function ($program) use ($members, $papers, $metadata, $paperProgram, $basis) {
             $roster = $members->where('program', $program)->values();
             $rows = $papers->filter(fn ($row) => $paperProgram($row) === $program);
             $scopus = $rows->filter(PublicationWorkbookMetrics::isScopusTitle(...));
-            $actual = $metadata['realization'][$program]['realization'] ?? $scopus->sum('bobot_asli');
+            $actual = $basis->program($program, $rows);
 
-            return $this->card($program, $metadata, (float) $actual) + ['faculty' => $roster->all(),
+            return $this->card($program, $metadata, $actual) + ['faculty' => $roster->all(),
                 'facultyTotal' => $roster->count(), 'scopusFaculty' => $roster->where('scopus', '>', 0)->count(),
                 'titles' => $scopus->count(), 'weight' => (float) $scopus->sum('bobot_asli'),
                 'breakdown' => collect(['Jurnal' => 'Jurnal', 'Seminar' => 'Konferensi', 'Book Chapter' => 'Book chapter', 'Full Book' => 'Full book'])
@@ -136,13 +141,12 @@ class PublicationPerformanceDashboard
                     'source' => $row->source_title, 'paperSource' => $row->sumber_paper ?? null,
                     'quartile' => $row->quartile_jurnal])->values()->all()];
         })->sortBy(fn ($card) => array_search($card['program'], array_keys(ReportPrograms::LABELS), true) ?: PHP_INT_MAX)->values();
-        $actual = $metadata['realization']['BINUS']['realization'] ?? $papers->filter(PublicationWorkbookMetrics::isScopusTitle(...))->sum('bobot_asli');
 
         return $this->source($batch, $summary) + ['target' => $metadata['realization']['BINUS']['target'] ?? null,
-            'actual' => (float) $actual, 'unit' => 'bobot', 'cards' => $cards->all(),
+            'actual' => $basis->campus($papers), 'unit' => 'bobot', 'cards' => $cards->all(),
             'facultyTotal' => $members->count(), 'scopusFaculty' => $members->where('scopus', '>', 0)->count(),
             'populationLabel' => $entries->isNotEmpty() ? 'Daftar dosen KPI dan publikasi pada periode ini' : 'Dosen dalam snapshot publikasi',
-            'actualSource' => isset($metadata['realization']['BINUS']['realization']) ? 'Rekap workbook' : 'Bobot asli publikasi'];
+            'basis' => $basis->basis, 'actualSource' => $basis->source()];
     }
 
     private function studentSnapshot(object $batch): array

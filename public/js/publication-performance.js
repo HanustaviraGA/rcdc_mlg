@@ -45,6 +45,13 @@ export function totalAvailable(selections, field) {
     return values.length ? values.reduce((sum, value) => sum + Number(value), 0) : null;
 }
 
+/** How the FM realization, its programs and its lecturers are counted (PUBLICATION_FM_BASIS). */
+export function fmBasisNote(basis) {
+    return basis === 'campus'
+        ? 'Realisasi FM memakai bobot asli seluruh publikasi Scopus FM dosen kampus MALANG per Prodi KPI, termasuk unit di luar Realization Template seperti CBDC dan LC.'
+        : 'Realisasi FM mengikuti Realization Template: hanya unit BINUS @Malang yang tercantum di template yang dihitung dan ditampilkan, beserta dosen dan publikasinya. Bila rekap belum tersedia, dipakai bobot asli publikasi.';
+}
+
 export function csvCell(value) {
     let text = String(value ?? '');
     if (typeof value === 'string' && /^[\s]*[=+@\-\t\r]/.test(text)) text = `'${text}`;
@@ -251,7 +258,7 @@ function initialize(source) {
         const warnings = [...new Set(['fm', 'mhs'].flatMap(kind => selectedSources(source, state, kind).flatMap(row => row.data?.warnings ?? [])))];
         const sources = selections.filter(row => row.data).map(row => `${periodLabel(row.snapshot)}: ${row.data.actualSource}${row.data.filename ? ` (${row.data.filename})` : ''}`);
         $('performanceNotes').innerHTML = `<p>${escape(sources.join(' · ') || 'Sumber belum tersedia pada periode terpilih.')}</p>
-            <p>Realisasi FM mengikuti rekap workbook atau bobot asli publikasi bila rekap belum tersedia. Rincian KPI dosen memakai nilai tertinggi Rectorate/RTTO per kategori. Skor jurusan mengikuti rentang Scoring PI; skor dosen mengikuti KPI RTTO.</p>
+            <p>${fmBasisNote(source.fmBasis)} Rincian KPI dosen memakai nilai tertinggi Rectorate/RTTO per kategori. Skor jurusan mengikuti rentang Scoring PI; skor dosen mengikuti KPI RTTO.</p>
             <p>Persentase FM memakai dosen yang tercatat dalam data KPI dan publikasi periode terpilih. Tahun tanpa data dan skor yang belum tersedia tetap kosong. Target kampus dapat berbeda dari penjumlahan target jurusan.</p>
             <p>Snapshot kumulatif antarbulan tidak dijumlahkan. Kategori publikasi mengikuti kebijakan impor, termasuk status Accepted/Reviewed; kategori Scopus tidak selalu berarti sudah terbit.</p>
             ${warnings.length ? `<ul>${warnings.map(warning => `<li>${escape(warning)}</li>`).join('')}</ul>` : ''}`;

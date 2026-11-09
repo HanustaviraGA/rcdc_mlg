@@ -25,6 +25,7 @@
         <env name="IMPORT_DOSEN_DATA_CENTER_FORCE" value="false" force="true"/>
         <env name="IMPORT_DOSEN_STATUS_PENDIDIKAN_FORCE" value="false" force="true"/>
         <env name="IMPORT_PKM_FORCE" value="false" force="true"/>
+        <env name="PUBLICATION_FM_BASIS" value="realization" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_STORE" value="array"/>

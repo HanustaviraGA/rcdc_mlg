@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { selectSnapshot, selectedSources, totalAvailable, csvCell, publicationCounts, filterPublications } from '../../public/js/publication-performance.js';
+import { selectSnapshot, selectedSources, totalAvailable, csvCell, publicationCounts, filterPublications, fmBasisNote } from '../../public/js/publication-performance.js';
 
 const source = {
     snapshots: [
@@ -92,4 +92,10 @@ test('CSV export quotes cells and neutralizes spreadsheet formulas', () => {
     assert.equal(csvCell(' +SUM(A1:A2)'), '"\' +SUM(A1:A2)"');
     assert.equal(csvCell(0), '"0"');
     assert.equal(csvCell(null), '""');
+});
+
+test('the FM note explains the configured realization basis', () => {
+    assert.match(fmBasisNote('campus'), /bobot asli seluruh publikasi Scopus FM dosen kampus MALANG/);
+    assert.match(fmBasisNote('realization'), /Realization Template/);
+    assert.equal(fmBasisNote(undefined), fmBasisNote('realization'));
 });

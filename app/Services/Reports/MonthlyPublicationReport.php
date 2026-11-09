@@ -3,6 +3,7 @@
 namespace App\Services\Reports;
 
 use App\Services\Lecturers\LecturerSnapshots;
+use App\Services\Publications\FmRealizationBasis;
 use App\Services\Publications\PublicationWorkbookMetrics;
 use App\Services\Publications\ReportPrograms;
 use App\Services\Publications\ReportWorkbookReader;
@@ -65,13 +66,21 @@ class MonthlyPublicationReport
             if (! ($metadata['realization'] ?? [])) {
                 $warnings[] = strtoupper($kind).': target/rentang skor belum tersedia. Upload ulang workbook yang memiliki Realization Template dan Scoring PI atau isi manual.';
             }
+            // FM follows PUBLICATION_FM_BASIS: the rows and the campus total count the same programs.
+            $basis = new FmRealizationBasis($metadata);
+            $programOf = fn ($r) => ReportPrograms::code($r->prodi_kpi ?? $r->dept);
             foreach (['BINUS', 'BC', 'CS', 'DKV', 'DI', 'ILKOM', 'PR', ...($kind === 'fm' ? ['CBDC', 'LC'] : [])] as $code) {
+                if ($kind === 'fm' && $code !== 'BINUS' && ! $basis->counts($code)) {
+                    continue;
+                }
                 $target = $metadata['realization'][$code]['target'] ?? null;
                 if ($kind === 'mhs') {
                     $value = $mhs ? ($summary['title_counts'][$code] ?? $summary['list_counts'][$code] ?? 0) : null;
+                } elseif (! $fm) {
+                    $value = null;
                 } else {
-                    $value = $metadata['realization'][$code]['realization'] ?? ($fm ? $papers->filter(fn ($r) => PublicationWorkbookMetrics::isScopusTitle($r)
-                        && ($code === 'BINUS' || ReportPrograms::code($r->prodi_kpi ?? $r->dept) === $code))->sum('bobot_asli') : null);
+                    $value = $code === 'BINUS' ? $basis->campus($papers->filter(fn ($r) => $basis->counts($programOf($r))))
+                        : $basis->program($code, $papers->filter(fn ($r) => $programOf($r) === $code));
                 }
                 $score = ReportWorkbookReader::score($value, $metadata['ranges'][$code] ?? []);
                 $rows[] = [$code === 'BINUS' ? 'Binus @ Malang' : $code, self::number($target), self::number($value), $score === null ? '' : (string) $score];

@@ -634,6 +634,50 @@ class PublicationDashboardTest extends TestCase
         $this->assertArrayNotHasKey('source_payload', $snapshots[9]['fm']['cards'][0]['publications'][0]);
     }
 
+    public function test_fm_basis_toggle_decides_the_campus_total_and_the_programs_lecturers_and_publications_behind_it(): void
+    {
+        app(PublicationImporter::class)->import($this->workbookWithKpi([
+            $this->row(['Bobot' => 0.5]),
+            $this->row(['RequestCode' => 'CB1', 'Kode Dosen' => 'D003', 'FM Author' => 'CBDC Lecturer', 'Dept' => 'Character Building',
+                'Bobot' => 1.5, 'Prodi KPI' => 'Character Building Development Center']),
+        ], [
+            $this->kpiRow(),
+            $this->kpiRow(['Kode Dosen' => 'D003', 'Nama Dosen' => 'CBDC Lecturer', 'Jurusan Binaan' => 'Character Building Development Center']),
+        ]), 'november.xlsx', 2026, 11, 4);
+        $batch = DB::table('publication_imports')->first();
+        $summary = json_decode($batch->summary, true);
+        // The template lists only the Malang units; CBDC belongs to a unit of another campus.
+        $summary['report'] = ['realization' => ['CS' => ['target' => 16, 'realization' => 0.4], 'BINUS' => ['target' => 89, 'realization' => 0.4]], 'ranges' => []];
+        DB::table('publication_imports')->where('id', $batch->id)->update(['summary' => json_encode($summary)]);
+
+        $data = app(PublicationPerformanceDashboard::class)->data();
+        $fm = $data['snapshots'][0]['fm'];
+        $this->assertSame('realization', $data['fmBasis']);
+        $this->assertSame(0.4, $fm['actual']);
+        $this->assertSame(['CS'], array_column($fm['cards'], 'program'));
+        $this->assertSame(0.4, $fm['cards'][0]['actual']);
+        $this->assertSame(1, $fm['facultyTotal']);
+        $this->assertSame(['D001'], array_column($fm['cards'][0]['publications'], 'code'));
+        $this->assertSame('Realization Template (unit BINUS @Malang)', $fm['actualSource']);
+
+        config(['publications.fm_basis' => 'campus']);
+        $data = app(PublicationPerformanceDashboard::class)->data();
+        $fm = $data['snapshots'][0]['fm'];
+        $cards = collect($fm['cards'])->keyBy('program');
+        $this->assertSame('campus', $data['fmBasis']);
+        $this->assertSame(2.0, $fm['actual']);
+        $this->assertSame(89, $fm['target']);
+        $this->assertSame(['CS', 'CBDC'], $cards->keys()->all());
+        $this->assertSame(0.5, $cards['CS']['actual']);
+        $this->assertSame(1.5, $cards['CBDC']['actual']);
+        $this->assertSame(['D003'], array_column($cards['CBDC']['faculty'], 'code'));
+        $this->assertSame(2, $fm['facultyTotal']);
+        $this->assertSame('Bobot asli seluruh publikasi kampus MALANG', $fm['actualSource']);
+
+        config(['publications.fm_basis' => 'kampus']);
+        $this->assertSame('realization', app(PublicationPerformanceDashboard::class)->data()['fmBasis']);
+    }
+
     public function test_performance_students_keep_list_counts_and_warn_about_conflicting_workbook_totals(): void
     {
         (require database_path('migrations/2026_09_24_000100_create_student_publication_imports.php'))->up();

@@ -66,6 +66,22 @@ class MonthlyPublicationReportTest extends TestCase
         $this->assertNull($report['sources']['MHS']);
     }
 
+    public function test_fm_summary_follows_the_fm_basis_toggle(): void
+    {
+        DB::table('publication_imports')->where('id', 2)->update(['summary' => json_encode(['report' => [
+            'realization' => ['CS' => ['target' => 16, 'realization' => 2], 'BINUS' => ['target' => 89, 'realization' => 2]], 'ranges' => []]])]);
+        DB::table('rectorate_dosen')->insert(['publication_import_id' => 2, 'kode_dosen' => 'D003', 'fm_author' => 'CBDC Lecturer',
+            'prodi_kpi' => 'Character Building Development Center', 'dept' => 'Character Building', 'tipe_publikasi' => 'Scopus',
+            'submitted' => 'Scopus FM', 'first_author' => 'Y', 'bobot_asli' => 1]);
+        $summary = fn () => collect(collect(app(MonthlyPublicationReport::class)->generate(2026, 9)['tables'])->firstWhere('id', 'fm_summary')['rows'])
+            ->mapWithKeys(fn ($row) => [$row[0] => $row[2]])->all();
+
+        $this->assertSame(['Binus @ Malang' => '2,00', 'CS' => '2,00'], $summary());
+        config(['publications.fm_basis' => 'campus']);
+        $this->assertSame(['Binus @ Malang' => '3,50', 'BC' => '0,00', 'CS' => '2,50', 'DKV' => '0,00', 'DI' => '0,00',
+            'ILKOM' => '0,00', 'PR' => '0,00', 'CBDC' => '1,00', 'LC' => '0,00'], $summary());
+    }
+
     public function test_generate_edit_download_preserves_database_and_updates_word_charts(): void
     {
         $this->actingAs((new User)->forceFill(['id' => 1, 'name' => 'Editor']));

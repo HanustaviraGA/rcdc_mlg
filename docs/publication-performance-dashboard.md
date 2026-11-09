@@ -16,7 +16,12 @@
 
 `PublicationPerformanceDashboard` membaca snapshot FM bulanan dari `rectorate_dosen`, metadata `publication_imports`, dan `publication_kpi_entries`. Snapshot mahasiswa memakai `student_publication_imports`. Payload publik hanya menyertakan field rincian yang diperlukan.
 
-Realisasi FM jurusan/kampus mengikuti metadata Realization Template bila tersedia, dengan bobot asli sebagai fallback. Skor jurusan mengikuti Scoring PI. Rincian bobot dosen memakai MAX(Rectorate, RTTO) melalui helper yang sudah ada; skor dosen mengikuti KPI RTTO dan tidak diganti skor prodi. Nol dan nilai yang belum tersedia dibedakan.
+Realisasi FM jurusan/kampus mengikuti `PUBLICATION_FM_BASIS` (`config/publications.php`, class `FmRealizationBasis`):
+
+- `realization` (default): metadata Realization Template, dengan bobot asli sebagai fallback. Total kampus memakai baris *BINUS @ Malang Campus*. Hanya unit Malang yang tercantum di template yang dihitung, sehingga kartu, dosen, persentase FM, dan publikasi unit lain (misalnya CBDC dan English Literature, yang lokasinya BINUS @Kemanggisan) tidak ditampilkan.
+- `campus`: bobot asli seluruh publikasi Scopus FM pada sheet MALANG per Prodi KPI. Hasilnya sama dengan pivot per Kampus dan mencakup semua prodi beserta dosennya. Target dan rentang skor tetap diambil dari template.
+
+Tanpa Realization Template, kedua basis memakai bobot asli untuk semua prodi. Laporan bulanan (`MonthlyPublicationReport`, tabel `fm_summary`) memakai basis yang sama. Setelah mengubah `.env`, jalankan `php artisan config:clear`. Skor jurusan mengikuti Scoring PI. Rincian bobot dosen memakai MAX(Rectorate, RTTO) melalui helper yang sudah ada; skor dosen mengikuti KPI RTTO dan tidak diganti skor prodi. Nol dan nilai yang belum tersedia dibedakan.
 
 Rekap mahasiswa memakai TITLE, fallback LIST. Selisih dengan Realization Template tetap ditampilkan pada catatan sumber. Persentase FM memakai dosen yang tercatat pada KPI dan publikasi periode itu, bukan klaim populasi FM aktif historis. Persentase beberapa tahun tidak digabungkan.
 
