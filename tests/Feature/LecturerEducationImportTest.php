@@ -41,6 +41,7 @@ class LecturerEducationImportTest extends TestCase
         (require database_path('migrations/2026_10_22_000000_create_lecturer_snapshots.php'))->up();
         (require database_path('migrations/2026_10_22_000100_add_education_status_to_lecturers.php'))->up();
         (require database_path('migrations/2026_11_03_000000_create_lecturer_education_statuses.php'))->up();
+        (require database_path('migrations/2026_11_12_000000_add_s3_planning_to_lecturer_education.php'))->up();
     }
 
     protected function tearDown(): void
@@ -69,6 +70,98 @@ class LecturerEducationImportTest extends TestCase
     private function import(string $path, int $year = 2026, int $month = 10): array
     {
         return app(LecturerEducationWorkbook::class)->import($path, $year, $month, ['kode_dosen' => 0, 'status_pendidikan' => 7], 2);
+    }
+
+    private function planningWorkbook(array $entries): string
+    {
+        return $this->makeWorkbook([LecturerEducationWorkbook::SHEET => [
+            ['Kode Dosen', 'Pendidikan', ' Proyeksi LULUS S3 ', 'Roadmap S3  ', 'Pembiayaan  ', 'Universitas Tujuan  '],
+            ...$entries,
+        ]]);
+    }
+
+    private function importPlanning(string $path, int $month = 10): array
+    {
+        $service = app(LecturerEducationWorkbook::class);
+        $preview = $service->preview($path);
+
+        return $service->import($path, 2026, $month, $preview['suggested_mapping'], $preview['header_row']);
+    }
+
+    public function test_s3_planning_is_detected_saved_and_available_on_the_dashboard(): void
+    {
+        $path = $this->planningWorkbook([
+            ['D1', 'S2', '2032', '2028', 'Beasiswa BINUS', 'UGM'],
+            ['D2', 'On Going S3', '2027', '-', '-', '-'],
+            ['MISSING', 'S2', '2030', '2026', 'Mandiri', 'UM'],
+        ]);
+        $preview = app(LecturerEducationWorkbook::class)->preview($path);
+        $this->assertSame(['kode_dosen' => 0, 'status_pendidikan' => 1, 'proyeksi_lulus_s3' => 2,
+            'roadmap_s3' => 3, 'pembiayaan' => 4, 'universitas_tujuan' => 5], $preview['suggested_mapping']);
+        $this->assertSame(LecturerEducationWorkbook::OPTIONAL_FIELDS, $preview['mapping_config']['optional']);
+        $summary = $this->importPlanning($path);
+        $this->assertSame([2, ['MISSING']], [$summary['updated'], $summary['unmatched_codes']]);
+        foreach (['database_dosen_new', 'lecturer_snapshot_rows', 'lecturer_education_statuses'] as $table) {
+            $this->assertDatabaseHas($table, ['kode_dosen' => 'D1', 'status_pendidikan' => 'S2',
+                'roadmap_s3' => 2028, 'proyeksi_lulus_s3' => 2032, 'pembiayaan' => 'Beasiswa BINUS', 'universitas_tujuan' => 'UGM']);
+            $this->assertDatabaseHas($table, ['kode_dosen' => 'D2', 'roadmap_s3' => null,
+                'proyeksi_lulus_s3' => 2027, 'pembiayaan' => null, 'universitas_tujuan' => null]);
+        }
+        $education = app(LrcDashboard::class)->data()['chartDetails']['pendidikan'];
+        $this->assertSame([2028, 2032], [$education[0][0]['roadmapS3'], $education[0][0]['proyeksiLulusS3']]);
+        $this->assertSame(2027, $education[2][0]['proyeksiLulusS3']);
+        $this->assertArrayNotHasKey('roadmapS3', $education[2][0]);
+        $this->assertSame(0, $this->importPlanning($path)['updated']);
+    }
+
+    public function test_planning_survives_data_center_replacement_and_carries_into_a_new_period(): void
+    {
+        $this->importPlanning($this->planningWorkbook([['D1', 'S2', '2032', '2028', 'Beasiswa BINUS', 'UGM']]));
+        $dataCenter = $this->makeWorkbook(['Malang' => [['Kode Dosen', 'Nama Dosen', 'Pendidikan'], ['D1', 'Updated name', 'S2']]]);
+        app(LecturerWorkbook::class)->import($dataCenter, 2026, 10);
+        $this->assertDatabaseHas('lecturer_snapshot_rows', ['kode_dosen' => 'D1', 'roadmap_s3' => 2028, 'universitas_tujuan' => 'UGM']);
+        $this->assertDatabaseHas('database_dosen_new', ['kode_dosen' => 'D1', 'roadmap_s3' => 2028, 'universitas_tujuan' => 'UGM']);
+        app(LecturerWorkbook::class)->import($dataCenter, 2026, 11);
+        $education = app(LrcDashboard::class)->data()['chartDetails']['pendidikan'][0][0];
+        $this->assertSame([2028, 2032], [$education['roadmapS3'], $education['proyeksiLulusS3']]);
+        $this->import($this->workbook([['D1', 'On Going S3']]), 2026, 11);
+        $details = app(LecturerEducationStatuses::class)->detailsAsOf(2026, 11)->get('D1');
+        $this->assertSame([2028, 2032, 'UGM'], [$details['roadmap_s3'], $details['proyeksi_lulus_s3'], $details['universitas_tujuan']]);
+        $this->importPlanning($this->planningWorkbook([['D1', 'On Going S3', '2031', '-', '-', '']]), 11);
+        $details = app(LecturerEducationStatuses::class)->detailsAsOf(2026, 11)->get('D1');
+        $this->assertSame([null, 2031, null, null], [$details['roadmap_s3'], $details['proyeksi_lulus_s3'], $details['pembiayaan'], $details['universitas_tujuan']]);
+        $this->assertSame(2028, app(LecturerEducationStatuses::class)->detailsAsOf(2026, 10)->get('D1')['roadmap_s3']);
+    }
+
+    public function test_invalid_planning_and_conflicting_duplicate_plans_do_not_replace_saved_data(): void
+    {
+        $valid = ['D1', 'S2', '2032', '2028', 'Mandiri', 'UGM'];
+        $this->importPlanning($this->planningWorkbook([$valid]));
+        $before = DB::table('lecturer_education_statuses')->get();
+        foreach ([
+            [$valid, ['D1', 'S2', '2033', '2028', 'Mandiri', 'UGM']],
+            [['D1', 'S2', 'bukan tahun', '2028', 'Mandiri', 'UGM']],
+            [['D1', 'S2', '2032', '20.28', 'Mandiri', 'UGM']],
+        ] as $entries) {
+            try {
+                $this->importPlanning($this->planningWorkbook($entries));
+                $this->fail('Invalid planning must be rejected.');
+            } catch (ValidationException) {
+                $this->assertEquals($before, DB::table('lecturer_education_statuses')->get());
+                $this->assertSame(2032, (int) DataDosen::find('D1')->proyeksi_lulus_s3);
+            }
+        }
+    }
+
+    public function test_planning_migration_can_be_reversed_without_changing_status_or_roster(): void
+    {
+        $this->importPlanning($this->planningWorkbook([['D1', 'S2', '2032', '2028', 'Mandiri', 'UGM']]));
+        (require database_path('migrations/2026_11_12_000000_add_s3_planning_to_lecturer_education.php'))->down();
+        foreach (['database_dosen_new', 'lecturer_snapshot_rows', 'lecturer_education_statuses'] as $table) {
+            $this->assertFalse(Schema::hasColumn($table, 'roadmap_s3'));
+            $this->assertDatabaseHas($table, ['kode_dosen' => 'D1', 'status_pendidikan' => 'S2']);
+        }
+        $this->assertSame(2, DataDosen::count());
     }
 
     public function test_preview_detects_second_row_header_and_column_h_in_the_selected_sheet(): void

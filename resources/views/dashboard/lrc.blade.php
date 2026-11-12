@@ -45,7 +45,7 @@
             <button type="submit" class="pd-button pd-reset"><i class="bi bi-funnel" aria-hidden="true"></i> Terapkan filter</button>
             <a class="pd-button lrc-clear-button" href="{{ route('lrc-dashboard') }}">Reset</a>
         </form>
-        <p class="pd-context"><i class="bi bi-info-circle" aria-hidden="true"></i> Filter memengaruhi seluruh chart dan daftar dosen pada rinciannya.</p>
+        <p class="pd-context"><i class="bi bi-info-circle" aria-hidden="true"></i> Filter memengaruhi seluruh chart dan daftar dosen pada rinciannya. Persentase dihitung dari total data yang ditampilkan pada masing-masing chart.</p>
     </section>
 
     <section class="pd-section" aria-labelledby="lrcKpiHeading">
@@ -83,7 +83,23 @@
 
 <dialog class="pd-dialog lrc-dialog" id="lrcDetail" aria-labelledby="lrcDetailTitle" aria-describedby="lrcDetailCaption">
     <div class="pd-dialog-heading"><div><span class="pd-eyebrow" id="lrcDetailEyebrow">KOMPOSISI FAKULTAS</span><h2 id="lrcDetailTitle">Rincian Fakultas</h2></div><button class="pd-icon-button" type="button" id="lrcDetailClose" aria-label="Tutup rincian"><i class="bi bi-x-lg" aria-hidden="true"></i></button></div>
-    <div class="pd-dialog-body"><div class="pd-table-tools"><button type="button" class="pd-text-button" id="lrcDetailBack" hidden><i class="bi bi-arrow-left" aria-hidden="true"></i> Kembali</button><label class="pd-search"><i class="bi bi-search" aria-hidden="true"></i><input type="search" id="lrcDetailSearch" placeholder="Cari dosen atau kategori…" aria-label="Cari pada rincian"></label></div><p class="pd-table-caption" id="lrcDetailCaption"></p><div id="lrcFacultyList" class="lrc-detail-list"></div><div class="pd-table-scroll" id="lrcLecturerRegion" hidden><table class="pd-table lrc-detail-table" id="lrcLecturerTable"></table></div><p class="pd-table-meta" id="lrcDetailMeta" role="status" aria-live="polite"></p></div>
+    <div class="pd-dialog-body">
+        <div id="lrcEducationStats" class="lrc-education-stats" aria-label="Statistik perencanaan dosen per tahun" hidden></div>
+        <div id="lrcEducationFilters" class="lrc-filters lrc-education-filters" role="group" aria-label="Filter rincian dosen" hidden>
+            <div class="pd-field"><label for="lrcGugusFilter">Gugus Binaan</label><select id="lrcGugusFilter"><option value="">Semua gugus binaan</option></select></div>
+            <div class="pd-field"><label for="lrcProgramFilter">Program</label><select id="lrcProgramFilter"><option value="">Semua program</option></select></div>
+            <div class="pd-field" id="lrcRoadmapFilterField"><label for="lrcRoadmapFilter">Roadmap S3</label><select id="lrcRoadmapFilter"><option value="">Semua tahun</option></select></div>
+            <div class="pd-field" id="lrcProjectionFilterField"><label for="lrcProjectionFilter">Proyeksi Lulus S3</label><select id="lrcProjectionFilter"><option value="">Semua tahun</option></select></div>
+            <div class="pd-field" id="lrcJjaRoadmapFilterField" hidden><label for="lrcJjaRoadmapFilter">Roadmap kenaikan JJA</label><select id="lrcJjaRoadmapFilter"><option value="">Semua roadmap</option></select></div>
+            <div class="pd-field" id="lrcJjaEligibleFilterField" hidden><label for="lrcJjaEligibleFilter">Tahun eligible kenaikan JJA</label><select id="lrcJjaEligibleFilter"><option value="">Semua tahun</option></select></div>
+            <button type="button" class="pd-button lrc-clear-button" id="lrcEducationReset">Reset filter rincian</button>
+        </div>
+        <div class="pd-table-tools"><button type="button" class="pd-text-button" id="lrcDetailBack" hidden><i class="bi bi-arrow-left" aria-hidden="true"></i> Kembali</button><label class="pd-search"><i class="bi bi-search" aria-hidden="true"></i><input type="search" id="lrcDetailSearch" placeholder="Cari dosen atau kategori…" aria-label="Cari pada rincian"></label></div>
+        <p class="pd-table-caption" id="lrcDetailCaption"></p>
+        <div id="lrcFacultyList" class="lrc-detail-list"></div>
+        <div class="pd-table-scroll" id="lrcLecturerRegion" hidden><table class="pd-table lrc-detail-table" id="lrcLecturerTable"></table></div>
+        <p class="pd-table-meta" id="lrcDetailMeta" role="status" aria-live="polite"></p>
+    </div>
 </dialog>
 <noscript><p class="container pd-context">Aktifkan JavaScript untuk membuka daftar dosen pada setiap chart.</p></noscript>
 @endsection

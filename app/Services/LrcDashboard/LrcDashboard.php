@@ -11,9 +11,9 @@ class LrcDashboard
 {
     private const EDUCATION_LABELS = ['S2', 'S3', 'On Going S3'];
 
-    private const RANK_LABELS = ['GB', 'LK', 'L', 'AA', 'TP'];
+    private const RANK_LABELS = ['TP', 'AA', 'L', 'LK', 'GB'];
 
-    private const RANK_CHART_LABELS = ['GB (Guru Besar)', 'LK (Lektor Kepala)', 'L (Lektor)', 'AA (Asisten Ahli)', 'TP (Tenaga Pengajar)'];
+    private const RANK_CHART_LABELS = ['TP (Tenaga Pengajar)', 'AA (Asisten Ahli)', 'L (Lektor)', 'LK (Lektor Kepala)', 'GB (Guru Besar)'];
 
     private const AGE_LABELS = ['20-40 tahun', '41-54 tahun', '55 tahun', '56-64 tahun', '65 tahun', '> 65 tahun'];
 
@@ -43,6 +43,10 @@ class LrcDashboard
             'filters' => $options + ['selected' => $selected],
             'total' => $filtered->count(),
             'sourceTotal' => $rows->count(),
+            'rankProgression' => array_map(fn (int $index) => [
+                'current' => self::RANK_LABELS[$index], 'next' => self::RANK_LABELS[$index + 1] ?? null,
+                'nextLabel' => self::RANK_CHART_LABELS[$index + 1] ?? null,
+            ], array_keys(self::RANK_LABELS)),
             'charts' => [
                 'pendidikan' => $this->chart(self::EDUCATION_LABELS, $this->educationCounts($filtered)),
                 'jja' => $this->chart(self::RANK_CHART_LABELS, $this->fixedCounts($filtered, 'rank', self::RANK_LABELS)),
@@ -55,7 +59,7 @@ class LrcDashboard
             ],
             // Lecturers behind each bar/slice, aligned with the chart labels by index.
             'chartDetails' => array_map(fn (array $group) => array_map(
-                fn ($value) => $this->lecturers($filtered->whereStrict($group[0], $value)),
+                fn ($value) => $this->lecturers($filtered->whereStrict($group[0], $value), $group[0] === 'rank'),
                 $group[1]
             ), $groups),
             'facultyDetails' => $this->facultyDetails($filtered),
@@ -72,9 +76,8 @@ class LrcDashboard
         $rank = $this->rank($row->jja ?? null);
         $facultyType = $this->facultyType($row->tipe_faculty ?? null);
         $faculty = $this->value($row->fakultas_internal ?? null);
-        $registration = strtoupper($this->value($row->jenis_registrasi ?? null));
         $registrationNumber = $this->value($row->nomor_nidn_nupn ?? null);
-        $hasNuptk = str_contains($registration, 'NUPTK') && $this->isDataValue($registrationNumber);
+        $hasNuptk = $this->isDataValue($registrationNumber);
 
         return [
             'code' => $this->value($row->kode_dosen ?? null),
@@ -85,7 +88,13 @@ class LrcDashboard
             'facultyType' => $facultyType,
             'facultyDetail' => $this->value($row->tipe_faculty ?? null) ?: 'Tidak diketahui',
             'rank' => $rank,
+            'roadmapKenaikanJja' => $this->value($row->roadmap_kenaikan_jja ?? null),
+            'roadmapJjaRank' => $this->rank($row->roadmap_kenaikan_jja ?? null),
+            'eligibleKenaikanJja' => $this->value($row->eligible_kenaikan_jja ?? null),
+            'eligibleJjaYear' => isset($row->eligible_kenaikan_jja) ? (int) substr((string) $row->eligible_kenaikan_jja, 0, 4) : null,
             'education' => $this->education($row->pendidikan ?? null, $row->status_pendidikan ?? null),
+            'roadmapS3' => isset($row->roadmap_s3) ? (int) $row->roadmap_s3 : null,
+            'proyeksiLulusS3' => isset($row->proyeksi_lulus_s3) ? (int) $row->proyeksi_lulus_s3 : null,
             'ageLabel' => $this->ageLabel($row->usia ?? null, $row->tanggal_lahir ?? null),
             'serdos' => $this->serdos($row->status_serdos ?? null),
             'nuptk' => $hasNuptk ? 'Sudah punya NUPTK' : 'Belum punya NUPTK',
@@ -180,10 +189,16 @@ class LrcDashboard
     /**
      * The fields shown in a lecturer list, sorted by name.
      */
-    private function lecturers(Collection $rows): array
+    private function lecturers(Collection $rows, bool $rankPlanning = false): array
     {
         return $rows->sortBy('name')->map(fn (array $row) => [
             'code' => $row['code'], 'name' => $row['name'], 'gugus' => $row['gugus'], 'program' => $row['program'],
+            ...($rankPlanning ? [
+                'roadmapKenaikanJja' => $row['roadmapKenaikanJja'], 'roadmapJjaRank' => $row['roadmapJjaRank'],
+                'eligibleKenaikanJja' => $row['eligibleKenaikanJja'], 'eligibleJjaYear' => $row['eligibleJjaYear'],
+            ] : []),
+            ...($row['education'] === 'S2' ? ['roadmapS3' => $row['roadmapS3'], 'proyeksiLulusS3' => $row['proyeksiLulusS3']] : []),
+            ...($row['education'] === 'On Going S3' ? ['proyeksiLulusS3' => $row['proyeksiLulusS3']] : []),
         ])->values()->all();
     }
 

@@ -66,7 +66,7 @@
                 <div class="badge-item">
                   <i class="bi bi-people"></i>
                   <div class="badge-text">
-                    <span class="count">118</span>
+                    <span class="count">100+</span>
                     <span class="label">Lecturers</span>
                   </div>
                 </div>

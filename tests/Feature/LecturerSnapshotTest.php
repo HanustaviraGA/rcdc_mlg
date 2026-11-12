@@ -56,6 +56,73 @@ class LecturerSnapshotTest extends TestCase
         $this->assertSame(1, DB::table('lecturer_imports')->count());
     }
 
+    public function test_data_center_import_detects_jja_planning_and_normalizes_eligibility_dates_per_period(): void
+    {
+        $path = $this->makeWorkbook(['Malang' => [
+            ['Kode Dosen', 'Nama Dosen', 'JJA', 'Roadmap kenaikan JJA  ', 'Eligible kenaikan JJA  '],
+            ['D1', 'First lecturer', 'TP', 'AA150', '01-04-2028'],
+            ['D2', 'Second lecturer', 'AA150', 'Lektor', "'01-11-2029"],
+            ['D3', 'Third lecturer', 'GB', '-', '-'],
+            ['D4', 'Fourth lecturer', 'L200', 'Lektor Kepala', '45292'],
+        ]]);
+        $service = app(LecturerWorkbook::class);
+        $preview = $service->preview($path);
+        $this->assertSame(3, $preview['suggested_mapping']['roadmap_kenaikan_jja']);
+        $this->assertSame(4, $preview['suggested_mapping']['eligible_kenaikan_jja']);
+        $this->assertArrayHasKey('eligible_kenaikan_jja', $preview['mapping_config']['optional']);
+        $service->import($path, 2026, 11);
+        foreach (['database_dosen_new', 'lecturer_snapshot_rows'] as $table) {
+            $this->assertDatabaseHas($table, ['kode_dosen' => 'D1', 'roadmap_kenaikan_jja' => 'AA150', 'eligible_kenaikan_jja' => '2028-04-01']);
+            $this->assertDatabaseHas($table, ['kode_dosen' => 'D2', 'eligible_kenaikan_jja' => '2029-11-01']);
+            $this->assertDatabaseHas($table, ['kode_dosen' => 'D3', 'roadmap_kenaikan_jja' => null, 'eligible_kenaikan_jja' => null]);
+            $this->assertDatabaseHas($table, ['kode_dosen' => 'D4', 'eligible_kenaikan_jja' => '2024-01-01']);
+        }
+        $historical = $this->makeWorkbook(['Malang' => [
+            ['Kode Dosen', 'Nama Dosen', 'Roadmap kenaikan JJA', 'Eligible kenaikan JJA'], ['D1', 'Historical lecturer', 'Lektor', '2026-03-02'],
+        ]]);
+        $service->import($historical, 2025, 12);
+        $this->assertSame('2026-03-02', app(LecturerSnapshots::class)->rows(2025, 12)['D1']->eligible_kenaikan_jja);
+        $this->assertSame('2028-04-01', DataDosen::find('D1')->eligible_kenaikan_jja);
+        $service->import($this->makeWorkbook(['Malang' => [['Kode Dosen', 'Nama Dosen'], ['D1', 'December lecturer']]]), 2026, 12);
+        $this->assertNull(DataDosen::find('D1')->eligible_kenaikan_jja);
+        $this->assertNull(DataDosen::find('D1')->roadmap_kenaikan_jja);
+        $this->assertSame('2028-04-01', app(LecturerSnapshots::class)->rows(2026, 11)['D1']->eligible_kenaikan_jja);
+    }
+
+    public function test_invalid_jja_eligibility_dates_do_not_replace_saved_data(): void
+    {
+        $before = DB::table('lecturer_snapshot_rows')->get();
+        foreach (['31-02-2028', 'bukan tanggal', '2028'] as $date) {
+            $path = $this->makeWorkbook(['Malang' => [
+                ['Kode Dosen', 'Nama Dosen', 'Eligible kenaikan JJA'], ['D1', 'Changed lecturer', $date],
+            ]]);
+            try {
+                app(LecturerWorkbook::class)->import($path, 2026, 10);
+                $this->fail('Invalid eligibility dates must be rejected.');
+            } catch (ValidationException $exception) {
+                $this->assertStringContainsString('Eligible kenaikan JJA', $exception->getMessage());
+                $this->assertEquals($before, DB::table('lecturer_snapshot_rows')->get());
+                $this->assertSame('Current 2026', DataDosen::find('D1')->nama_dosen);
+            }
+        }
+    }
+
+    public function test_jja_planning_migration_supports_existing_snapshot_columns_and_can_be_reversed(): void
+    {
+        $migration = require database_path('migrations/2026_11_12_000100_add_jja_planning_to_lecturers.php');
+        $migration->up();
+        foreach (['database_dosen_new', 'lecturer_snapshot_rows'] as $table) {
+            $this->assertTrue(Schema::hasColumn($table, 'roadmap_kenaikan_jja'));
+            $this->assertTrue(Schema::hasColumn($table, 'eligible_kenaikan_jja'));
+        }
+        $migration->down();
+        foreach (['database_dosen_new', 'lecturer_snapshot_rows'] as $table) {
+            $this->assertFalse(Schema::hasColumn($table, 'roadmap_kenaikan_jja'));
+            $this->assertFalse(Schema::hasColumn($table, 'eligible_kenaikan_jja'));
+            $this->assertDatabaseHas($table, ['kode_dosen' => 'D1', 'jja' => 'Lektor']);
+        }
+    }
+
     public function test_manual_mapping_is_used_and_historical_import_does_not_touch_current_master(): void
     {
         [$path, $mapping] = $this->withRequiredColumns(['Malang' => [['ID', 'Full Name', 'Rank'], ['d1', 'Old 2025', 'Asisten Ahli']]], ['kode_dosen' => 0, 'nama_dosen' => 1, 'jja' => 2]);

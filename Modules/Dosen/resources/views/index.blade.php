@@ -141,6 +141,7 @@
                             </div>
                         </div>
                         <label for="dosen" class="required form-label">Data Center (.xlsx)</label>
+                        <p class="text-muted">Kolom Roadmap kenaikan JJA dan Eligible kenaikan JJA dapat dipetakan dari Excel. Isi eligible dengan tanggal (DD-MM-YYYY atau YYYY-MM-DD); nilai kosong atau - disimpan sebagai belum diisi.</p>
                         <input type="file" accept=".xlsx" required id="dosen" name="dosen" class="form-control form-control-outline" onchange="previewDosenWorkbook()">
                         <p class="text-muted mt-3">Secara otomatis membaca sheet Malang (atau FM Malang / FM BINUS Malang); pilih sheet lain pada pratinjau bila data berada di sheet berbeda. Periksa contoh data dan konfirmasikan pemetaan sebelum mengunggah. Hanya Kode Dosen dan Nama Dosen yang wajib dipetakan; kolom opsional boleh tidak dipetakan atau memiliki nilai kosong dan tidak menghalangi unggahan. Setelah validasi berhasil, seluruh data dosen pada tahun dan bulan terpilih diganti dengan isi file sesuai pemetaan terbaru. Dosen yang tidak ada dalam file dihapus dari periode tersebut; kolom yang tidak dipetakan dikosongkan. Data periode lain tetap tersimpan. Unggahan historis tidak mengubah master tahun berjalan.</p>
                         <p id="dosenPreviewStatus" role="status" aria-live="polite"></p>

@@ -65,9 +65,12 @@ class LrcDashboardTest extends TestCase
     {
         foreach ([
             'D1' => ['pendidikan' => 'S3', 'jja' => 'Lektor Kepala', 'usia' => '45', 'status_serdos' => 'Lulus',
-                'jenis_registrasi' => 'NUPTK', 'nomor_nidn_nupn' => '123', 'agama' => 'Islam', 'nama_gugus_binaan' => 'Computer Science'],
-            'D2' => ['pendidikan' => 'S2', 'jja' => 'Asisten Ahli', 'usia' => '30', 'agama' => 'Kristen'],
-            'D3' => ['pendidikan' => 'S2', 'jja' => 'L200', 'usia' => '30', 'agama' => 'Islam'],
+                'jenis_registrasi' => 'NIDN', 'nomor_nidn_nupn' => '123', 'agama' => 'Islam', 'nama_gugus_binaan' => 'Computer Science'],
+            'D2' => ['pendidikan' => 'S2', 'jja' => 'Asisten Ahli', 'usia' => '30', 'agama' => 'Kristen',
+                'jenis_registrasi' => null, 'nomor_nidn_nupn' => ' 456 '],
+            'D3' => ['pendidikan' => 'S2', 'jja' => 'L200', 'usia' => '30', 'agama' => 'Islam',
+                'jenis_registrasi' => 'NUPTK', 'nomor_nidn_nupn' => '-'],
+            'D4' => ['jenis_registrasi' => 'NUPTK', 'nomor_nidn_nupn' => null],
         ] as $code => $values) {
             DB::table('database_dosen_new')->where('kode_dosen', $code)->update($values);
         }
@@ -80,10 +83,10 @@ class LrcDashboardTest extends TestCase
             $this->assertSame($data['charts'][$chart]['data'], array_map('count', $categories), $chart);
         }
         $this->assertSame([['D2', 'D3'], ['D1'], []], $codes('pendidikan'));
-        $this->assertSame([[], ['D1'], ['D3'], ['D2'], []], $codes('jja'));
+        $this->assertSame([[], ['D2'], ['D3'], ['D1'], []], $codes('jja'));
         $this->assertSame([['D2', 'D3'], ['D1'], [], [], [], []], $codes('usia'));
         $this->assertSame([['D1'], ['D2', 'D3', 'D4']], $codes('serdos'));
-        $this->assertSame([['D1'], ['D2', 'D3', 'D4']], $codes('nuptk'));
+        $this->assertSame([['D1', 'D2'], ['D3', 'D4']], $codes('nuptk'));
         $this->assertSame([['D1', 'D2'], ['D3']], $codes('tipeDosen'));
         $this->assertSame(['Islam', 'Kristen', 'Tidak diketahui'], $data['charts']['agama']['labels']);
         $this->assertSame([['D1', 'D3'], ['D2'], ['D4']], $codes('agama'));
@@ -106,5 +109,30 @@ class LrcDashboardTest extends TestCase
         }
         // Empty categories cannot be opened; the Komposisi Fakultas buttons are unchanged.
         $response->assertSee('data-lrc-chart="pendidikan" data-lrc-index="0" disabled', false)->assertSee('data-lrc-faculty="FMSTR"', false);
+    }
+
+    public function test_jja_chart_ascends_from_tp_to_gb_and_details_expose_promotion_planning(): void
+    {
+        DB::table('database_dosen_new')->insert(['kode_dosen' => 'D5', 'nama_dosen' => 'Lecturer D5', 'jja' => 'GB']);
+        DB::table('lecturer_snapshot_rows')->insert(['kode_dosen' => 'D5', 'lecturer_import_id' => DB::table('lecturer_imports')->value('id')]);
+        foreach ([
+            'D1' => ['TP', 'AA150', '2027-04-01'],
+            'D2' => ['AA150', 'Lektor', '2028-01-01'],
+            'D3' => ['L300', 'Lektor Kepala', '2029-11-01'],
+            'D4' => ['LK400', 'GB', '2030-06-01'],
+        ] as $code => [$rank, $roadmap, $date]) {
+            DB::table('database_dosen_new')->where('kode_dosen', $code)->update([
+                'jja' => $rank, 'roadmap_kenaikan_jja' => $roadmap, 'eligible_kenaikan_jja' => $date,
+            ]);
+        }
+        $data = app(LrcDashboard::class)->data();
+        $this->assertSame(['TP (Tenaga Pengajar)', 'AA (Asisten Ahli)', 'L (Lektor)', 'LK (Lektor Kepala)', 'GB (Guru Besar)'], $data['charts']['jja']['labels']);
+        $this->assertSame([1, 1, 1, 1, 1], $data['charts']['jja']['data']);
+        $this->assertSame(['AA', 'L', 'LK', 'GB', null], array_column($data['rankProgression'], 'next'));
+        $this->assertSame([['D1'], ['D2'], ['D3'], ['D4'], ['D5']], array_map(fn ($rows) => array_column($rows, 'code'), $data['chartDetails']['jja']));
+        $tp = $data['chartDetails']['jja'][0][0];
+        $this->assertSame(['AA150', 'AA', '2027-04-01', 2027], [$tp['roadmapKenaikanJja'], $tp['roadmapJjaRank'], $tp['eligibleKenaikanJja'], $tp['eligibleJjaYear']]);
+        $this->assertNull($data['chartDetails']['jja'][4][0]['eligibleJjaYear']);
+        $this->assertSame('LK', $data['chartDetails']['jja'][2][0]['roadmapJjaRank']);
     }
 }

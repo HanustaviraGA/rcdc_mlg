@@ -31,6 +31,21 @@
 .lrc-page .lrc-detail-option span:last-child { color: var(--brand-700); font-size: 12px; font-weight: 600; white-space: nowrap; }
 .lrc-page .lrc-detail-table .lrc-name-cell { min-width: 240px; }
 .lrc-page .lrc-detail-table small { display: block; margin-top: 4px; color: var(--pd-muted); font-size: 10px; }
+.lrc-page .lrc-dialog { width: min(1200px, calc(100vw - 32px)); }
+.lrc-page .lrc-education-stats { display: grid; gap: 22px; margin-bottom: 22px; }
+.lrc-page .lrc-education-stats[hidden], .lrc-page .lrc-education-filters[hidden], .lrc-page .lrc-education-filters .pd-field[hidden] { display: none; }
+.lrc-page .lrc-year-summary { padding: 0; overflow: visible; background: transparent; }
+.lrc-page .lrc-year-summary h3 { margin: 0 0 5px; font-size: 16px; }
+.lrc-page .lrc-year-summary > p { margin: 0 0 12px; color: var(--pd-muted); font-size: 12px; }
+.lrc-page .lrc-year-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(125px, 1fr)); gap: 10px; }
+.lrc-page .lrc-year-card { padding: 14px; border: 1px solid var(--pd-line); border-top: 3px solid var(--brand-500); border-radius: 8px; background: #f7faff; }
+.lrc-page .lrc-year-summary + .lrc-year-summary .lrc-year-card { border-top-color: #57a773; }
+.lrc-page .lrc-year-card h4 { margin: 0 0 10px; font-size: 14px; }
+.lrc-page .lrc-year-card strong { display: block; color: var(--brand-700); font-size: 24px; line-height: 1.3; }
+.lrc-page .lrc-year-card small { font-size: 11px; font-weight: 500; }
+.lrc-page .lrc-year-card > span { color: var(--pd-muted); font-size: 13px; }
+.lrc-page .lrc-year-empty { border-top-color: #8995a4; background: #f8f9fa; }
+.lrc-page .lrc-education-filters { margin-bottom: 18px; }
 @media (max-width: 767px) {
     .lrc-page .lrc-chart-grid, .lrc-page .lrc-detail-list { grid-template-columns: minmax(0, 1fr); }
     .lrc-page .lrc-kpi-card { padding: 20px; }

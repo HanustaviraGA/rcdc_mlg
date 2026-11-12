@@ -49,12 +49,36 @@
                                             <td data-field="jja">-</td>
                                         </tr>
                                         <tr>
+                                            <th>Roadmap kenaikan JJA</th>
+                                            <td data-field="roadmap_kenaikan_jja">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Eligible kenaikan JJA</th>
+                                            <td data-field="eligible_kenaikan_jja">-</td>
+                                        </tr>
+                                        <tr>
                                             <th>Pendidikan Terakhir</th>
                                             <td data-field="pendidikan">-</td>
                                         </tr>
                                         <tr>
                                             <th>Status Pendidikan</th>
                                             <td data-field="status_pendidikan">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Roadmap S3</th>
+                                            <td data-field="roadmap_s3">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Proyeksi Lulus S3</th>
+                                            <td data-field="proyeksi_lulus_s3">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Pembiayaan</th>
+                                            <td data-field="pembiayaan">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Universitas Tujuan</th>
+                                            <td data-field="universitas_tujuan">-</td>
                                         </tr>
                                         <tr>
                                             <th>Jurusan</th>

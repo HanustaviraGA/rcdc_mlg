@@ -39,6 +39,7 @@ class LecturerWorkbook
         'nama_tipe_dosen_detail' => 'Nama Tipe Dosen Detail', 'status' => 'Status',
         'effdate_dosen_cuti' => 'Effdate Dosen Cuti', 'jenis_registrasi' => 'Jenis Registrasi', 'nomor_nidn_nupn' => 'Nomor NIDN/NUPN',
         'pendidikan' => 'Pendidikan', 'jja' => 'JJA', 'tmt_jja' => 'Tmt JJA',
+        'roadmap_kenaikan_jja' => 'Roadmap kenaikan JJA', 'eligible_kenaikan_jja' => 'Eligible kenaikan JJA',
         'jka' => 'JKA', 'tmt_jka' => 'Tmt JKA', 'jenis_kelamin' => 'Jenis Kelamin', 'tanggal_lahir' => 'Tanggal Lahir', 'usia' => 'Usia',
         'no_telp' => 'No Telp', 'no_hp' => 'No HP',
         'no_hp_2' => 'No HP2', 'email_1' => 'Email 1', 'email_2' => 'Email 2',
@@ -220,6 +221,18 @@ class LecturerWorkbook
                 foreach ($map as $field => $index) {
                     $record[$field] = ($row[$index] ?? '') === '' ? null : $row[$index];
                 }
+                if (array_key_exists('roadmap_kenaikan_jja', $record) && $this->emptyPlanningValue($record['roadmap_kenaikan_jja'])) {
+                    $record['roadmap_kenaikan_jja'] = null;
+                }
+                if (array_key_exists('eligible_kenaikan_jja', $record)) {
+                    try {
+                        $record['eligible_kenaikan_jja'] = $this->eligibleDate($record['eligible_kenaikan_jja']);
+                    } catch (\InvalidArgumentException) {
+                        $policy->skip("Baris {$number}: Eligible kenaikan JJA harus berupa tanggal yang valid (DD-MM-YYYY atau YYYY-MM-DD), atau kosong (-).");
+
+                        continue;
+                    }
+                }
                 $code = strtoupper(trim($record['kode_dosen'] ?? ''));
                 if ($code === '') {
                     $policy->skip("Baris {$number}: Kode Dosen kosong.");
@@ -284,16 +297,17 @@ class LecturerWorkbook
                 ]], ['year', 'month'], ['filename', 'sheet', 'column_mapping', 'updated_at']);
                 $batch = DB::table('lecturer_imports')->where($snapshot)->lockForUpdate()->first();
                 $existing = DB::table('lecturer_snapshot_rows')->where('lecturer_import_id', $batch->id)->pluck('kode_dosen')->all();
-                $hasEducationStatus = Schema::hasColumn('lecturer_snapshot_rows', 'status_pendidikan');
+                $educationFields = array_intersect(LecturerEducationStatuses::FIELDS, Schema::getColumnListing('lecturer_snapshot_rows'));
                 // Education status comes from its own import for this same period.
-                $educationStatuses = $hasEducationStatus
-                    ? DB::table('lecturer_snapshot_rows')->where('lecturer_import_id', $batch->id)->pluck('status_pendidikan', 'kode_dosen')
-                    : collect();
+                $educationStatuses = DB::table('lecturer_snapshot_rows')->where('lecturer_import_id', $batch->id)
+                    ->get(['kode_dosen', ...$educationFields])->keyBy('kode_dosen');
                 $removed = count(array_diff($existing, array_column($parsed['records'], 'kode_dosen')));
                 // A validated workbook replaces the complete period; unmapped fields stay null.
                 DB::table('lecturer_snapshot_rows')->where('lecturer_import_id', $batch->id)->delete();
                 foreach ($parsed['records'] as $record) {
-                    $education = $hasEducationStatus ? ['status_pendidikan' => $educationStatuses->get($record['kode_dosen'])] : [];
+                    $education = array_replace(array_fill_keys($educationFields, null), array_intersect_key(
+                        (array) $educationStatuses->get($record['kode_dosen']), array_flip($educationFields)
+                    ));
                     DB::table('lecturer_snapshot_rows')->insert($record + $education + [
                         'lecturer_import_id' => $batch->id, 'created_at' => now(), 'updated_at' => now(),
                     ]);
@@ -305,7 +319,7 @@ class LecturerWorkbook
                 $masterCreated = 0;
                 $masterRecords = $year === null ? $parsed['records'] : DB::table('lecturer_snapshot_rows')
                     ->where('lecturer_import_id', $batch->id)->get()
-                    ->map(fn ($row) => array_intersect_key((array) $row, self::HEADERS + ['status_pendidikan' => 'Status Pendidikan']))->all();
+                    ->map(fn ($row) => array_intersect_key((array) $row, self::HEADERS + array_flip(LecturerEducationStatuses::FIELDS)))->all();
                 foreach ($masterRecords as $record) {
                     // Never restore deleted profiles or reset global visibility on import.
                     $model = DataDosen::withTrashed()->updateOrCreate(['kode_dosen' => $record['kode_dosen']], $record);
@@ -324,6 +338,35 @@ class LecturerWorkbook
     private function normalize(string $value): string
     {
         return mb_strtolower(trim(preg_replace('/\s+/u', ' ', str_replace("\xC2\xA0", ' ', $value))));
+    }
+
+    private function emptyPlanningValue(?string $value): bool
+    {
+        return in_array(strtoupper(trim($value ?? '')), ['', '-', 'N/A', 'NA', 'NULL'], true);
+    }
+
+    private function eligibleDate(?string $value): ?string
+    {
+        // Excel may keep a leading apostrophe on text dates.
+        $value = ltrim(trim($value ?? ''), "'");
+        if ($this->emptyPlanningValue($value)) {
+            return null;
+        }
+        if (preg_match('/^\d{5}(?:\.\d+)?$/', $value)) {
+            return (new \DateTimeImmutable('1899-12-30'))->modify('+'.(int) $value.' days')->format('Y-m-d');
+        }
+        if (preg_match('/^(\d{4})-(\d{1,2})-(\d{1,2})$/', $value, $parts)) {
+            [, $year, $month, $day] = $parts;
+        } elseif (preg_match('/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/', $value, $parts)) {
+            [, $day, $month, $year] = $parts;
+        } else {
+            throw new \InvalidArgumentException('Invalid eligibility date.');
+        }
+        if (! checkdate((int) $month, (int) $day, (int) $year)) {
+            throw new \InvalidArgumentException('Invalid eligibility date.');
+        }
+
+        return sprintf('%04d-%02d-%02d', $year, $month, $day);
     }
 
     private function invalid(string $message): never

@@ -15,6 +15,13 @@ class LecturerEducationWorkbook
 
     public const FIELDS = ['kode_dosen' => 'Kode Dosen', 'status_pendidikan' => 'Status Pendidikan'];
 
+    public const OPTIONAL_FIELDS = [
+        'proyeksi_lulus_s3' => 'Proyeksi Lulus S3',
+        'roadmap_s3' => 'Roadmap S3',
+        'pembiayaan' => 'Pembiayaan',
+        'universitas_tujuan' => 'Universitas Tujuan',
+    ];
+
     public function __construct(private LecturerEducationStatuses $statuses) {}
 
     public function preview(string $path, ?string $sheet = null): array
@@ -23,7 +30,7 @@ class LecturerEducationWorkbook
         if (! $rows) {
             // Keep the sheet list so another sheet can be chosen.
             return ['sheet' => $sheet, 'sheets' => $sheets, 'header_row' => 1, 'headers' => [], 'preview_data' => [],
-                'mapping_config' => ['required' => self::FIELDS, 'optional' => (object) []], 'suggested_mapping' => []];
+                'mapping_config' => ['required' => self::FIELDS, 'optional' => self::OPTIONAL_FIELDS], 'suggested_mapping' => []];
         }
         $headerRow = array_key_first($rows);
         foreach (array_slice($rows, 0, 30, true) as $number => $cells) {
@@ -34,8 +41,8 @@ class LecturerEducationWorkbook
         }
         $headers = $rows[$headerRow];
         $mapping = [];
-        foreach (['kode_dosen' => 'kode dosen', 'status_pendidikan' => 'pendidikan'] as $field => $label) {
-            $matches = array_keys(array_map($this->normalize(...), $headers), $label, true);
+        foreach (['kode_dosen' => 'Kode Dosen', 'status_pendidikan' => 'Pendidikan', ...self::OPTIONAL_FIELDS] as $field => $label) {
+            $matches = array_keys(array_map($this->normalize(...), $headers), $this->normalize($label), true);
             if (count($matches) === 1) {
                 $mapping[$field] = $matches[0];
             }
@@ -44,7 +51,7 @@ class LecturerEducationWorkbook
         return [
             'sheet' => $sheet, 'sheets' => $sheets, 'header_row' => $headerRow, 'headers' => $headers,
             'preview_data' => array_values(array_slice(array_filter($rows, fn ($number) => $number > $headerRow, ARRAY_FILTER_USE_KEY), 0, 5)),
-            'mapping_config' => ['required' => self::FIELDS, 'optional' => (object) []],
+            'mapping_config' => ['required' => self::FIELDS, 'optional' => self::OPTIONAL_FIELDS],
             'suggested_mapping' => $mapping,
         ];
     }
@@ -57,7 +64,12 @@ class LecturerEducationWorkbook
         }
         $errors = [];
         foreach ($mapping as $field => $index) {
-            if (! array_key_exists($field, self::FIELDS)) {
+            if (array_key_exists($field, self::OPTIONAL_FIELDS) && ($index === null || $index === '')) {
+                unset($mapping[$field]);
+
+                continue;
+            }
+            if (! array_key_exists($field, self::FIELDS + self::OPTIONAL_FIELDS)) {
                 $errors["column_mapping.$field"] = 'Kolom sistem tidak dikenal.';
             } elseif (! is_int($index) || $index < 0 || ! array_key_exists($index, $rows[$headerRow])) {
                 $errors["column_mapping.$field"] = 'Sumber kolom tidak valid.';
@@ -84,11 +96,25 @@ class LecturerEducationWorkbook
 
                 continue;
             }
-            $status = trim($cells[$mapping['status_pendidikan']] ?? '');
-            $status = $status === '' ? null : $status;
+            $details = [];
+            foreach (array_diff_key($mapping, ['kode_dosen' => true]) as $field => $index) {
+                $value = trim($cells[$index] ?? '');
+                $details[$field] = $value === '' ? null : $value;
+                if ($field !== 'status_pendidikan' && in_array(strtoupper($value), ['-', 'N/A', 'NA', 'NULL'], true)) {
+                    $details[$field] = null;
+                }
+                if (in_array($field, ['roadmap_s3', 'proyeksi_lulus_s3'], true) && $details[$field] !== null) {
+                    if (! preg_match('/^[1-9]\d{3}(?:\.0+)?$/', $value)) {
+                        $policy->skip('Baris '.$number.': '.self::OPTIONAL_FIELDS[$field].' harus berupa tahun empat digit atau kosong (-).');
+
+                        continue 2;
+                    }
+                    $details[$field] = (int) $value;
+                }
+            }
             if (array_key_exists($code, $records)) {
-                if ($records[$code] !== $status) {
-                    $policy->skip("Baris {$number}: kode dosen {$code} duplikat dengan status pendidikan berbeda; data pertama dipakai.");
+                if ($records[$code] !== $details) {
+                    $policy->skip("Baris {$number}: kode dosen {$code} duplikat dengan data pendidikan berbeda; data pertama dipakai.");
 
                     continue;
                 }
@@ -96,7 +122,7 @@ class LecturerEducationWorkbook
 
                 continue;
             }
-            $records[$code] = $status;
+            $records[$code] = $details;
         }
         if (! $records) {
             $this->invalid('Sheet tidak berisi data status pendidikan.');
@@ -121,6 +147,12 @@ class LecturerEducationWorkbook
         if (! $this->statuses->available()) {
             $this->invalid('Migrasi status pendidikan dosen belum dijalankan.');
         }
+        $fields = array_keys(reset($parsed['records']));
+        foreach (['database_dosen_new', 'lecturer_snapshot_rows', LecturerEducationStatuses::TABLE] as $table) {
+            if (array_diff($fields, Schema::getColumnListing($table))) {
+                $this->invalid('Migrasi perencanaan S3 dosen belum dijalankan.');
+            }
+        }
 
         return DB::transaction(function () use ($parsed, $year, $month) {
             $batch = DB::table('lecturer_imports')->where('year', $year)->where('month', $month)->lockForUpdate()->first();
@@ -130,27 +162,25 @@ class LecturerEducationWorkbook
             $rows = DB::table('lecturer_snapshot_rows')->where('lecturer_import_id', $batch->id)->get()->keyBy('kode_dosen');
             $updateMaster = $year === (int) now()->year && ! DB::table('lecturer_imports')->where('year', $year)->where('month', '>', $month)->exists();
             // What the period shows now, including a status carried over from an earlier upload.
-            $current = $this->statuses->asOf($year, $month);
+            $current = $this->statuses->detailsAsOf($year, $month);
             $updated = 0;
             $unchanged = 0;
             $unmatched = [];
             $matched = [];
-            foreach ($parsed['records'] as $code => $status) {
+            foreach ($parsed['records'] as $code => $details) {
                 $row = $rows->get($code);
                 if (! $row) {
                     $unmatched[] = $code;
 
                     continue;
                 }
-                ($current->has($code) ? $current->get($code) : $row->status_pendidikan) === $status ? $unchanged++ : $updated++;
-                $matched[$code] = $status;
-                DB::table('lecturer_snapshot_rows')->where('id', $row->id)->update([
-                    'status_pendidikan' => $status, 'updated_at' => now(),
-                ]);
+                $previous = $current->get($code, array_intersect_key((array) $row, array_flip(LecturerEducationStatuses::FIELDS)));
+                array_intersect_key($previous, $details) == $details ? $unchanged++ : $updated++;
+                // Unmapped optional columns keep their previous value; mapped blanks clear it.
+                $matched[$code] = array_replace($previous, $details);
+                DB::table('lecturer_snapshot_rows')->where('id', $row->id)->update($matched[$code] + ['updated_at' => now()]);
                 if ($updateMaster) {
-                    DB::table('database_dosen_new')->where('kode_dosen', $code)->update([
-                        'status_pendidikan' => $status, 'updated_at' => now(),
-                    ]);
+                    DB::table('database_dosen_new')->where('kode_dosen', $code)->update($matched[$code] + ['updated_at' => now()]);
                 }
             }
             if ($updated + $unchanged === 0) {

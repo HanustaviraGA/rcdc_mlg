@@ -283,8 +283,14 @@
         setValue('nama_program', data.nama_program);
         setValue('tipe_faculty', data.tipe_faculty);
         setValue('jja', data.jja);
+        setValue('roadmap_kenaikan_jja', data.roadmap_kenaikan_jja);
+        setValue('eligible_kenaikan_jja', data.eligible_kenaikan_jja);
         setValue('pendidikan', data.pendidikan);
         setValue('status_pendidikan', data.status_pendidikan);
+        setValue('roadmap_s3', data.roadmap_s3);
+        setValue('proyeksi_lulus_s3', data.proyeksi_lulus_s3);
+        setValue('pembiayaan', data.pembiayaan);
+        setValue('universitas_tujuan', data.universitas_tujuan);
         setValue('jurusan', data.jurusan);
         setValue('jenis_kelamin', data.jenis_kelamin);
         setValue('email_1', data.email_1);
