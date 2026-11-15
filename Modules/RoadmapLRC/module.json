@@ -1,0 +1,11 @@
+{
+    "name": "RoadmapLRC",
+    "alias": "roadmaplrc",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\RoadmapLRC\\Providers\\RoadmapLRCServiceProvider"
+    ],
+    "files": []
+}

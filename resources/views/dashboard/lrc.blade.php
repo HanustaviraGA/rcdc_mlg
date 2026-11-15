@@ -56,6 +56,7 @@
     <section class="pd-section" aria-labelledby="lrcEducationHeading">
         <div class="pd-section-heading"><div class="pd-heading-copy"><span class="pd-section-number">02</span><div><span class="pd-eyebrow">KUALIFIKASI AKADEMIK</span><h2 id="lrcEducationHeading">Jenjang Pendidikan</h2></div></div><span class="pd-period-label">Klik chart atau kategori untuk melihat daftar dosen</span></div>
         <div class="lrc-chart-grid lrc-chart-grid-wide">@include('dashboard.lrc_chart_card', ['key' => 'pendidikan', 'title' => 'Jenjang pendidikan dosen', 'canvas' => 'lrc-chart-pendidikan'])</div>
+        @include('dashboard.lrc_projection')
     </section>
 
     <section class="pd-section" aria-labelledby="lrcProfileHeading">

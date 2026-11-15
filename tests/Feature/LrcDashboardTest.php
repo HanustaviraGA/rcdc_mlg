@@ -7,6 +7,7 @@ use App\Services\LrcDashboard\LrcDashboard;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Modules\RoadmapLRC\Database\Seeders\RoadmapLRCDatabaseSeeder;
 use Tests\TestCase;
 
 class LrcDashboardTest extends TestCase
@@ -109,6 +110,52 @@ class LrcDashboardTest extends TestCase
         }
         // Empty categories cannot be opened; the Komposisi Fakultas buttons are unchanged.
         $response->assertSee('data-lrc-chart="pendidikan" data-lrc-index="0" disabled', false)->assertSee('data-lrc-faculty="FMSTR"', false);
+    }
+
+    public function test_projection_shows_the_planned_share_of_s3_fm_per_year_below_the_education_chart(): void
+    {
+        (require base_path('Modules/RoadmapLRC/database/migrations/2026_11_15_000000_create_prodi_fm_roadmaps_table.php'))->up();
+        $this->seed(RoadmapLRCDatabaseSeeder::class);
+        $page = $this->get(route('lrc-dashboard'))->assertOk()->getContent();
+
+        // Right below the Jenjang pendidikan dosen chart, before the next section.
+        $education = strpos($page, 'data-lrc-chart-card="pendidikan"');
+        $this->assertTrue($education < strpos($page, 'id="lrcProjectionHeading"') && strpos($page, 'id="lrcProjectionHeading"') < strpos($page, 'id="lrcProfileHeading"'));
+        $this->assertStringContainsString('Seluruh prodi (9).', $page);
+        preg_match_all('/data-lrc-projection="(\d{4})">.*?data-lrc-projection-s3>([^<]+)<.*?data-lrc-projection-fm>([^<]+)<.*?data-lrc-projection-percent>([^<]+)</s', $page, $boxes, PREG_SET_ORDER);
+        $this->assertSame([
+            ['2026', '16', '117', '13,7%'], ['2027', '35', '120', '29,2%'], ['2028', '44', '122', '36,1%'], ['2029', '47', '125', '37,6%'],
+            ['2030', '56', '129', '43,4%'], ['2031', '66', '132', '50,0%'], ['2032', '99', '134', '73,9%'], ['2033', '112', '137', '81,8%'],
+            ['2034', '130', '139', '93,5%'], ['2035', '133', '141', '94,3%'],
+        ], array_map(fn ($box) => array_slice($box, 1), $boxes));
+        $this->assertStringContainsString('<span class="visually-hidden">16 dari 117 FM bergelar S3, 13,7%</span>', $page);
+
+        // The roadmap is per program: Fakultas, Gugus Binaan and Program narrow it to the programs of their lecturers.
+        DB::table('database_dosen_new')->where('kode_dosen', 'D1')->update(['nama_gugus_binaan' => 'Computer Science', 'nama_program' => 'Informatics', 'status' => 'Aktif']);
+        DB::table('database_dosen_new')->where('kode_dosen', 'D2')->update(['nama_gugus_binaan' => 'Entrepreneurship', 'status' => 'Aktif']);
+        $dashboard = app(LrcDashboard::class);
+        foreach ([['fakultas' => 'SOCS'], ['gugusBinaan' => 'Computer Science'], ['program' => 'Informatics']] as $filter) {
+            $projection = $dashboard->data($filter)['projection'];
+            $this->assertSame(['CS'], $projection['prodi']);
+            $this->assertSame(['year' => 2026, 's3' => 3, 'fm' => 21, 'percent' => 14.3], $projection['years'][0]);
+        }
+        $this->assertSame(['CS'], $dashboard->data(['fakultas' => 'SOCS', 'statusDosen' => 'Aktif'])['projection']['prodi']);
+        $this->assertStringContainsString('Prodi CS.', $this->get(route('lrc-dashboard', ['fakultas' => 'SOCS']))->getContent());
+        // Status Dosen does not narrow the roadmap.
+        $status = $dashboard->data(['statusDosen' => 'Aktif'])['projection'];
+        $this->assertSame([false, true, 9], [$status['narrowed'], $status['statusIgnored'], count($status['prodi'])]);
+        $this->assertStringContainsString('Roadmap tidak dibedakan per status dosen.', $this->get(route('lrc-dashboard', ['statusDosen' => 'Aktif']))->getContent());
+        // A program without a roadmap.
+        $sod = $this->get(route('lrc-dashboard', ['fakultas' => 'SOD']))->assertOk()->getContent();
+        $this->assertStringContainsString('Belum ada roadmap untuk prodi pada filter ini.', $sod);
+        $this->assertStringNotContainsString('data-lrc-projection=', $sod);
+    }
+
+    public function test_projection_is_empty_without_the_roadmap_table(): void
+    {
+        $page = $this->get(route('lrc-dashboard'))->assertOk()->getContent();
+        $this->assertStringContainsString('Belum ada roadmap untuk prodi pada filter ini.', $page);
+        $this->assertStringNotContainsString('lrc-projection-list', $page);
     }
 
     public function test_jja_chart_ascends_from_tp_to_gb_and_details_expose_promotion_planning(): void

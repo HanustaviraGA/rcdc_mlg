@@ -4,6 +4,7 @@ namespace App\Services\LrcDashboard;
 
 use App\Models\DataDosen;
 use App\Services\Lecturers\LecturerEducationStatuses;
+use App\Services\Lecturers\ProdiFmRoadmap;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -42,6 +43,7 @@ class LrcDashboard
         return [
             'filters' => $options + ['selected' => $selected],
             'total' => $filtered->count(),
+            'projection' => $this->projection($rows, $selected),
             'sourceTotal' => $rows->count(),
             'rankProgression' => array_map(fn (int $index) => [
                 'current' => self::RANK_LABELS[$index], 'next' => self::RANK_LABELS[$index + 1] ?? null,
@@ -103,6 +105,22 @@ class LrcDashboard
             'program' => $this->value($row->nama_program ?? null),
             'status' => $this->value($row->status ?? null),
         ];
+    }
+
+    /**
+     * The planned share of S3 FM per year from Roadmap LRC. The roadmap is per study program, so the Fakultas,
+     * Gugus Binaan and Program filters narrow it to the programs (gugus binaan) of their lecturers; Status Dosen does not.
+     */
+    private function projection(Collection $rows, array $selected): array
+    {
+        $narrowed = $selected['fakultas'] !== null || $selected['gugusBinaan'] !== null || $selected['program'] !== null;
+        $programs = $narrowed
+            ? $rows->filter(fn (array $row) => $this->matches($row, ['statusDosen' => null] + $selected))
+                ->pluck('gugus')->filter()->unique()->values()->all()
+            : null;
+
+        return ['narrowed' => $narrowed, 'statusIgnored' => $selected['statusDosen'] !== null]
+            + app(ProdiFmRoadmap::class)->projection($programs);
     }
 
     private function options(Collection $rows): array
