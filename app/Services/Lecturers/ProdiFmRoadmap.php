@@ -2,6 +2,7 @@
 
 namespace App\Services\Lecturers;
 
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
@@ -64,27 +65,16 @@ class ProdiFmRoadmap
     }
 
     /**
-     * The planned share of S3 FM per year, summed over the given programs (Data Center names) or over all of them.
+     * The roadmap rows of the given programs (Data Center names) or of all of them, in table order.
      *
      * @param  list<string>|null  $programs
-     * @return array{prodi: list<string>, years: list<array{year: int, s3: int, fm: int, percent: ?float}>}
      */
-    public function projection(?array $programs = null): array
+    public function records(?array $programs = null): Collection
     {
-        $records = $this->available()
+        return $this->available()
             ? DB::table(self::TABLE)->when($programs !== null, fn ($query) => $query->whereIn('program_studi', $programs))
                 ->orderBy('urutan')->orderBy('prodi')->orderBy('year')->get()
             : collect();
-
-        return [
-            'prodi' => $records->pluck('prodi')->unique()->values()->all(),
-            'years' => $records->groupBy('year')->sortKeys()->map(function ($group, $year) {
-                $s3 = (int) $group->sum('jumlah_s3');
-                $fm = (int) $group->sum('jumlah_fm');
-
-                return ['year' => (int) $year, 's3' => $s3, 'fm' => $fm, 'percent' => $fm > 0 ? round($s3 / $fm * 100, 1) : null];
-            })->values()->all(),
-        ];
     }
 
     /**

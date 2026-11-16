@@ -4,7 +4,6 @@ namespace App\Services\LrcDashboard;
 
 use App\Models\DataDosen;
 use App\Services\Lecturers\LecturerEducationStatuses;
-use App\Services\Lecturers\ProdiFmRoadmap;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -95,6 +94,8 @@ class LrcDashboard
             'eligibleKenaikanJja' => $this->value($row->eligible_kenaikan_jja ?? null),
             'eligibleJjaYear' => isset($row->eligible_kenaikan_jja) ? (int) substr((string) $row->eligible_kenaikan_jja, 0, 4) : null,
             'education' => $this->education($row->pendidikan ?? null, $row->status_pendidikan ?? null),
+            'pendidikan' => $this->value($row->pendidikan ?? null),
+            'statusPendidikan' => $this->value($row->status_pendidikan ?? null),
             'roadmapS3' => isset($row->roadmap_s3) ? (int) $row->roadmap_s3 : null,
             'proyeksiLulusS3' => isset($row->proyeksi_lulus_s3) ? (int) $row->proyeksi_lulus_s3 : null,
             'ageLabel' => $this->ageLabel($row->usia ?? null, $row->tanggal_lahir ?? null),
@@ -108,8 +109,9 @@ class LrcDashboard
     }
 
     /**
-     * The planned share of S3 FM per year from Roadmap LRC. The roadmap is per study program, so the Fakultas,
-     * Gugus Binaan and Program filters narrow it to the programs (gugus binaan) of their lecturers; Status Dosen does not.
+     * The planned share of S3 FM per year from Roadmap LRC, with the Data Center lecturers behind it.
+     * The roadmap is per study program, so the Fakultas, Gugus Binaan and Program filters narrow it to the
+     * programs (gugus binaan) of their lecturers; Status Dosen does not. A program counts all its lecturers.
      */
     private function projection(Collection $rows, array $selected): array
     {
@@ -120,7 +122,7 @@ class LrcDashboard
             : null;
 
         return ['narrowed' => $narrowed, 'statusIgnored' => $selected['statusDosen'] !== null]
-            + app(ProdiFmRoadmap::class)->projection($programs);
+            + app(FmS3Projection::class)->build($rows, $programs);
     }
 
     private function options(Collection $rows): array

@@ -108,4 +108,5 @@
     <script src="{{ asset('assets/backoffice/js/custom/campur/chart.js') }}"></script>
     <script>window.lrcDashboard = {{ Illuminate\Support\Js::from($lrc) }};</script>
     <script src="{{ asset('js/lrc-dashboard.js') }}?v={{ filemtime(public_path('js/lrc-dashboard.js')) }}"></script>
+    <script src="{{ asset('js/lrc-projection.js') }}?v={{ filemtime(public_path('js/lrc-projection.js')) }}"></script>
 @endpush

@@ -122,13 +122,16 @@ class LrcDashboardTest extends TestCase
         $education = strpos($page, 'data-lrc-chart-card="pendidikan"');
         $this->assertTrue($education < strpos($page, 'id="lrcProjectionHeading"') && strpos($page, 'id="lrcProjectionHeading"') < strpos($page, 'id="lrcProfileHeading"'));
         $this->assertStringContainsString('Seluruh prodi (9).', $page);
-        preg_match_all('/data-lrc-projection="(\d{4})">.*?data-lrc-projection-s3>([^<]+)<.*?data-lrc-projection-fm>([^<]+)<.*?data-lrc-projection-percent>([^<]+)</s', $page, $boxes, PREG_SET_ORDER);
+        preg_match_all('/data-lrc-projection="(\d{4})"[^>]*>.*?data-lrc-projection-s3>([^<]+)<.*?data-lrc-projection-fm>([^<]+)<.*?data-lrc-projection-percent>([^<]+)</s', $page, $boxes, PREG_SET_ORDER);
         $this->assertSame([
             ['2026', '16', '117', '13,7%'], ['2027', '35', '120', '29,2%'], ['2028', '44', '122', '36,1%'], ['2029', '47', '125', '37,6%'],
             ['2030', '56', '129', '43,4%'], ['2031', '66', '132', '50,0%'], ['2032', '99', '134', '73,9%'], ['2033', '112', '137', '81,8%'],
             ['2034', '130', '139', '93,5%'], ['2035', '133', '141', '94,3%'],
         ], array_map(fn ($box) => array_slice($box, 1), $boxes));
-        $this->assertStringContainsString('<span class="visually-hidden">16 dari 117 FM bergelar S3, 13,7%</span>', $page);
+        $this->assertStringContainsString('<span class="visually-hidden">: 16 dari 117 FM bergelar S3, 13,7%. Lihat rincian per prodi.</span>', $page);
+        $this->assertStringContainsString('<button type="button" class="lrc-projection-card" data-lrc-projection="2026" aria-haspopup="dialog">', $page);
+        $this->assertStringContainsString('id="lrcProjectionDetail"', $page);
+        $this->assertMatchesRegularExpression('#<script src="[^"]*/js/lrc-projection\.js\?v=\d+"></script>#', $page);
 
         // The roadmap is per program: Fakultas, Gugus Binaan and Program narrow it to the programs of their lecturers.
         DB::table('database_dosen_new')->where('kode_dosen', 'D1')->update(['nama_gugus_binaan' => 'Computer Science', 'nama_program' => 'Informatics', 'status' => 'Aktif']);
@@ -137,7 +140,7 @@ class LrcDashboardTest extends TestCase
         foreach ([['fakultas' => 'SOCS'], ['gugusBinaan' => 'Computer Science'], ['program' => 'Informatics']] as $filter) {
             $projection = $dashboard->data($filter)['projection'];
             $this->assertSame(['CS'], $projection['prodi']);
-            $this->assertSame(['year' => 2026, 's3' => 3, 'fm' => 21, 'percent' => 14.3], $projection['years'][0]);
+            $this->assertSame(['year' => 2026, 's3' => 3, 'fm' => 21, 'percent' => 14.3], array_slice($projection['years'][0], 0, 4));
         }
         $this->assertSame(['CS'], $dashboard->data(['fakultas' => 'SOCS', 'statusDosen' => 'Aktif'])['projection']['prodi']);
         $this->assertStringContainsString('Prodi CS.', $this->get(route('lrc-dashboard', ['fakultas' => 'SOCS']))->getContent());
@@ -151,11 +154,100 @@ class LrcDashboardTest extends TestCase
         $this->assertStringNotContainsString('data-lrc-projection=', $sod);
     }
 
+    public function test_projection_counts_fm_s3_as_existing_plus_graduates_plus_new_recruits(): void
+    {
+        $this->projectionFixture([
+            ['CS', 'Computer Science', 1, [2026 => [5, 4, 1], 2027 => [6, 3, 3], 2028 => [6, 2, 4]]],
+            ['DKV', 'Visual Communication Design', 2, [2026 => [1, 0, 1], 2027 => [1, 0, 1], 2028 => [1, 0, 1]]],
+        ]);
+
+        $projection = app(LrcDashboard::class)->data()['projection'];
+        $this->assertSame(['CS', 'DKV'], $projection['prodi']);
+        $cs = $projection['dataCenter']['CS'];
+        $this->assertSame(['Computer Science', 4, 1, 2, 1], [$cs['programStudi'], $cs['fm'], $cs['s2'], $cs['ongoing'], $cs['s3']]);
+        $this->assertSame(['code' => 'C3', 'name' => 'Lecturer C3', 'pendidikan' => 'S2', 'statusPendidikan' => 'On Going S3', 'education' => 'On Going S3', 'proyeksiLulusS3' => 2028],
+            $cs['lecturers'][2]);
+        $this->assertNull($cs['lecturers'][0]['proyeksiLulusS3'], 'an S3 lecturer has nothing left to graduate');
+        $program = fn (int $index, string $prodi) => collect($projection['years'][$index]['programs'])->firstWhere('prodi', $prodi);
+        $formula = fn (array $entry) => [$entry['existing'], $entry['graduates'], $entry['recruits'], $entry['projectedS3']];
+
+        // CS: 1 S3 now; C2 graduates in 2027 and C3 in 2028; the roadmap needs one more S3 in 2027 and one more S2 from 2026.
+        $this->assertSame([1, 0, 0, 1], $formula($program(0, 'CS')));
+        $this->assertSame([['level' => 'S2', 'year' => 2026, 'count' => 1]], $program(0, 'CS')['newRecruits']);
+        $this->assertSame([1, 1, 1, 3], $formula($program(1, 'CS')));
+        $this->assertSame([3, 1, 0, 4], $formula($program(2, 'CS')));
+        $this->assertSame([['level' => 'S3', 'year' => 2027, 'count' => 1], ['level' => 'S2', 'year' => 2026, 'count' => 1]], $program(2, 'CS')['newRecruits']);
+        $this->assertSame(['fm' => 6, 's2' => 2, 's3' => 4], $program(2, 'CS')['roadmap']);
+        // DKV already has more S3 than its roadmap: no recruits, and the projection keeps the Data Center count.
+        $this->assertSame([2, 0, 0, 2], $formula($program(2, 'DKV')));
+        $this->assertSame([], $program(2, 'DKV')['newRecruits']);
+        // The year sums its programs.
+        $year = $projection['years'][1];
+        $this->assertSame([2027, 4, 7, 57.1, 3, 1, 1, 5, 2], [$year['year'], $year['s3'], $year['fm'], $year['percent'],
+            $year['existing'], $year['graduates'], $year['recruits'], $year['projectedS3'], $year['newRecruits']]);
+    }
+
+    public function test_new_fm_recruits_only_fill_the_fm_the_roadmap_has_beyond_the_data_center(): void
+    {
+        // CS has 4 FM in the Data Center and in every roadmap year, so it never needs a New FM Recruit, even when
+        // the Data Center projects more S3 than the roadmap (C2 graduating in 2027) or fewer (C4 has no S3 plan).
+        $this->projectionFixture([['CS', 'Computer Science', 1, [2026 => [4, 3, 1], 2027 => [4, 3, 1], 2028 => [4, 0, 4]]]]);
+        $years = app(LrcDashboard::class)->data()['projection']['years'];
+
+        $this->assertSame([[], [], []], array_map(fn (array $year) => $year['programs'][0]['newRecruits'], $years));
+        $this->assertSame([0, 0, 0], array_column($years, 'newRecruits'));
+        $this->assertSame([[1, 0, 0, 1], [1, 1, 0, 2], [2, 1, 0, 3]], array_map(fn (array $year) => [$year['existing'], $year['graduates'], $year['recruits'], $year['projectedS3']], $years));
+        $this->assertSame([1, 1, 4], array_column($years, 's3'), 'the roadmap S3 stays as planned');
+
+        // With FM to spare, recruits are S3 as far as S3 falls short, then S2.
+        DB::table('prodi_fm_roadmaps')->where('year', 2028)->update(['jumlah_fm' => 7, 'jumlah_s2' => 1, 'jumlah_s3' => 6]);
+        $program = app(LrcDashboard::class)->data()['projection']['years'][2]['programs'][0];
+        $this->assertSame([['level' => 'S3', 'year' => 2028, 'count' => 3]], $program['newRecruits']);
+        $this->assertSame(6, $program['projectedS3']);
+    }
+
+    /**
+     * Computer Science lecturers C1 (S3), C2 (On Going S3, graduating 2027), C3 (S2 on its row, On Going S3
+     * graduating 2028 by its latest education status) and C4 (S2), Visual Communication Design V1 and V2 (S3),
+     * and the given roadmaps: [prodi, program, order, [year => [FM, S2, S3]]].
+     */
+    private function projectionFixture(array $roadmaps): void
+    {
+        foreach (['2026_10_22_000100_add_education_status_to_lecturers', '2026_11_03_000000_create_lecturer_education_statuses',
+            '2026_11_12_000000_add_s3_planning_to_lecturer_education'] as $migration) {
+            (require database_path("migrations/{$migration}.php"))->up();
+        }
+        (require base_path('Modules/RoadmapLRC/database/migrations/2026_11_15_000000_create_prodi_fm_roadmaps_table.php'))->up();
+        $import = DB::table('lecturer_imports')->value('id');
+        foreach ([
+            ['C1', 'Computer Science', 'S3', null, null],
+            ['C2', 'Computer Science', 'On going', 'On Going S3', 2027],
+            // S2 on the Data Center row; the latest education status below makes it On Going S3 graduating in 2028.
+            ['C3', 'Computer Science', 'S2', null, null],
+            ['C4', 'Computer Science', 'S2', null, null],
+            ['V1', 'Visual Communication Design', 'S3', null, null],
+            ['V2', 'Visual Communication Design', 'S3', null, null],
+        ] as [$code, $program, $education, $status, $graduation]) {
+            DB::table('database_dosen_new')->insert(['kode_dosen' => $code, 'nama_dosen' => "Lecturer {$code}", 'nama_gugus_binaan' => $program,
+                'pendidikan' => $education, 'status_pendidikan' => $status, 'proyeksi_lulus_s3' => $graduation]);
+            DB::table('lecturer_snapshot_rows')->insert(['kode_dosen' => $code, 'lecturer_import_id' => $import]);
+        }
+        DB::table('lecturer_education_statuses')->insert(['kode_dosen' => 'C3', 'year' => 2026, 'month' => 9,
+            'status_pendidikan' => 'On Going S3', 'proyeksi_lulus_s3' => 2028]);
+        foreach ($roadmaps as [$prodi, $program, $order, $years]) {
+            foreach ($years as $year => [$fm, $s2, $s3]) {
+                DB::table('prodi_fm_roadmaps')->insert(['prodi' => $prodi, 'program_studi' => $program, 'urutan' => $order, 'year' => $year,
+                    'jumlah_fm' => $fm, 'jumlah_s2' => $s2, 'jumlah_s3' => $s3]);
+            }
+        }
+    }
+
     public function test_projection_is_empty_without_the_roadmap_table(): void
     {
         $page = $this->get(route('lrc-dashboard'))->assertOk()->getContent();
         $this->assertStringContainsString('Belum ada roadmap untuk prodi pada filter ini.', $page);
         $this->assertStringNotContainsString('lrc-projection-list', $page);
+        $this->assertStringNotContainsString('id="lrcProjectionDetail"', $page);
     }
 
     public function test_jja_chart_ascends_from_tp_to_gb_and_details_expose_promotion_planning(): void
