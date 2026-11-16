@@ -161,15 +161,23 @@ h6 {
 --------------------------------------------------------------*/
 .header {
   --background-color: #ffffff;
+  --topbar-height: 40px;
   color: var(--default-color);
   transition: all 0.5s;
   z-index: 997;
   background-color: var(--background-color);
 }
 
+/* The sticky header pins below its topbar, so the topbar scrolls away with the page and the menu stays.
+   Collapsing the topbar on scroll instead changed the page height: the browser then moved the scroll
+   position back across the .scrolled threshold, and the header flickered up and down. */
+.header.sticky-top {
+  top: calc(-1 * var(--topbar-height));
+}
+
 .header .topbar {
   background-color: var(--background-color);
-  height: 40px;
+  height: var(--topbar-height);
   padding: 0;
   font-size: 14px;
   transition: all 0.5s;
@@ -248,12 +256,6 @@ h6 {
 
 .scrolled .header {
   box-shadow: 0px 0 18px rgba(0, 0, 0, 0.1);
-}
-
-.scrolled .header .topbar {
-  height: 0;
-  visibility: hidden;
-  overflow: hidden;
 }
 
 /*--------------------------------------------------------------
