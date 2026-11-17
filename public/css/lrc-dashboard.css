@@ -87,7 +87,7 @@
 .lrc-page .lrc-projection-table .lrc-group-start { border-left: 2px solid #b8c7d6; }
 .lrc-page .lrc-projection-table .lrc-prodi-cell { min-width: 170px; color: var(--heading-color); font-size: 12px; }
 .lrc-page .lrc-projection-table tbody td.lrc-total-column { background: #f7faff; color: var(--brand-700); font-weight: 700; }
-.lrc-page .lrc-projection-table tbody td.lrc-total-differs { background: #fff3d6; color: #8a5a00; cursor: help; }
+.lrc-page .lrc-projection-table tbody td.lrc-cell-differs { background: #fff3d6; color: #8a5a00; cursor: help; }
 .lrc-page .lrc-formula-warning { color: #8a5a00; font-weight: 600; }
 .lrc-page .lrc-projection-table th .lrc-prodi-button { display: inline-flex; align-items: center; gap: 4px; width: auto; padding: 0; border: 0; background: none; color: var(--brand-700); font-size: 12px; font-weight: 700; white-space: nowrap; }
 .lrc-page .lrc-projection-table th .lrc-prodi-button i { font-size: 10px; }

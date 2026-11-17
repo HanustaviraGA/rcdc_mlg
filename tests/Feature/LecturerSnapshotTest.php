@@ -360,6 +360,26 @@ class LecturerSnapshotTest extends TestCase
         $this->assertSame('Dosen 2026', DB::table('lecturer_imports')->where(['year' => 2025, 'month' => 6])->value('sheet'));
     }
 
+    public function test_a_chosen_sheet_name_with_trailing_space_can_be_previewed_and_uploaded(): void
+    {
+        // Request input is trimmed, so the sheet "Malang " arrives as "Malang".
+        $values = array_map(fn (string $field) => match ($field) {
+            'kode_dosen' => 'D7', 'nama_dosen' => 'Sheet berspasi', 'eligible_kenaikan_jja' => '-', default => 'X',
+        }, array_keys(LecturerWorkbook::HEADERS));
+        $path = $this->makeWorkbook(['Data All ' => [['Ringkasan']], 'Malang ' => [array_values(LecturerWorkbook::HEADERS), $values]]);
+        $file = new UploadedFile($path, 'datacenter.xlsx', null, null, true);
+        $this->actingAs((new User)->forceFill(['id' => 1]));
+        $preview = $this->postJson(route('dosen.preview'), ['dosen' => $file, 'sheet' => 'Malang '])->assertOk()
+            ->assertJsonPath('sheet', 'Malang ')->assertJsonPath('sheets', ['Data All ', 'Malang ']);
+
+        $this->postJson(route('dosen.read'), [
+            'dosen' => $file, 'year' => 2025, 'month' => 7, 'sheet' => 'Malang ', 'header_row' => $preview->json('header_row'),
+            'column_mapping' => json_encode($preview->json('suggested_mapping'), JSON_THROW_ON_ERROR),
+        ])->assertOk()->assertJsonPath('summary.sheet', 'Malang ');
+        $this->assertSame('Sheet berspasi', app(LecturerSnapshots::class)->rows(2025, 7)['D7']->nama_dosen);
+        $this->assertSame('Malang ', DB::table('lecturer_imports')->where(['year' => 2025, 'month' => 7])->value('sheet'));
+    }
+
     public function test_an_empty_chosen_sheet_still_lists_the_other_sheets(): void
     {
         $path = $this->makeWorkbook(['Kosong' => [], 'Malang' => [['Kode Dosen', 'Nama Dosen'], ['D1', 'Lecturer']]]);

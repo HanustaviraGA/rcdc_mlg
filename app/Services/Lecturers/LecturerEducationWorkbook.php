@@ -3,6 +3,7 @@
 namespace App\Services\Lecturers;
 
 use App\Services\Imports\ImportPolicy;
+use App\Services\Imports\SheetName;
 use Aspera\Spreadsheet\XLSX\Reader;
 use DateTimeInterface;
 use Illuminate\Support\Facades\DB;
@@ -210,7 +211,7 @@ class LecturerEducationWorkbook
                 $names[$index] = $sheet->getName();
             }
             if ($requested !== null) {
-                $index = array_search($requested, $names, true);
+                $index = SheetName::find($names, $requested);
                 if ($index === false) {
                     $this->invalid("Sheet {$requested} tidak ditemukan pada file.");
                 }

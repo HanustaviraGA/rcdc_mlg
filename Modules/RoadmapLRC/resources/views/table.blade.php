@@ -16,6 +16,8 @@
                         <th scope="col" class="roadmap-year-start">Jumlah FM<br>{{ $year }}</th>
                         <th scope="col">S2</th>
                         <th scope="col">S3</th>
+                        <th scope="col" class="roadmap-nr" title="New FM Recruit bergelar S2 yang masuk tahun {{ $year }}">NR S2</th>
+                        <th scope="col" class="roadmap-nr" title="New FM Recruit bergelar S3 yang masuk tahun {{ $year }}">NR S3</th>
                     @endforeach
                 </tr>
             </thead>
@@ -42,5 +44,5 @@
             </tfoot>
         </table>
     </div>
-    <p class="text-muted fs-8 mt-3 mb-0">Segitiga biru di pojok kanan atas sel menandakan angka tersebut memiliki catatan.</p>
+    <p class="text-muted fs-8 mt-3 mb-0">NR (New FM Recruit) adalah orang baru dari luar yang masuk menjadi FM pada tahun itu, menurut jenjang saat masuk; dosen yang naik jenjang tidak termasuk NR. Segitiga biru di pojok kanan atas sel menandakan angka tersebut memiliki catatan.</p>
 @endif

@@ -2,6 +2,7 @@
 
 namespace App\Services\CommunityDevelopment;
 
+use App\Services\Imports\SheetName;
 use Aspera\Spreadsheet\XLSX\Reader;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
@@ -39,6 +40,9 @@ class PartnerWorkbookReader
                 $sheets[$entry->getName()] = $index;
             }
             $sheet ??= array_key_first($sheets);
+            if ($sheet !== null && ! isset($sheets[$sheet]) && ($index = SheetName::find(array_keys($sheets), $sheet)) !== false) {
+                $sheet = (string) array_keys($sheets)[$index];
+            }
             if ($sheet === null || ! isset($sheets[$sheet])) {
                 throw new RuntimeException('Sheet yang dipilih tidak tersedia.');
             }

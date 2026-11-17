@@ -2,6 +2,7 @@
 
 namespace App\Services\ColumnMapping;
 
+use App\Services\Imports\SheetName;
 use Aspera\Spreadsheet\XLSX\Reader;
 use Illuminate\Validation\ValidationException;
 
@@ -32,7 +33,7 @@ class ColumnMapperService
             // A chosen sheet must exist; otherwise use the importer's default sheet,
             // or the first sheet so the user can pick the right one.
             if ($sheet !== null) {
-                $index = array_search($sheet, $names, true);
+                $index = SheetName::find($names, $sheet);
                 $selected = $index === false ? null : ['index' => $index, 'name' => $names[$index]];
             } else {
                 $default = $this->selectBestSheet($sheets, $importType);

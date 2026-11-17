@@ -19,6 +19,11 @@
         border-left: 2px solid var(--bs-gray-400);
     }
 
+    /* New FM Recruit columns: people joining, not part of the FM = S2 + S3 check. */
+    #roadmapLrc .roadmap-table .roadmap-nr {
+        background-color: var(--bs-light-primary, #f1faff);
+    }
+
     #roadmapLrc .roadmap-input {
         cursor: pointer;
         min-width: 3.75rem;
@@ -47,7 +52,7 @@
             <div class="card-title flex-column align-items-start py-4">
                 <h3 class="mb-1">Roadmap Jumlah FM</h3>
                 <span class="text-muted fs-7 fw-normal">
-                    Rencana jumlah faculty member (FM) per prodi beserta jenjang pendidikan S2 dan S3{{ $roadmap['years'] ? ', '.head($roadmap['years']).'–'.last($roadmap['years']) : '' }}.
+                    Rencana jumlah faculty member (FM) per prodi beserta jenjang pendidikan S2 dan S3, serta New FM Recruit (NR) yang masuk setiap tahun{{ $roadmap['years'] ? ', '.head($roadmap['years']).'–'.last($roadmap['years']) : '' }}.
                     Klik angka untuk mengubah nilai dan catatannya.
                 </span>
             </div>

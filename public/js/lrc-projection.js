@@ -15,21 +15,28 @@ function initializeLrcProjection(projection) {
 
     const yearData = () => projection.years.find(item => item.year === state.year);
     // Year table columns after Prodi: Roadmap (FM, S2, S3), Data Center (FM, S2, On Going S3, S3),
-    // FM S3 (Eksisting, Lulus, NR, Total) and New FM Recruit; a group starts at each of these indexes.
+    // FM S3 (Eksisting, Lulus, NR S3, Total) and New FM Recruit; a group starts at each of these indexes.
     const groupStarts = [0, 3, 7, 11];
     const totalColumn = 10;
     const columnClass = index => `pd-numeric${groupStarts.includes(index) ? ' lrc-group-start' : ''}${index === totalColumn ? ' lrc-total-column' : ''}`;
-    // Optional titles per column index; a titled FM S3 total differs from the roadmap.
-    const cells = (values, titles = {}) => values.map((value, index) => {
-        const title = titles[index];
-        const classes = columnClass(index) + (index === totalColumn && title ? ' lrc-total-differs' : '');
+    // Optional {title, differs} per column index; a differing cell is marked.
+    const cells = (values, meta = {}) => values.map((value, index) => {
+        const { title = '', differs = false } = meta[index] || {};
+        const classes = columnClass(index) + (differs ? ' lrc-cell-differs' : '');
         return `<td class="${classes}"${title ? ` title="${escape(title)}"` : ''}>${number(value)}</td>`;
     }).join('');
     const recruitsColumn = 11;
     const recruitsTitle = entry => entry.newRecruits.map(recruit => `${recruit.level} ${number(recruit.count)} orang baru (rekrut ${recruit.year})`).join(', ');
-    // Without NR to spare, the projected S3 of a program can differ from its roadmap S3.
-    const difference = entry => (entry.projectedS3 === entry.roadmap.s3 ? ''
-        : `Proyeksi FM S3 ${number(entry.projectedS3)} ${entry.projectedS3 > entry.roadmap.s3 ? 'melebihi' : 'kurang dari'} roadmap S3 ${number(entry.roadmap.s3)}.`);
+    // The roadmap's S3 and FM against the Data Center with the roadmap's NR.
+    const compare = (label, projected, plannedLabel, planned) => (projected === planned ? ''
+        : `${label} ${number(projected)} ${projected > planned ? 'melebihi' : 'kurang dari'} ${plannedLabel} ${number(planned)}.`);
+    const s3Difference = entry => compare('Proyeksi FM S3', entry.projectedS3, 'roadmap S3', entry.roadmap.s3);
+    const fmDifference = entry => compare('Data Center + NR', entry.projectedFm, 'Jumlah FM roadmap', entry.roadmap.fm);
+    const rowMeta = entry => ({
+        [totalColumn]: { title: s3Difference(entry), differs: !!s3Difference(entry) },
+        [recruitsColumn]: { title: [recruitsTitle(entry), fmDifference(entry)].filter(Boolean).join('. '), differs: !!fmDifference(entry) },
+    });
+    const list = (entries, projected, planned) => entries.map(entry => `${escape(entry.prodi)} (${number(projected(entry))}, roadmap ${number(planned(entry))})`).join(', ');
     const headers = labels => labels.map((label, index) => `<th scope="col" class="${columnClass(index)}">${label}</th>`).join('');
 
     // FM S3 = existing + (graduates + recruits), as LRC writes it.
@@ -48,13 +55,16 @@ function initializeLrcProjection(projection) {
         $('lrcProjectionTitle').textContent = `Proyeksi FM S3 ${year.year}`;
         $('lrcProjectionCaption').textContent = `Roadmap ${year.year}: ${number(year.s3)} FM S3 dari ${number(year.fm)} FM (${percent(year.percent)}). `
             + 'Data Center memakai roster dosen saat ini dan update status pendidikan terbaru. Klik prodi untuk melihat daftar FM.';
-        const differing = year.programs.filter(entry => entry.projectedS3 !== entry.roadmap.s3);
+        const s3Differing = year.programs.filter(entry => s3Difference(entry));
+        const fmDiffering = year.programs.filter(entry => fmDifference(entry));
         summary.innerHTML = formula('FM S3', year)
             + `<p class="lrc-formula-note">Proyeksi lulus: dosen S2 dan On Going S3 dengan proyeksi lulus S3 ${year.year}. `
-            + 'NR (New FM Recruit): orang baru dari luar yang masuk menjadi FM, sebanyak kelebihan Jumlah FM roadmap dibanding FM di Data Center. '
-            + 'Dosen yang naik jenjang ke S3 dihitung di Lulus, bukan NR. Kolom NR S3 hanya NR bergelar S3; NR bergelar S2 terlihat di kolom New FM Recruit.'
-            + (differing.length ? ` Proyeksi FM S3 berbeda dari roadmap S3 pada ${differing.map(entry => `${escape(entry.prodi)} (proyeksi ${number(entry.projectedS3)}, roadmap ${number(entry.roadmap.s3)})`).join(', ')}.` : '')
-            + '</p>';
+            + 'NR (New FM Recruit): orang baru dari luar yang masuk menjadi FM, sesuai kolom NR S2 dan NR S3 di Roadmap LRC. '
+            + `Dosen yang naik jenjang ke S3 dihitung di Lulus, bukan NR. Kolom NR S3 hanya NR bergelar S3 yang masuk ${year.year}; seluruh NR s/d ${year.year} ada di kolom New FM Recruit.</p>`
+            + (s3Differing.length || fmDiffering.length ? '<p class="lrc-formula-note lrc-formula-warning">'
+                + (s3Differing.length ? `Proyeksi FM S3 berbeda dari roadmap S3 pada ${list(s3Differing, entry => entry.projectedS3, entry => entry.roadmap.s3)}. ` : '')
+                + (fmDiffering.length ? `Data Center + NR berbeda dari Jumlah FM roadmap pada ${list(fmDiffering, entry => entry.projectedFm, entry => entry.roadmap.fm)}.` : '')
+                + '</p>' : '');
         table.innerHTML = '<thead><tr><th rowspan="2" scope="col" class="lrc-prodi-cell">Prodi</th>'
             + `<th colspan="3" scope="colgroup" class="lrc-group-start">Roadmap ${year.year}</th><th colspan="4" scope="colgroup" class="lrc-group-start">Data Center saat ini</th>`
             + `<th colspan="4" scope="colgroup" class="lrc-group-start">FM S3 ${year.year}</th><th rowspan="2" scope="col" class="pd-numeric lrc-group-start">New FM Recruit<br>s/d ${year.year}</th></tr>`
@@ -62,8 +72,7 @@ function initializeLrcProjection(projection) {
             + year.programs.map(entry => {
                 const center = projection.dataCenter[entry.prodi];
                 return `<tr data-lrc-projection-row="${escape(entry.prodi)}"><th scope="row" class="lrc-prodi-cell"><button type="button" class="pd-text-button lrc-prodi-button" data-lrc-projection-prodi="${escape(entry.prodi)}">${escape(entry.prodi)} <i class="bi bi-chevron-right" aria-hidden="true"></i></button><small>${escape(center.programStudi || '')}</small></th>`
-                    + cells([entry.roadmap.fm, entry.roadmap.s2, entry.roadmap.s3, center.fm, center.s2, center.ongoing, center.s3, entry.existing, entry.graduates, entry.recruits, entry.projectedS3, recruitCount(entry)],
-                        { [totalColumn]: difference(entry), [recruitsColumn]: recruitsTitle(entry) })
+                    + cells([entry.roadmap.fm, entry.roadmap.s2, entry.roadmap.s3, center.fm, center.s2, center.ongoing, center.s3, entry.existing, entry.graduates, entry.recruits, entry.projectedS3, recruitCount(entry)], rowMeta(entry))
                     + '</tr>';
             }).join('')
             + '</tbody><tfoot><tr><th scope="row" class="lrc-prodi-cell">Total</th>'
@@ -85,14 +94,14 @@ function initializeLrcProjection(projection) {
         const entry = year.programs.find(item => item.prodi === state.prodi);
         const center = projection.dataCenter[state.prodi];
         const recruits = recruitCount(entry);
-        const surplus = center.fm - entry.roadmap.fm;
+        const differences = [s3Difference(entry), fmDifference(entry)].filter(Boolean);
         $('lrcProjectionEyebrow').textContent = `PROYEKSI FM S3 ${year.year}`;
         $('lrcProjectionTitle').textContent = `${state.prodi} · ${year.year}`;
-        $('lrcProjectionCaption').textContent = `${center.programStudi || state.prodi} · Roadmap ${year.year}: ${number(entry.roadmap.fm)} FM (S2 ${number(entry.roadmap.s2)} · S3 ${number(entry.roadmap.s3)}) · `
-            + `Data Center saat ini: ${number(center.fm)} FM (S2 ${number(center.s2)} · On Going S3 ${number(center.ongoing)} · S3 ${number(center.s3)}).`
-            + (surplus > 0 ? ` Data Center melebihi roadmap ${number(surplus)} FM.` : '');
+        $('lrcProjectionCaption').textContent = `${center.programStudi || state.prodi} · Roadmap ${year.year}: ${number(entry.roadmap.fm)} FM (S2 ${number(entry.roadmap.s2)} · S3 ${number(entry.roadmap.s3)} · `
+            + `NR S2 ${number(entry.roadmap.nrS2)} · NR S3 ${number(entry.roadmap.nrS3)}) · `
+            + `Data Center saat ini: ${number(center.fm)} FM (S2 ${number(center.s2)} · On Going S3 ${number(center.ongoing)} · S3 ${number(center.s3)}).`;
         summary.innerHTML = formula(`FM S3 ${state.prodi}`, entry)
-            + (difference(entry) ? `<p class="lrc-formula-note lrc-formula-warning">${difference(entry)} Periksa proyeksi lulus S3 dan status pendidikan FM di bawah, atau roadmap ${escape(state.prodi)} ${year.year}.</p>` : '');
+            + (differences.length ? `<p class="lrc-formula-note lrc-formula-warning">${differences.join(' ')} Periksa proyeksi lulus S3 dan status pendidikan FM di bawah, atau roadmap ${escape(state.prodi)} (termasuk kolom NR) ${year.year}.</p>` : '');
         table.innerHTML = `<thead><tr><th scope="col">Nama FM</th><th scope="col">Kode</th><th scope="col">Pendidikan</th><th scope="col">Status pendidikan</th><th scope="col">Proyeksi lulus S3</th><th scope="col">Pendidikan ${year.year}</th></tr></thead><tbody>`
             + center.lecturers.map(lecturer => `<tr><td class="lrc-name-cell">${escape(lecturer.name)}</td><td>${escape(lecturer.code || '—')}</td>`
                 + `<td>${escape(lecturer.pendidikan || '—')}</td><td>${escape(lecturer.statusPendidikan || '—')}</td><td>${escape(lecturer.proyeksiLulusS3 ?? '—')}</td>`

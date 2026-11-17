@@ -4,6 +4,7 @@ namespace App\Services\Research;
 
 use App\Services\ColumnMapping\ColumnMapperService;
 use App\Services\Imports\ImportPolicy;
+use App\Services\Imports\SheetName;
 use Aspera\Spreadsheet\XLSX\Reader;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -56,7 +57,7 @@ class RectorateResearchReader
             }
             if ($sheet !== null) {
                 // The sheet chosen in the mapping preview.
-                $index = array_search($sheet, $names, true);
+                $index = SheetName::find($names, $sheet);
                 if ($index === false) {
                     $this->invalid("Sheet {$sheet} tidak ditemukan. Tidak ada data yang diubah.");
                 }

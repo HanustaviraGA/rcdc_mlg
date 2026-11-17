@@ -4,6 +4,7 @@ namespace App\Services\Lecturers;
 
 use App\Models\DataDosen;
 use App\Services\Imports\ImportPolicy;
+use App\Services\Imports\SheetName;
 use Aspera\Spreadsheet\XLSX\Reader;
 use DateTimeInterface;
 use Illuminate\Support\Facades\DB;
@@ -36,7 +37,7 @@ class LecturerWorkbook
     public const HEADERS = [
         'kode_dosen' => 'Kode Dosen', 'nama_gugus_binaan' => 'Program Studi', 'nama_program' => 'Nama Program',
         'lokasi' => 'Lokasi', 'campus' => 'Campus', 'nama_dosen' => 'Nama Dosen', 'tipe' => 'Tipe',
-        'nama_tipe_dosen_detail' => 'Nama Tipe Dosen Detail', 'status' => 'Status',
+        'nama_tipe_dosen_detail' => 'Nama Tipe Dosen Detail', 'status' => 'Status', 'status_serdos' => 'Status Serdos',
         'effdate_dosen_cuti' => 'Effdate Dosen Cuti', 'jenis_registrasi' => 'Jenis Registrasi', 'nomor_nidn_nupn' => 'Nomor NIDN/NUPN',
         'pendidikan' => 'Pendidikan', 'jja' => 'JJA', 'tmt_jja' => 'Tmt JJA',
         'roadmap_kenaikan_jja' => 'Roadmap kenaikan JJA', 'eligible_kenaikan_jja' => 'Eligible kenaikan JJA',
@@ -48,7 +49,7 @@ class LecturerWorkbook
         'note' => 'NOTE', 'agama' => 'Agama',
     ];
 
-    private const REQUIRED_FIELDS = ['kode_dosen', 'nama_dosen', 'nama_gugus_binaan', 'jja', 'tipe_faculty', 'status', 'pendidikan'];
+    private const REQUIRED_FIELDS = ['kode_dosen', 'nama_dosen', 'nama_gugus_binaan', 'jja', 'tipe_faculty', 'status', 'pendidikan', 'status_serdos'];
 
     public function preview(string $path, ?string $sheet = null): array
     {
@@ -119,7 +120,7 @@ class LecturerWorkbook
             $names[$index] = $sheet->getName();
         }
         if ($requested !== null) {
-            $index = array_search($requested, $names, true);
+            $index = SheetName::find($names, $requested);
             if ($index === false) {
                 $this->invalid("Sheet {$requested} tidak ditemukan pada file.");
             }

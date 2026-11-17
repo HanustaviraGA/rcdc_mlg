@@ -114,7 +114,7 @@ class LrcDashboardTest extends TestCase
 
     public function test_projection_shows_the_planned_share_of_s3_fm_per_year_below_the_education_chart(): void
     {
-        (require base_path('Modules/RoadmapLRC/database/migrations/2026_11_15_000000_create_prodi_fm_roadmaps_table.php'))->up();
+        $this->roadmapMigrations();
         $this->seed(RoadmapLRCDatabaseSeeder::class);
         $page = $this->get(route('lrc-dashboard'))->assertOk()->getContent();
 
@@ -124,11 +124,11 @@ class LrcDashboardTest extends TestCase
         $this->assertStringContainsString('Seluruh prodi (9).', $page);
         preg_match_all('/data-lrc-projection="(\d{4})"[^>]*>.*?data-lrc-projection-s3>([^<]+)<.*?data-lrc-projection-fm>([^<]+)<.*?data-lrc-projection-percent>([^<]+)</s', $page, $boxes, PREG_SET_ORDER);
         $this->assertSame([
-            ['2026', '16', '117', '13,7%'], ['2027', '35', '120', '29,2%'], ['2028', '44', '122', '36,1%'], ['2029', '47', '125', '37,6%'],
-            ['2030', '56', '129', '43,4%'], ['2031', '66', '132', '50,0%'], ['2032', '99', '134', '73,9%'], ['2033', '112', '137', '81,8%'],
-            ['2034', '130', '139', '93,5%'], ['2035', '133', '141', '94,3%'],
+            ['2026', '18', '117', '15,4%'], ['2027', '36', '119', '30,3%'], ['2028', '44', '122', '36,1%'], ['2029', '47', '125', '37,6%'],
+            ['2030', '56', '129', '43,4%'], ['2031', '66', '131', '50,4%'], ['2032', '99', '134', '73,9%'], ['2033', '113', '138', '81,9%'],
+            ['2034', '130', '141', '92,2%'], ['2035', '133', '143', '93,0%'],
         ], array_map(fn ($box) => array_slice($box, 1), $boxes));
-        $this->assertStringContainsString('<span class="visually-hidden">: 16 dari 117 FM bergelar S3, 13,7%. Lihat rincian per prodi.</span>', $page);
+        $this->assertStringContainsString('<span class="visually-hidden">: 18 dari 117 FM bergelar S3, 15,4%. Lihat rincian per prodi.</span>', $page);
         $this->assertStringContainsString('<button type="button" class="lrc-projection-card" data-lrc-projection="2026" aria-haspopup="dialog">', $page);
         $this->assertStringContainsString('id="lrcProjectionDetail"', $page);
         $this->assertMatchesRegularExpression('#<script src="[^"]*/js/lrc-projection\.js\?v=\d+"></script>#', $page);
@@ -140,7 +140,7 @@ class LrcDashboardTest extends TestCase
         foreach ([['fakultas' => 'SOCS'], ['gugusBinaan' => 'Computer Science'], ['program' => 'Informatics']] as $filter) {
             $projection = $dashboard->data($filter)['projection'];
             $this->assertSame(['CS'], $projection['prodi']);
-            $this->assertSame(['year' => 2026, 's3' => 3, 'fm' => 21, 'percent' => 14.3], array_slice($projection['years'][0], 0, 4));
+            $this->assertSame(['year' => 2026, 's3' => 4, 'fm' => 21, 'percent' => 19.0], array_slice($projection['years'][0], 0, 4));
         }
         $this->assertSame(['CS'], $dashboard->data(['fakultas' => 'SOCS', 'statusDosen' => 'Aktif'])['projection']['prodi']);
         $this->assertStringContainsString('Prodi CS.', $this->get(route('lrc-dashboard', ['fakultas' => 'SOCS']))->getContent());
@@ -157,8 +157,8 @@ class LrcDashboardTest extends TestCase
     public function test_projection_counts_fm_s3_as_existing_plus_graduates_plus_new_recruits(): void
     {
         $this->projectionFixture([
-            ['CS', 'Computer Science', 1, [2026 => [5, 4, 1], 2027 => [6, 3, 3], 2028 => [6, 2, 4]]],
-            ['DKV', 'Visual Communication Design', 2, [2026 => [1, 0, 1], 2027 => [1, 0, 1], 2028 => [1, 0, 1]]],
+            ['CS', 'Computer Science', 1, [2026 => [5, 4, 1, 1, 0], 2027 => [6, 3, 3, 0, 1], 2028 => [6, 2, 4, 0, 0]]],
+            ['DKV', 'Visual Communication Design', 2, [2026 => [1, 0, 1, 0, 0], 2027 => [1, 0, 1, 0, 0], 2028 => [1, 0, 1, 0, 0]]],
         ]);
 
         $projection = app(LrcDashboard::class)->data()['projection'];
@@ -171,45 +171,56 @@ class LrcDashboardTest extends TestCase
         $program = fn (int $index, string $prodi) => collect($projection['years'][$index]['programs'])->firstWhere('prodi', $prodi);
         $formula = fn (array $entry) => [$entry['existing'], $entry['graduates'], $entry['recruits'], $entry['projectedS3']];
 
-        // CS: 1 S3 now; C2 graduates in 2027 and C3 in 2028; the roadmap needs one more S3 in 2027 and one more S2 from 2026.
+        // CS: 1 S3 now; C2 graduates in 2027 and C3 in 2028; the roadmap recruits one S2 in 2026 and one S3 in 2027.
         $this->assertSame([1, 0, 0, 1], $formula($program(0, 'CS')));
         $this->assertSame([['level' => 'S2', 'year' => 2026, 'count' => 1]], $program(0, 'CS')['newRecruits']);
         $this->assertSame([1, 1, 1, 3], $formula($program(1, 'CS')));
         $this->assertSame([3, 1, 0, 4], $formula($program(2, 'CS')));
         $this->assertSame([['level' => 'S3', 'year' => 2027, 'count' => 1], ['level' => 'S2', 'year' => 2026, 'count' => 1]], $program(2, 'CS')['newRecruits']);
-        $this->assertSame(['fm' => 6, 's2' => 2, 's3' => 4], $program(2, 'CS')['roadmap']);
-        // DKV already has more S3 than its roadmap: no recruits, and the projection keeps the Data Center count.
+        $this->assertSame(['fm' => 6, 's2' => 2, 's3' => 4, 'nrS2' => 0, 'nrS3' => 0], $program(2, 'CS')['roadmap']);
+        $this->assertSame(6, $program(2, 'CS')['projectedFm']);
+        // DKV already has more S3 and FM than its roadmap: no recruits, and the projection keeps the Data Center count.
         $this->assertSame([2, 0, 0, 2], $formula($program(2, 'DKV')));
-        $this->assertSame([], $program(2, 'DKV')['newRecruits']);
+        $this->assertSame([[], 2], [$program(2, 'DKV')['newRecruits'], $program(2, 'DKV')['projectedFm']]);
         // The year sums its programs.
         $year = $projection['years'][1];
         $this->assertSame([2027, 4, 7, 57.1, 3, 1, 1, 5, 2], [$year['year'], $year['s3'], $year['fm'], $year['percent'],
             $year['existing'], $year['graduates'], $year['recruits'], $year['projectedS3'], $year['newRecruits']]);
     }
 
-    public function test_new_fm_recruits_only_fill_the_fm_the_roadmap_has_beyond_the_data_center(): void
+    public function test_new_fm_recruits_come_from_the_roadmap_and_stay_at_their_level(): void
     {
-        // CS has 4 FM in the Data Center and in every roadmap year, so it never needs a New FM Recruit, even when
-        // the Data Center projects more S3 than the roadmap (C2 graduating in 2027) or fewer (C4 has no S3 plan).
-        $this->projectionFixture([['CS', 'Computer Science', 1, [2026 => [4, 3, 1], 2027 => [4, 3, 1], 2028 => [4, 0, 4]]]]);
+        // CS has 4 FM in the Data Center and plans no New FM Recruit: its projected S3 only follows its graduates,
+        // above the roadmap when C2 graduates in 2027 and below it in 2028 (C4 has no S3 plan).
+        $this->projectionFixture([['CS', 'Computer Science', 1, [2026 => [4, 3, 1, 0, 0], 2027 => [4, 3, 1, 0, 0], 2028 => [4, 0, 4, 0, 0]]]]);
         $years = app(LrcDashboard::class)->data()['projection']['years'];
 
         $this->assertSame([[], [], []], array_map(fn (array $year) => $year['programs'][0]['newRecruits'], $years));
         $this->assertSame([0, 0, 0], array_column($years, 'newRecruits'));
         $this->assertSame([[1, 0, 0, 1], [1, 1, 0, 2], [2, 1, 0, 3]], array_map(fn (array $year) => [$year['existing'], $year['graduates'], $year['recruits'], $year['projectedS3']], $years));
         $this->assertSame([1, 1, 4], array_column($years, 's3'), 'the roadmap S3 stays as planned');
+        $this->assertSame([4, 4, 4], array_column($years, 'projectedFm'));
 
-        // With FM to spare, recruits are S3 as far as S3 falls short, then S2.
-        DB::table('prodi_fm_roadmaps')->where('year', 2028)->update(['jumlah_fm' => 7, 'jumlah_s2' => 1, 'jumlah_s3' => 6]);
-        $program = app(LrcDashboard::class)->data()['projection']['years'][2]['programs'][0];
-        $this->assertSame([['level' => 'S3', 'year' => 2028, 'count' => 3]], $program['newRecruits']);
-        $this->assertSame(6, $program['projectedS3']);
+        // A larger FM count is not a recruit by itself: only the NR columns are.
+        DB::table('prodi_fm_roadmaps')->where('year', 2027)->update(['jumlah_fm' => 5, 'jumlah_s2' => 4]);
+        $program = app(LrcDashboard::class)->data()['projection']['years'][1]['programs'][0];
+        $this->assertSame([[], 4, 5], [$program['newRecruits'], $program['projectedFm'], $program['roadmap']['fm']]);
+
+        // Recruits join in their year at their level: S3 recruits count for FM S3, S2 recruits stay S2.
+        DB::table('prodi_fm_roadmaps')->where('year', 2027)->update(['jumlah_nr_s2' => 1]);
+        DB::table('prodi_fm_roadmaps')->where('year', 2028)->update(['jumlah_fm' => 8, 'jumlah_s2' => 2, 'jumlah_s3' => 6, 'jumlah_nr_s3' => 3]);
+        $years = app(LrcDashboard::class)->data()['projection']['years'];
+        $program = $years[2]['programs'][0];
+        $this->assertSame([['level' => 'S3', 'year' => 2028, 'count' => 3], ['level' => 'S2', 'year' => 2027, 'count' => 1]], $program['newRecruits']);
+        $this->assertSame([2, 1, 3, 6, 8], [$program['existing'], $program['graduates'], $program['recruits'], $program['projectedS3'], $program['projectedFm']]);
+        $this->assertSame(['fm' => 8, 's2' => 2, 's3' => 6, 'nrS2' => 0, 'nrS3' => 3], $program['roadmap']);
+        $this->assertSame([0, 1, 4], array_column($years, 'newRecruits'));
     }
 
     /**
      * Computer Science lecturers C1 (S3), C2 (On Going S3, graduating 2027), C3 (S2 on its row, On Going S3
      * graduating 2028 by its latest education status) and C4 (S2), Visual Communication Design V1 and V2 (S3),
-     * and the given roadmaps: [prodi, program, order, [year => [FM, S2, S3]]].
+     * and the given roadmaps: [prodi, program, order, [year => [FM, S2, S3, NR S2, NR S3]]].
      */
     private function projectionFixture(array $roadmaps): void
     {
@@ -217,7 +228,7 @@ class LrcDashboardTest extends TestCase
             '2026_11_12_000000_add_s3_planning_to_lecturer_education'] as $migration) {
             (require database_path("migrations/{$migration}.php"))->up();
         }
-        (require base_path('Modules/RoadmapLRC/database/migrations/2026_11_15_000000_create_prodi_fm_roadmaps_table.php'))->up();
+        $this->roadmapMigrations();
         $import = DB::table('lecturer_imports')->value('id');
         foreach ([
             ['C1', 'Computer Science', 'S3', null, null],
@@ -235,10 +246,17 @@ class LrcDashboardTest extends TestCase
         DB::table('lecturer_education_statuses')->insert(['kode_dosen' => 'C3', 'year' => 2026, 'month' => 9,
             'status_pendidikan' => 'On Going S3', 'proyeksi_lulus_s3' => 2028]);
         foreach ($roadmaps as [$prodi, $program, $order, $years]) {
-            foreach ($years as $year => [$fm, $s2, $s3]) {
+            foreach ($years as $year => [$fm, $s2, $s3, $nrS2, $nrS3]) {
                 DB::table('prodi_fm_roadmaps')->insert(['prodi' => $prodi, 'program_studi' => $program, 'urutan' => $order, 'year' => $year,
-                    'jumlah_fm' => $fm, 'jumlah_s2' => $s2, 'jumlah_s3' => $s3]);
+                    'jumlah_fm' => $fm, 'jumlah_s2' => $s2, 'jumlah_s3' => $s3, 'jumlah_nr_s2' => $nrS2, 'jumlah_nr_s3' => $nrS3]);
             }
+        }
+    }
+
+    private function roadmapMigrations(): void
+    {
+        foreach (['2026_11_15_000000_create_prodi_fm_roadmaps_table', '2026_11_16_000000_add_new_recruits_to_prodi_fm_roadmaps_table'] as $migration) {
+            (require base_path("Modules/RoadmapLRC/database/migrations/{$migration}.php"))->up();
         }
     }
 

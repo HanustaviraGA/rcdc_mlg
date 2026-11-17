@@ -11,10 +11,10 @@ use Illuminate\Support\Collection;
  *     FM S3 = existing S3 + (lecturers graduating S3 that year + new recruits S3)
  *
  * The Data Center, with the latest education statuses, gives the existing S3 and the graduates:
- * S2 and On Going S3 lecturers by their proyeksi lulus S3. The FM a program's roadmap has beyond its
- * lecturers are New FM Recruits (NR): S3 as far as the roadmap's S3 exceeds the projected S3, the rest S2.
- * So a program whose roadmap FM equals its Data Center FM has no NR, and its projected S3 may differ
- * from the roadmap's. The existing S3 of a year are the S3 of the year before, graduates and recruits included.
+ * S2 and On Going S3 lecturers by their proyeksi lulus S3. The roadmap gives the New FM Recruits (NR):
+ * people from outside joining each year as S2 or S3; a lecturer moving up to S3 is a graduate, never a recruit.
+ * The existing S3 of a year are the S3 of the year before, graduates and recruits included. The projected
+ * S3 and FM (Data Center + recruits so far) can differ from the roadmap's; the dashboard shows where.
  */
 class FmS3Projection
 {
@@ -32,27 +32,33 @@ class FmS3Projection
             $program = $rows->first()->program_studi;
             $members = $program === null ? collect() : $lecturers->where('gugus', $program)->values();
             $dataCenter[$prodi] = $this->dataCenter($program, $members);
-            // Cumulative recruits needed by each year, per level.
-            $recruited = ['S3' => [], 'S2' => []];
+            // Recruits joined so far: [level, year, count], S3 before S2.
+            $joined = ['S3' => [], 'S2' => []];
             $previous = ['s3' => $dataCenter[$prodi]['s3'], 'recruitsS3' => 0];
             foreach ($rows as $row) {
                 $year = (int) $row->year;
                 $s3 = $dataCenter[$prodi]['s3'] + $members->filter(fn (array $member) => $member['education'] !== 'S3'
                     && $member['proyeksiLulusS3'] !== null && $member['proyeksiLulusS3'] <= $year)->count();
-                // Recruits fill the FM the roadmap has beyond the Data Center: S3 first, as far as S3 falls short, then S2.
-                $gap = max(0, (int) $row->jumlah_fm - $members->count());
-                $recruited['S3'][$year] = min($gap, max(0, (int) $row->jumlah_s3 - $s3));
-                $recruited['S2'][$year] = $gap - $recruited['S3'][$year];
+                $recruits = ['S3' => (int) ($row->jumlah_nr_s3 ?? 0), 'S2' => (int) ($row->jumlah_nr_s2 ?? 0)];
+                foreach ($recruits as $level => $count) {
+                    if ($count > 0) {
+                        $joined[$level][] = ['level' => $level, 'year' => $year, 'count' => $count];
+                    }
+                }
+                $recruitsS3 = $previous['recruitsS3'] + $recruits['S3'];
+                $newRecruits = [...$joined['S3'], ...$joined['S2']];
                 $programYears[$year][] = [
                     'prodi' => (string) $prodi,
-                    'roadmap' => ['fm' => (int) $row->jumlah_fm, 's2' => (int) $row->jumlah_s2, 's3' => (int) $row->jumlah_s3],
+                    'roadmap' => ['fm' => (int) $row->jumlah_fm, 's2' => (int) $row->jumlah_s2, 's3' => (int) $row->jumlah_s3,
+                        'nrS2' => $recruits['S2'], 'nrS3' => $recruits['S3']],
                     'existing' => $previous['s3'] + $previous['recruitsS3'],
                     'graduates' => $s3 - $previous['s3'],
-                    'recruits' => $recruited['S3'][$year] - $previous['recruitsS3'],
-                    'projectedS3' => $s3 + $recruited['S3'][$year],
-                    'newRecruits' => [...$this->recruitRows($recruited['S3'], 'S3'), ...$this->recruitRows($recruited['S2'], 'S2')],
+                    'recruits' => $recruits['S3'],
+                    'projectedS3' => $s3 + $recruitsS3,
+                    'projectedFm' => $members->count() + array_sum(array_column($newRecruits, 'count')),
+                    'newRecruits' => $newRecruits,
                 ];
-                $previous = ['s3' => $s3, 'recruitsS3' => $recruited['S3'][$year]];
+                $previous = ['s3' => $s3, 'recruitsS3' => $recruitsS3];
             }
         }
         ksort($programYears);
@@ -77,6 +83,7 @@ class FmS3Projection
             'graduates' => $sum(fn (array $entry) => $entry['graduates']),
             'recruits' => $sum(fn (array $entry) => $entry['recruits']),
             'projectedS3' => $sum(fn (array $entry) => $entry['projectedS3']),
+            'projectedFm' => $sum(fn (array $entry) => $entry['projectedFm']),
             'newRecruits' => $sum(fn (array $entry) => array_sum(array_column($entry['newRecruits'], 'count'))),
             'programs' => $entries,
         ];
@@ -98,24 +105,5 @@ class FmS3Projection
                 'proyeksiLulusS3' => $member['education'] === 'S3' ? null : $member['proyeksiLulusS3'],
             ])->values()->all(),
         ];
-    }
-
-    /**
-     * The recruits of a level by the year each is first needed.
-     *
-     * @param  array<int, int>  $cumulative  year => recruits needed by then, up to the year shown
-     * @return list<array{level: string, year: int, count: int}>
-     */
-    private function recruitRows(array $cumulative, string $level): array
-    {
-        $needed = (int) end($cumulative);
-        $counts = [];
-        for ($index = 1; $index <= $needed; $index++) {
-            $year = min(array_keys(array_filter($cumulative, fn (int $count) => $count >= $index)));
-            $counts[$year] = ($counts[$year] ?? 0) + 1;
-        }
-        ksort($counts);
-
-        return array_map(fn (int $year, int $count) => ['level' => $level, 'year' => $year, 'count' => $count], array_keys($counts), $counts);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Services\CommunityDevelopment;
 
+use App\Services\Imports\SheetName;
 use Generator;
 use RuntimeException;
 use ZipArchive;
@@ -41,6 +42,9 @@ class XlsbReader
             }
         }
         $sheet ??= array_key_first($sheets);
+        if ($sheet !== null && ! isset($sheets[$sheet]) && ($index = SheetName::find(array_keys($sheets), $sheet)) !== false) {
+            $sheet = (string) array_keys($sheets)[$index];
+        }
         if ($sheet === null || ! isset($sheets[$sheet])) {
             throw new RuntimeException('Sheet yang dipilih tidak tersedia.');
         }

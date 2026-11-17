@@ -5,8 +5,8 @@ import vm from 'node:vm';
 
 const source = readFileSync(new URL('../../public/js/lrc-projection.js', import.meta.url), 'utf8');
 
-// The shape LrcDashboard sends: CS needs one S2 recruit from 2026 and one S3 recruit from 2027; DKV has more FM than planned.
-const program = (prodi, roadmap, existing, graduates, recruits, projectedS3, newRecruits) => ({ prodi, roadmap, existing, graduates, recruits, projectedS3, newRecruits });
+// The shape LrcDashboard sends: the CS roadmap recruits one S2 in 2026 and one S3 in 2027; DKV has more FM than planned.
+const program = (prodi, roadmap, existing, graduates, recruits, projectedS3, projectedFm, newRecruits) => ({ prodi, roadmap, existing, graduates, recruits, projectedS3, projectedFm, newRecruits });
 const projection = {
     prodi: ['CS', 'DKV'],
     dataCenter: {
@@ -22,13 +22,13 @@ const projection = {
         ] },
     },
     years: [
-        { year: 2026, s3: 2, fm: 6, percent: 33.3, existing: 3, graduates: 0, recruits: 0, projectedS3: 3, newRecruits: 1, programs: [
-            program('CS', { fm: 5, s2: 4, s3: 1 }, 1, 0, 0, 1, [{ level: 'S2', year: 2026, count: 1 }]),
-            program('DKV', { fm: 1, s2: 0, s3: 1 }, 2, 0, 0, 2, []),
+        { year: 2026, s3: 2, fm: 6, percent: 33.3, existing: 3, graduates: 0, recruits: 0, projectedS3: 3, projectedFm: 7, newRecruits: 1, programs: [
+            program('CS', { fm: 5, s2: 4, s3: 1, nrS2: 1, nrS3: 0 }, 1, 0, 0, 1, 5, [{ level: 'S2', year: 2026, count: 1 }]),
+            program('DKV', { fm: 1, s2: 0, s3: 1, nrS2: 0, nrS3: 0 }, 2, 0, 0, 2, 2, []),
         ] },
-        { year: 2027, s3: 4, fm: 7, percent: 57.1, existing: 3, graduates: 1, recruits: 1, projectedS3: 5, newRecruits: 2, programs: [
-            program('CS', { fm: 6, s2: 3, s3: 3 }, 1, 1, 1, 3, [{ level: 'S3', year: 2027, count: 1 }, { level: 'S2', year: 2026, count: 1 }]),
-            program('DKV', { fm: 1, s2: 0, s3: 1 }, 2, 0, 0, 2, []),
+        { year: 2027, s3: 4, fm: 7, percent: 57.1, existing: 3, graduates: 1, recruits: 1, projectedS3: 5, projectedFm: 8, newRecruits: 2, programs: [
+            program('CS', { fm: 6, s2: 3, s3: 3, nrS2: 0, nrS3: 1 }, 1, 1, 1, 3, 6, [{ level: 'S3', year: 2027, count: 1 }, { level: 'S2', year: 2026, count: 1 }]),
+            program('DKV', { fm: 1, s2: 0, s3: 1, nrS2: 0, nrS3: 0 }, 2, 0, 0, 2, 2, []),
         ] },
     ],
 };
@@ -91,8 +91,10 @@ test('a year lists every program with its roadmap, Data Center and FM S3 formula
     assert.match(summary, /<dt>Proyeksi lulus S3 2027<\/dt><dd>1 orang<\/dd>/);
     assert.match(summary, /<dt>Proyeksi NR S3 2027<\/dt><dd>1 orang<\/dd>/);
     assert.match(summary, /FM S3 = Eksisting \+ \(Lulus \+ NR\) = 3 \+ \(1 \+ 1\) = <strong>5 orang<\/strong>/);
-    assert.match(summary, /NR \(New FM Recruit\): orang baru dari luar yang masuk menjadi FM, sebanyak kelebihan Jumlah FM roadmap dibanding FM di Data Center\. Dosen yang naik jenjang ke S3 dihitung di Lulus, bukan NR\. Kolom NR S3 hanya NR bergelar S3; NR bergelar S2 terlihat di kolom New FM Recruit\. Proyeksi FM S3 berbeda dari roadmap S3 pada DKV \(proyeksi 2, roadmap 1\)\.<\/p>$/);
-    assert.match(h.html('lrcProjectionTable'), /<td class="pd-numeric lrc-total-column lrc-total-differs" title="Proyeksi FM S3 2 melebihi roadmap S3 1\.">2<\/td>/);
+    assert.match(summary, /NR \(New FM Recruit\): orang baru dari luar yang masuk menjadi FM, sesuai kolom NR S2 dan NR S3 di Roadmap LRC\. Dosen yang naik jenjang ke S3 dihitung di Lulus, bukan NR\. Kolom NR S3 hanya NR bergelar S3 yang masuk 2027; seluruh NR s\/d 2027 ada di kolom New FM Recruit\.<\/p>/);
+    assert.match(summary, /<p class="lrc-formula-note lrc-formula-warning">Proyeksi FM S3 berbeda dari roadmap S3 pada DKV \(2, roadmap 1\)\. Data Center \+ NR berbeda dari Jumlah FM roadmap pada DKV \(2, roadmap 1\)\.<\/p>$/);
+    assert.match(h.html('lrcProjectionTable'), /<td class="pd-numeric lrc-total-column lrc-cell-differs" title="Proyeksi FM S3 2 melebihi roadmap S3 1\.">2<\/td>/);
+    assert.match(h.html('lrcProjectionTable'), /<td class="pd-numeric lrc-group-start lrc-cell-differs" title="Data Center \+ NR 2 melebihi Jumlah FM roadmap 1\.">0<\/td><\/tr><\/tbody>/);
     const [groups, columns, cs, dkv, total] = h.rows();
     assert.deepEqual(groups, ['Prodi', 'Roadmap 2027', 'Data Center saat ini', 'FM S3 2027', 'New FM Recruit s/d 2027']);
     assert.deepEqual(columns, ['FM', 'S2', 'S3', 'FM', 'S2', 'On Going S3', 'S3', 'Eksisting', 'Lulus', 'NR S3', 'Total']);
@@ -121,7 +123,7 @@ test('a program lists its lecturers, their education now and in the year, then i
     h.element('lrcProjectionTable').fire('click', { target: h.programButton('CS') });
     assert.equal(h.text('lrcProjectionEyebrow'), 'PROYEKSI FM S3 2027');
     assert.equal(h.text('lrcProjectionTitle'), 'CS · 2027');
-    assert.equal(h.text('lrcProjectionCaption'), 'Computer Science · Roadmap 2027: 6 FM (S2 3 · S3 3) · Data Center saat ini: 4 FM (S2 1 · On Going S3 2 · S3 1).');
+    assert.equal(h.text('lrcProjectionCaption'), 'Computer Science · Roadmap 2027: 6 FM (S2 3 · S3 3 · NR S2 0 · NR S3 1) · Data Center saat ini: 4 FM (S2 1 · On Going S3 2 · S3 1).');
     assert.match(h.html('lrcProjectionSummary'), /FM S3 CS = Eksisting \+ \(Lulus \+ NR\) = 1 \+ \(1 \+ 1\) = <strong>3 orang<\/strong><\/p>$/, 'no warning when it matches the roadmap');
     const [header, ...rows] = h.rows();
     assert.deepEqual(header, ['Nama FM', 'Kode', 'Pendidikan', 'Status pendidikan', 'Proyeksi lulus S3', 'Pendidikan 2027']);
@@ -142,8 +144,7 @@ test('a program lists its lecturers, their education now and in the year, then i
     // A program with more FM than its roadmap has no recruits.
     h.element('lrcProjectionBack').fire('click');
     h.element('lrcProjectionTable').fire('click', { target: h.programButton('DKV') });
-    assert.match(h.text('lrcProjectionCaption'), /Data Center melebihi roadmap 1 FM\.$/);
-    assert.match(h.html('lrcProjectionSummary'), /<p class="lrc-formula-note lrc-formula-warning">Proyeksi FM S3 2 melebihi roadmap S3 1\. Periksa proyeksi lulus S3 dan status pendidikan FM di bawah, atau roadmap DKV 2027\.<\/p>$/);
+    assert.match(h.html('lrcProjectionSummary'), /<p class="lrc-formula-note lrc-formula-warning">Proyeksi FM S3 2 melebihi roadmap S3 1\. Data Center \+ NR 2 melebihi Jumlah FM roadmap 1\. Periksa proyeksi lulus S3 dan status pendidikan FM di bawah, atau roadmap DKV \(termasuk kolom NR\) 2027\.<\/p>$/);
     assert.equal(h.rows().length, 3);
     assert.equal(h.text('lrcProjectionMeta'), '2 FM Data Center + 0 New FM Recruit = 2 FM');
 });

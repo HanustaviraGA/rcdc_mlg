@@ -4,6 +4,7 @@ namespace App\Services\Publications;
 
 use App\Services\ColumnMapping\ColumnMapperService;
 use App\Services\Imports\ImportPolicy;
+use App\Services\Imports\SheetName;
 use Aspera\Spreadsheet\XLSX\Reader;
 use Aspera\Spreadsheet\XLSX\ReaderConfiguration;
 use DateTimeImmutable;
@@ -34,11 +35,11 @@ class RawPublicationReader
             }
             if ($sheet !== null) {
                 // The sheet chosen in the mapping preview.
-                $sheetIndex = array_search($sheet, $names, true);
+                $sheetIndex = SheetName::find($names, $sheet);
                 if ($sheetIndex === false) {
                     $this->invalid("Sheet {$sheet} tidak ditemukan. Data sebelumnya tetap tersimpan.");
                 }
-                $summary['sheet'] = $sheet;
+                $summary['sheet'] = $names[$sheetIndex];
             } else {
                 $sheetIndex = $sheets['malang'] ?? $sheets['raw'] ?? null;
                 if ($sheetIndex === null) {
