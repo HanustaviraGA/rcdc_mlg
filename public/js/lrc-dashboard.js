@@ -3,7 +3,9 @@ function initializeLrcDashboard(source) {
     const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
     const number = value => new Intl.NumberFormat('id-ID').format(value ?? 0);
     const charts = {};
-    const colors = ['#176b87', '#e48b3a', '#5b7c99', '#57a773', '#b25c7e', '#8b6fb3', '#d2a72c', '#637083'];
+    // Eight clearly different hues, in an order where neighbouring bars and slices stay apart, also for
+    // colour-blind readers: blue, orange, aqua, yellow, pink, green, violet, red.
+    const colors = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#6250d6', '#e34948'];
     const percentageLabels = {
         id: 'lrcPercentageLabels',
         afterDatasetsDraw(chart) {
@@ -60,7 +62,8 @@ function initializeLrcDashboard(source) {
         charts[key] = new Chart(canvas, {
             type,
             plugins: [percentageLabels],
-            data: { labels: chart.labels, datasets: [{ data: chart.data, backgroundColor: colors, borderColor: colors, borderWidth: 1, borderRadius: type === 'bar' ? 5 : 0 }] },
+            // Doughnut slices are separated by a white gap.
+            data: { labels: chart.labels, datasets: [{ data: chart.data, backgroundColor: colors, borderColor: type === 'doughnut' ? '#fff' : colors, borderWidth: type === 'doughnut' ? 2 : 1, borderRadius: type === 'bar' ? 5 : 0 }] },
             options: { ...chartOptions(type, chart.labels), ...extra }
         });
     }

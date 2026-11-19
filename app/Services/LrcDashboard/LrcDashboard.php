@@ -17,7 +17,10 @@ class LrcDashboard
 
     private const AGE_LABELS = ['20-40 tahun', '41-54 tahun', '55 tahun', '56-64 tahun', '65 tahun', '> 65 tahun'];
 
-    private const FACULTY_LABELS = ['FM', 'FMSCS', 'FMSTR'];
+    private const FACULTY_LABELS = ['FM', 'FMSCS', 'FMSTR', 'AFM'];
+
+    /** Serdos counts these, not the AFM. */
+    private const SERDOS_FACULTIES = ['FM', 'FMSCS', 'FMSTR'];
 
     public function data(array $selected = []): array
     {
@@ -28,12 +31,13 @@ class LrcDashboard
         $selected = $this->selectedFilters($selected, $options);
         $filtered = $rows->filter(fn (array $row) => $this->matches($row, $selected))->values();
         $religions = array_keys($filtered->countBy('agama')->sortKeys()->all());
-        // Chart key => [row key, row values in chart order].
+        $serdosRows = $filtered->whereIn('tipe', self::SERDOS_FACULTIES)->values();
+        // Chart key => [row key, row values in chart order, rows when not all filtered rows].
         $groups = [
             'pendidikan' => ['education', self::EDUCATION_LABELS],
             'jja' => ['rank', self::RANK_LABELS],
             'usia' => ['ageLabel', self::AGE_LABELS],
-            'serdos' => ['serdos', ['Lulus', 'Belum Lulus']],
+            'serdos' => ['serdos', ['Lulus', 'Belum Lulus'], $serdosRows],
             'nuptk' => ['nuptk', ['Sudah punya NUPTK', 'Belum punya NUPTK']],
             'tipeDosen' => ['facultyType', ['Functional Faculty', 'Professional Faculty']],
             'agama' => ['agama', $religions],
@@ -52,7 +56,7 @@ class LrcDashboard
                 'pendidikan' => $this->chart(self::EDUCATION_LABELS, $this->educationCounts($filtered)),
                 'jja' => $this->chart(self::RANK_CHART_LABELS, $this->fixedCounts($filtered, 'rank', self::RANK_LABELS)),
                 'usia' => $this->chart(self::AGE_LABELS, $this->fixedCounts($filtered, 'ageLabel', self::AGE_LABELS)),
-                'serdos' => $this->chart(['Lulus', 'Belum Lulus'], $this->fixedCounts($filtered, 'serdos', ['Lulus', 'Belum Lulus'])),
+                'serdos' => $this->chart(['Lulus', 'Belum Lulus'], $this->fixedCounts($serdosRows, 'serdos', ['Lulus', 'Belum Lulus'])),
                 'nuptk' => $this->chart(['Sudah punya NUPTK', 'Belum punya NUPTK'], $this->fixedCounts($filtered, 'nuptk', ['Sudah punya NUPTK', 'Belum punya NUPTK'])),
                 'tipeDosen' => $this->chart(['Functional Faculty', 'Professional Faculty'], $this->fixedCounts($filtered, 'facultyType', ['Functional Faculty', 'Professional Faculty'])),
                 'agama' => $this->chart($religions, $this->fixedCounts($filtered, 'agama', $religions)),
@@ -60,7 +64,7 @@ class LrcDashboard
             ],
             // Lecturers behind each bar/slice, aligned with the chart labels by index.
             'chartDetails' => array_map(fn (array $group) => array_map(
-                fn ($value) => $this->lecturers($filtered->whereStrict($group[0], $value), $group[0] === 'rank'),
+                fn ($value) => $this->lecturers(($group[2] ?? $filtered)->whereStrict($group[0], $value), $group[0] === 'rank'),
                 $group[1]
             ), $groups),
             'facultyDetails' => $this->facultyDetails($filtered),
@@ -78,16 +82,17 @@ class LrcDashboard
         $facultyType = $this->facultyType($row->tipe_faculty ?? null);
         $faculty = $this->value($row->fakultas_internal ?? null);
         $registrationNumber = $this->value($row->nomor_nidn_nupn ?? null);
+        $facultyDetail = $this->value($row->tipe_faculty ?? null);
         $hasNuptk = $this->isDataValue($registrationNumber);
 
         return [
             'code' => $this->value($row->kode_dosen ?? null),
             'name' => $this->value($row->nama_dosen ?? null) ?: 'Tanpa nama',
             'faculty' => $faculty,
-            // Komposisi Fakultas groups by Data Center `tipe` (FM/FMSCS/FMSTR), then by `tipe_faculty`.
+            // Komposisi Fakultas groups by Data Center `tipe` (FM/FMSCS/FMSTR/AFM), then by `tipe_faculty` ("-" for the AFM).
             'tipe' => strtoupper((string) $this->value($row->tipe ?? null)),
             'facultyType' => $facultyType,
-            'facultyDetail' => $this->value($row->tipe_faculty ?? null) ?: 'Tidak diketahui',
+            'facultyDetail' => $this->isDataValue($facultyDetail) ? $facultyDetail : 'Tidak diketahui',
             'rank' => $rank,
             'roadmapKenaikanJja' => $this->value($row->roadmap_kenaikan_jja ?? null),
             'roadmapJjaRank' => $this->rank($row->roadmap_kenaikan_jja ?? null),

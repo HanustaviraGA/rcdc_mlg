@@ -1,10 +1,9 @@
-{{-- The planned share of S3 FM per year (Roadmap LRC): a box per year with S3 FM / total FM = percentage.
-     A box opens the programs of that year (roadmap, Data Center and FM S3 = existing + (graduates + NR)),
-     and a program its lecturers and New FM Recruits. --}}
+{{-- The planned share of S3 FM per year (Roadmap LRC), the body of the Proyeksi FM S3 section: a box per year with
+     S3 FM / total FM = percentage. A box opens the FM S3 of that year by name, grouped per program: the existing S3
+     and the lecturers projected to graduate S3 that year. --}}
 @php($projection = $lrc['projection'])
 @php($number = fn ($value) => number_format($value, 0, ',', '.'))
-<article class="lrc-projection" aria-labelledby="lrcProjectionHeading">
-    <h3 id="lrcProjectionHeading">Proyeksi FM S3</h3>
+<article class="lrc-projection">
     <p class="lrc-projection-caption">
         Persentase FM bergelar S3 terhadap total FM per tahun berdasarkan roadmap jumlah FM ·
         @if(empty($projection['prodi']))
@@ -17,9 +16,6 @@
         @if($projection['statusIgnored'])
             Roadmap tidak dibedakan per status dosen.
         @endif
-        @if($projection['years'])
-            Klik tahun untuk melihat rincian per prodi.
-        @endif
     </p>
     @if($projection['years'])
         <ol class="lrc-projection-list" tabindex="0" aria-label="Proyeksi FM S3 per tahun. Geser untuk melihat tahun lainnya.">
@@ -28,7 +24,7 @@
                 <li>
                     <button type="button" class="lrc-projection-card" data-lrc-projection="{{ $item['year'] }}" aria-haspopup="dialog">
                         <span class="lrc-projection-year">{{ $item['year'] }}</span>
-                        <span class="visually-hidden">: {{ $number($item['s3']) }} dari {{ $number($item['fm']) }} FM bergelar S3, {{ $percent }}. Lihat rincian per prodi.</span>
+                        <span class="visually-hidden">: {{ $number($item['s3']) }} dari {{ $number($item['fm']) }} FM bergelar S3, {{ $percent }}. Lihat FM S3 eksisting dan proyeksi lulus S3 per prodi.</span>
                         <span class="lrc-projection-formula" aria-hidden="true">
                             <span class="lrc-ratio">
                                 <strong class="lrc-ratio-top" data-lrc-projection-s3>{{ $number($item['s3']) }}</strong>
@@ -51,7 +47,6 @@
             <button class="pd-icon-button" type="button" id="lrcProjectionClose" aria-label="Tutup rincian proyeksi"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
         </div>
         <div class="pd-dialog-body">
-            <button type="button" class="pd-text-button lrc-projection-back" id="lrcProjectionBack" hidden><i class="bi bi-arrow-left" aria-hidden="true"></i> Kembali ke daftar prodi</button>
             <p class="pd-table-caption" id="lrcProjectionCaption"></p>
             <div id="lrcProjectionSummary" class="lrc-formula"></div>
             <div class="pd-table-scroll"><table class="pd-table lrc-projection-table" id="lrcProjectionTable"></table></div>

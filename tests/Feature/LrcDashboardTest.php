@@ -25,7 +25,6 @@ class LrcDashboardTest extends TestCase
                 $table->text($field)->nullable();
             }
             $table->text('fakultas_internal')->nullable();
-            $table->text('status_serdos')->nullable();
             $table->timestamps();
         });
         (require database_path('migrations/2026_09_25_000000_add_visibility_and_soft_deletes_to_database_dosen_new.php'))->up();
@@ -54,12 +53,15 @@ class LrcDashboardTest extends TestCase
     {
         $data = app(LrcDashboard::class)->data();
 
-        $this->assertSame(['labels' => ['FM', 'FMSCS', 'FMSTR'], 'data' => [1, 0, 2]], $data['charts']['fakultas']);
+        $this->assertSame(['labels' => ['FM', 'FMSCS', 'FMSTR', 'AFM'], 'data' => [1, 0, 2, 1]], $data['charts']['fakultas']);
+        // The AFM has its own bar; its "-" tipe faculty reads as unknown.
+        $this->assertSame([['label' => 'Tidak diketahui', 'count' => 1, 'codes' => ['D4']]], array_map(fn (array $type) => ['label' => $type['label'], 'count' => $type['count'],
+            'codes' => array_column($type['lecturers'], 'code')], $data['facultyDetails']['AFM']['types']));
         $this->assertSame(['Functional Faculty(C)', 'Professional Faculty(A)'], array_column($data['facultyDetails']['FMSTR']['types'], 'label'));
         $this->assertSame(['D2'], array_column($data['facultyDetails']['FMSTR']['types'][0]['lecturers'], 'code'));
         // The Fakultas filter still uses Fakultas Internal.
         $this->assertSame(['BBSUG', 'SOCS', 'SOD'], $data['filters']['fakultas']);
-        $this->assertSame([1, 0, 0], app(LrcDashboard::class)->data(['fakultas' => 'SOCS'])['charts']['fakultas']['data']);
+        $this->assertSame([1, 0, 0, 1], app(LrcDashboard::class)->data(['fakultas' => 'SOCS'])['charts']['fakultas']['data']);
     }
 
     public function test_every_other_chart_lists_the_lecturers_behind_each_category(): void
@@ -86,7 +88,9 @@ class LrcDashboardTest extends TestCase
         $this->assertSame([['D2', 'D3'], ['D1'], []], $codes('pendidikan'));
         $this->assertSame([[], ['D2'], ['D3'], ['D1'], []], $codes('jja'));
         $this->assertSame([['D2', 'D3'], ['D1'], [], [], [], []], $codes('usia'));
-        $this->assertSame([['D1'], ['D2', 'D3', 'D4']], $codes('serdos'));
+        // Serdos leaves out the AFM (D4): only FM, FMSCS and FMSTR.
+        $this->assertSame([['D1'], ['D2', 'D3']], $codes('serdos'));
+        $this->assertSame([1, 2], $data['charts']['serdos']['data']);
         $this->assertSame([['D1', 'D2'], ['D3', 'D4']], $codes('nuptk'));
         $this->assertSame([['D1', 'D2'], ['D3']], $codes('tipeDosen'));
         $this->assertSame(['Islam', 'Kristen', 'Tidak diketahui'], $data['charts']['agama']['labels']);
@@ -112,13 +116,31 @@ class LrcDashboardTest extends TestCase
         $response->assertSee('data-lrc-chart="pendidikan" data-lrc-index="0" disabled', false)->assertSee('data-lrc-faculty="FMSTR"', false);
     }
 
+    public function test_sections_and_profile_charts_are_titled_in_capitals_with_komposisi_fakultas_right_below_total_dosen_and_proyeksi_fm_s3_on_its_own(): void
+    {
+        $page = $this->get(route('lrc-dashboard'))->assertOk()->getContent();
+
+        preg_match_all('#<span class="pd-section-number">(\d{2})</span><div><span class="pd-eyebrow">[^<]*</span><h2 id="(\w+)">([^<]+)</h2>#', $page, $sections, PREG_SET_ORDER);
+        $this->assertSame([
+            ['00', 'lrcFilterHeading', 'FILTER DASHBOARD'],
+            ['01', 'lrcKpiHeading', 'TOTAL DOSEN'],
+            ['02', 'lrcFacultyHeading', 'KOMPOSISI FAKULTAS'],
+            ['03', 'lrcEducationHeading', 'JENJANG PENDIDIKAN'],
+            ['04', 'lrcProjectionHeading', 'PROYEKSI FM S3'],
+            ['05', 'lrcProfileHeading', 'KOMPOSISI DOSEN'],
+        ], array_map(fn ($section) => array_slice($section, 1), $sections));
+
+        preg_match_all('#data-lrc-chart-card="\w+" data-lrc-title="([^"]+)">\s*<h3>([^<]+)</h3>#', $page, $cards, PREG_SET_ORDER);
+        $this->assertSame(['Jenjang pendidikan dosen', 'JJA', 'RENTANG USIA', 'SERDOS FM, FM SCS, FM STR', 'NUPTK', 'TIPE DOSEN', 'AGAMA'], array_column($cards, 2));
+    }
+
     public function test_projection_shows_the_planned_share_of_s3_fm_per_year_below_the_education_chart(): void
     {
         $this->roadmapMigrations();
         $this->seed(RoadmapLRCDatabaseSeeder::class);
         $page = $this->get(route('lrc-dashboard'))->assertOk()->getContent();
 
-        // Right below the Jenjang pendidikan dosen chart, before the next section.
+        // Its own section right below the Jenjang pendidikan dosen chart, before Komposisi Dosen.
         $education = strpos($page, 'data-lrc-chart-card="pendidikan"');
         $this->assertTrue($education < strpos($page, 'id="lrcProjectionHeading"') && strpos($page, 'id="lrcProjectionHeading"') < strpos($page, 'id="lrcProfileHeading"'));
         $this->assertStringContainsString('Seluruh prodi (9).', $page);
@@ -128,7 +150,7 @@ class LrcDashboardTest extends TestCase
             ['2030', '56', '129', '43,4%'], ['2031', '66', '131', '50,4%'], ['2032', '99', '134', '73,9%'], ['2033', '113', '138', '81,9%'],
             ['2034', '130', '141', '92,2%'], ['2035', '133', '143', '93,0%'],
         ], array_map(fn ($box) => array_slice($box, 1), $boxes));
-        $this->assertStringContainsString('<span class="visually-hidden">: 18 dari 117 FM bergelar S3, 15,4%. Lihat rincian per prodi.</span>', $page);
+        $this->assertStringContainsString('<span class="visually-hidden">: 18 dari 117 FM bergelar S3, 15,4%. Lihat FM S3 eksisting dan proyeksi lulus S3 per prodi.</span>', $page);
         $this->assertStringContainsString('<button type="button" class="lrc-projection-card" data-lrc-projection="2026" aria-haspopup="dialog">', $page);
         $this->assertStringContainsString('id="lrcProjectionDetail"', $page);
         $this->assertMatchesRegularExpression('#<script src="[^"]*/js/lrc-projection\.js\?v=\d+"></script>#', $page);

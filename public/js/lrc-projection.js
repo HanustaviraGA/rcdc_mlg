@@ -1,148 +1,107 @@
-// Proyeksi FM S3: a year box opens the programs of that year; a program opens its lecturers and New FM Recruits.
+// Proyeksi FM S3: a year box opens the FM S3 of that year by name, grouped per program (prodi): the existing S3
+// (S3 now or graduated in an earlier roadmap year) and the lecturers projected to graduate S3 that year.
 function initializeLrcProjection(projection) {
     const $ = id => document.getElementById(id);
     const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
     const number = value => new Intl.NumberFormat('id-ID').format(value ?? 0);
     const percent = value => (value == null ? '–' : new Intl.NumberFormat('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value) + '%');
-    const sum = (rows, value) => rows.reduce((total, row) => total + value(row), 0);
-    const recruitCount = entry => sum(entry.newRecruits, recruit => recruit.count);
     const dialog = $('lrcProjectionDetail');
     const table = $('lrcProjectionTable');
     const summary = $('lrcProjectionSummary');
-    const back = $('lrcProjectionBack');
-    let state = { year: null, prodi: null };
+    const columns = 6;
+    let year = null;
     let previousFocus = null;
 
-    const yearData = () => projection.years.find(item => item.year === state.year);
-    // Year table columns after Prodi: Roadmap (FM, S2, S3), Data Center (FM, S2, On Going S3, S3),
-    // FM S3 (Eksisting, Lulus, NR S3, Total) and New FM Recruit; a group starts at each of these indexes.
-    const groupStarts = [0, 3, 7, 11];
-    const totalColumn = 10;
-    const columnClass = index => `pd-numeric${groupStarts.includes(index) ? ' lrc-group-start' : ''}${index === totalColumn ? ' lrc-total-column' : ''}`;
-    // Optional {title, differs} per column index; a differing cell is marked.
-    const cells = (values, meta = {}) => values.map((value, index) => {
-        const { title = '', differs = false } = meta[index] || {};
-        const classes = columnClass(index) + (differs ? ' lrc-cell-differs' : '');
-        return `<td class="${classes}"${title ? ` title="${escape(title)}"` : ''}>${number(value)}</td>`;
-    }).join('');
-    const recruitsColumn = 11;
-    const recruitsTitle = entry => entry.newRecruits.map(recruit => `${recruit.level} ${number(recruit.count)} orang baru (rekrut ${recruit.year})`).join(', ');
-    // The roadmap's S3 and FM against the Data Center with the roadmap's NR.
-    const compare = (label, projected, plannedLabel, planned) => (projected === planned ? ''
-        : `${label} ${number(projected)} ${projected > planned ? 'melebihi' : 'kurang dari'} ${plannedLabel} ${number(planned)}.`);
-    const s3Difference = entry => compare('Proyeksi FM S3', entry.projectedS3, 'roadmap S3', entry.roadmap.s3);
-    const fmDifference = entry => compare('Data Center + NR', entry.projectedFm, 'Jumlah FM roadmap', entry.roadmap.fm);
-    const rowMeta = entry => ({
-        [totalColumn]: { title: s3Difference(entry), differs: !!s3Difference(entry) },
-        [recruitsColumn]: { title: [recruitsTitle(entry), fmDifference(entry)].filter(Boolean).join('. '), differs: !!fmDifference(entry) },
-    });
     const list = (entries, projected, planned) => entries.map(entry => `${escape(entry.prodi)} (${number(projected(entry))}, roadmap ${number(planned(entry))})`).join(', ');
-    const headers = labels => labels.map((label, index) => `<th scope="col" class="${columnClass(index)}">${label}</th>`).join('');
 
     // FM S3 = existing + (graduates + recruits), as LRC writes it.
-    function formula(label, entry) {
+    function formula(entry) {
         return `<dl class="lrc-formula-terms">`
             + `<div><dt>Eksisting S3</dt><dd>${number(entry.existing)} orang</dd></div>`
-            + `<div><dt>Proyeksi lulus S3 ${state.year}</dt><dd>${number(entry.graduates)} orang</dd></div>`
-            + `<div><dt>Proyeksi NR S3 ${state.year}</dt><dd>${number(entry.recruits)} orang</dd></div></dl>`
-            + `<p class="lrc-formula-total">${escape(label)} = Eksisting + (Lulus + NR) = ${number(entry.existing)} + (${number(entry.graduates)} + ${number(entry.recruits)}) = <strong>${number(entry.projectedS3)} orang</strong></p>`;
+            + `<div><dt>Proyeksi lulus S3 ${year.year}</dt><dd>${number(entry.graduates)} orang</dd></div>`
+            + `<div><dt>Proyeksi NR S3 ${year.year}</dt><dd>${number(entry.recruits)} orang</dd></div></dl>`
+            + `<p class="lrc-formula-total">FM S3 = Eksisting + (Lulus + NR) = ${number(entry.existing)} + (${number(entry.graduates)} + ${number(entry.recruits)}) = <strong>${number(entry.projectedS3)} orang</strong></p>`;
     }
 
-    function renderYear() {
-        const year = yearData();
-        const dataCenter = year.programs.map(entry => projection.dataCenter[entry.prodi]);
-        $('lrcProjectionEyebrow').textContent = 'PROYEKSI FM S3';
+    // As FmS3Projection counts them: a lecturer graduates in the year when the projection falls after the program's
+    // previous roadmap year (an overdue projection counts in the first year); earlier graduates are existing.
+    function status(entry, lecturer) {
+        if (lecturer.education === 'S3') return 'existing';
+        const projected = lecturer.proyeksiLulusS3;
+        if (projected == null || projected > year.year) return null;
+        const previous = projection.years.filter(item => item.year < year.year && item.programs.some(program => program.prodi === entry.prodi)).pop();
+        return previous && projected <= previous.year ? 'existing' : 'graduate';
+    }
+
+    // The programs with FM S3 this year, in roadmap order: their existing S3, then their graduates, each by name,
+    // and the NR S3 of earlier years, which count as existing but have no names.
+    function programs() {
+        return year.programs.map(entry => {
+            const center = projection.dataCenter[entry.prodi];
+            const lecturers = center.lecturers.map(lecturer => ({ ...lecturer, status: status(entry, lecturer) }));
+            return {
+                prodi: entry.prodi,
+                programStudi: center.programStudi,
+                existing: lecturers.filter(lecturer => lecturer.status === 'existing'),
+                graduates: lecturers.filter(lecturer => lecturer.status === 'graduate'),
+                recruits: entry.newRecruits.filter(recruit => recruit.level === 'S3' && recruit.year < year.year).reduce((total, recruit) => total + recruit.count, 0),
+            };
+        }).filter(program => program.existing.length || program.graduates.length || program.recruits);
+    }
+
+    function row(lecturer) {
+        const label = lecturer.status === 'existing' ? 'Eksisting' : `Lulus ${year.year}`;
+        return `<tr class="lrc-${lecturer.status}-row"><td class="lrc-name-cell">${escape(lecturer.name)}</td><td>${escape(lecturer.code || '—')}</td>`
+            + `<td>${escape(lecturer.pendidikan || '—')}</td><td>${escape(lecturer.statusPendidikan || '—')}</td><td>${escape(lecturer.proyeksiLulusS3 ?? '—')}</td>`
+            + `<td><span class="lrc-status lrc-status-${lecturer.status}">${label}</span></td></tr>`;
+    }
+
+    function group({ prodi, programStudi, existing, graduates, recruits }) {
+        const counts = [`${number(existing.length)} eksisting`, `${number(graduates.length)} lulus ${year.year}`,
+            ...(recruits ? [`${number(recruits)} NR S3 eksisting (belum ada nama)`] : [])];
+        return `<tbody class="lrc-prodi-group" data-lrc-projection-group="${escape(prodi)}"><tr class="lrc-prodi-heading">`
+            + `<th colspan="${columns}" scope="rowgroup"><span class="lrc-prodi-title"><strong>${escape(prodi)}</strong> ${escape(programStudi || '')}</span>`
+            + `<span class="lrc-prodi-count">${counts.join(' · ')}</span></th></tr>`
+            + [...existing, ...graduates].map(row).join('')
+            + '</tbody>';
+    }
+
+    function render() {
+        const groups = programs();
+        const total = key => groups.reduce((sum, program) => sum + (key === 'recruits' ? program.recruits : program[key].length), 0);
+        const overdue = groups.some(program => program.graduates.some(lecturer => lecturer.proyeksiLulusS3 < year.year));
+        // Where the projection (Data Center + roadmap NR) differs from the roadmap's S3 and FM.
+        const s3Differing = year.programs.filter(entry => entry.projectedS3 !== entry.roadmap.s3);
+        const fmDiffering = year.programs.filter(entry => entry.projectedFm !== entry.roadmap.fm);
         $('lrcProjectionTitle').textContent = `Proyeksi FM S3 ${year.year}`;
         $('lrcProjectionCaption').textContent = `Roadmap ${year.year}: ${number(year.s3)} FM S3 dari ${number(year.fm)} FM (${percent(year.percent)}). `
-            + 'Data Center memakai roster dosen saat ini dan update status pendidikan terbaru. Klik prodi untuk melihat daftar FM.';
-        const s3Differing = year.programs.filter(entry => s3Difference(entry));
-        const fmDiffering = year.programs.filter(entry => fmDifference(entry));
-        summary.innerHTML = formula('FM S3', year)
-            + `<p class="lrc-formula-note">Proyeksi lulus: dosen S2 dan On Going S3 dengan proyeksi lulus S3 ${year.year}. `
-            + 'NR (New FM Recruit): orang baru dari luar yang masuk menjadi FM, sesuai kolom NR S2 dan NR S3 di Roadmap LRC. '
-            + `Dosen yang naik jenjang ke S3 dihitung di Lulus, bukan NR. Kolom NR S3 hanya NR bergelar S3 yang masuk ${year.year}; seluruh NR s/d ${year.year} ada di kolom New FM Recruit.</p>`
+            + `FM S3 eksisting dan dosen yang diproyeksikan lulus S3 pada ${year.year} menurut update status pendidikan terbaru, dikelompokkan per prodi.`;
+        summary.innerHTML = formula(year)
+            + `<p class="lrc-formula-note">Eksisting = dosen S3 saat ini dan dosen yang lulus sebelum ${year.year}`
+            + (total('recruits') ? `, ditambah ${number(total('recruits'))} NR S3 tahun sebelumnya yang belum ada namanya` : '')
+            + `. Lulus = dosen yang diproyeksikan lulus S3 pada ${year.year}${overdue ? `, termasuk proyeksi lulus sebelum ${year.year} yang belum tercatat S3` : ''}. `
+            + `NR S3 ${year.year} adalah orang baru dari luar sesuai Roadmap LRC, sehingga belum ada namanya.</p>`
             + (s3Differing.length || fmDiffering.length ? '<p class="lrc-formula-note lrc-formula-warning">'
                 + (s3Differing.length ? `Proyeksi FM S3 berbeda dari roadmap S3 pada ${list(s3Differing, entry => entry.projectedS3, entry => entry.roadmap.s3)}. ` : '')
                 + (fmDiffering.length ? `Data Center + NR berbeda dari Jumlah FM roadmap pada ${list(fmDiffering, entry => entry.projectedFm, entry => entry.roadmap.fm)}.` : '')
                 + '</p>' : '');
-        table.innerHTML = '<thead><tr><th rowspan="2" scope="col" class="lrc-prodi-cell">Prodi</th>'
-            + `<th colspan="3" scope="colgroup" class="lrc-group-start">Roadmap ${year.year}</th><th colspan="4" scope="colgroup" class="lrc-group-start">Data Center saat ini</th>`
-            + `<th colspan="4" scope="colgroup" class="lrc-group-start">FM S3 ${year.year}</th><th rowspan="2" scope="col" class="pd-numeric lrc-group-start">New FM Recruit<br>s/d ${year.year}</th></tr>`
-            + `<tr>${headers(['FM', 'S2', 'S3', 'FM', 'S2', 'On Going S3', 'S3', 'Eksisting', 'Lulus', 'NR S3', 'Total'])}</tr></thead><tbody>`
-            + year.programs.map(entry => {
-                const center = projection.dataCenter[entry.prodi];
-                return `<tr data-lrc-projection-row="${escape(entry.prodi)}"><th scope="row" class="lrc-prodi-cell"><button type="button" class="pd-text-button lrc-prodi-button" data-lrc-projection-prodi="${escape(entry.prodi)}">${escape(entry.prodi)} <i class="bi bi-chevron-right" aria-hidden="true"></i></button><small>${escape(center.programStudi || '')}</small></th>`
-                    + cells([entry.roadmap.fm, entry.roadmap.s2, entry.roadmap.s3, center.fm, center.s2, center.ongoing, center.s3, entry.existing, entry.graduates, entry.recruits, entry.projectedS3, recruitCount(entry)], rowMeta(entry))
-                    + '</tr>';
-            }).join('')
-            + '</tbody><tfoot><tr><th scope="row" class="lrc-prodi-cell">Total</th>'
-            + cells([year.fm, sum(year.programs, entry => entry.roadmap.s2), year.s3, sum(dataCenter, center => center.fm), sum(dataCenter, center => center.s2),
-                sum(dataCenter, center => center.ongoing), sum(dataCenter, center => center.s3), year.existing, year.graduates, year.recruits, year.projectedS3, year.newRecruits])
-            + '</tr></tfoot>';
-        back.hidden = true;
-        $('lrcProjectionMeta').textContent = `${year.programs.length} prodi · ${number(year.newRecruits)} New FM Recruit s/d ${year.year}`;
+        table.innerHTML = '<thead><tr><th scope="col">Nama dosen</th><th scope="col">Kode</th><th scope="col">Pendidikan</th><th scope="col">Status pendidikan</th>'
+            + '<th scope="col">Proyeksi lulus S3</th><th scope="col">Keterangan</th></tr></thead>'
+            + (groups.map(group).join('') || `<tbody><tr><td colspan="${columns}">Belum ada FM S3 eksisting maupun proyeksi lulus S3 pada ${year.year}.</td></tr></tbody>`);
+        $('lrcProjectionMeta').textContent = `${number(total('existing'))} eksisting + ${number(total('graduates'))} lulus ${year.year} = ${number(total('existing') + total('graduates'))} dosen · ${number(groups.length)} prodi`;
     }
 
-    function projectedEducation(lecturer) {
-        if (lecturer.education === 'S3') return 'S3';
-        if (lecturer.proyeksiLulusS3 != null && lecturer.proyeksiLulusS3 <= state.year) return `S3 (lulus ${lecturer.proyeksiLulusS3})`;
-        return lecturer.education || '—';
-    }
-
-    function renderProgram() {
-        const year = yearData();
-        const entry = year.programs.find(item => item.prodi === state.prodi);
-        const center = projection.dataCenter[state.prodi];
-        const recruits = recruitCount(entry);
-        const differences = [s3Difference(entry), fmDifference(entry)].filter(Boolean);
-        $('lrcProjectionEyebrow').textContent = `PROYEKSI FM S3 ${year.year}`;
-        $('lrcProjectionTitle').textContent = `${state.prodi} · ${year.year}`;
-        $('lrcProjectionCaption').textContent = `${center.programStudi || state.prodi} · Roadmap ${year.year}: ${number(entry.roadmap.fm)} FM (S2 ${number(entry.roadmap.s2)} · S3 ${number(entry.roadmap.s3)} · `
-            + `NR S2 ${number(entry.roadmap.nrS2)} · NR S3 ${number(entry.roadmap.nrS3)}) · `
-            + `Data Center saat ini: ${number(center.fm)} FM (S2 ${number(center.s2)} · On Going S3 ${number(center.ongoing)} · S3 ${number(center.s3)}).`;
-        summary.innerHTML = formula(`FM S3 ${state.prodi}`, entry)
-            + (differences.length ? `<p class="lrc-formula-note lrc-formula-warning">${differences.join(' ')} Periksa proyeksi lulus S3 dan status pendidikan FM di bawah, atau roadmap ${escape(state.prodi)} (termasuk kolom NR) ${year.year}.</p>` : '');
-        table.innerHTML = `<thead><tr><th scope="col">Nama FM</th><th scope="col">Kode</th><th scope="col">Pendidikan</th><th scope="col">Status pendidikan</th><th scope="col">Proyeksi lulus S3</th><th scope="col">Pendidikan ${year.year}</th></tr></thead><tbody>`
-            + center.lecturers.map(lecturer => `<tr><td class="lrc-name-cell">${escape(lecturer.name)}</td><td>${escape(lecturer.code || '—')}</td>`
-                + `<td>${escape(lecturer.pendidikan || '—')}</td><td>${escape(lecturer.statusPendidikan || '—')}</td><td>${escape(lecturer.proyeksiLulusS3 ?? '—')}</td>`
-                + `<td>${escape(projectedEducation(lecturer))}</td></tr>`).join('')
-            + entry.newRecruits.flatMap(recruit => Array.from({ length: recruit.count }, () => '<tr class="lrc-recruit-row" data-lrc-recruit>'
-                + `<td class="lrc-name-cell">New FM Recruit<small>Orang baru, rekrut ${recruit.year} · ${escape(recruit.level)}</small></td><td>—</td>`
-                + `<td>${escape(recruit.level)}</td><td>—</td><td>—</td><td>${escape(recruit.level)}</td></tr>`)).join('')
-            + (center.fm + recruits ? '' : '<tr><td colspan="6">Belum ada FM pada prodi ini.</td></tr>')
-            + '</tbody>';
-        back.hidden = false;
-        $('lrcProjectionMeta').textContent = `${number(center.fm)} FM Data Center + ${number(recruits)} New FM Recruit = ${number(center.fm + recruits)} FM`;
-    }
-
-    function render() {
-        if (state.prodi) renderProgram();
-        else renderYear();
-    }
-
-    function open(year) {
-        if (!projection.years.some(item => item.year === year)) return;
+    function open(value) {
+        const next = projection.years.find(item => item.year === value);
+        if (!next) return;
         if (!dialog.open) previousFocus = document.activeElement;
-        state = { year, prodi: null };
+        year = next;
         render();
         if (!dialog.open) dialog.showModal();
         document.body.classList.add('pd-modal-open');
     }
 
     document.querySelectorAll('[data-lrc-projection]').forEach(button => button.addEventListener('click', () => open(Number(button.dataset.lrcProjection))));
-    table.addEventListener('click', event => {
-        const program = event.target.closest('[data-lrc-projection-prodi]');
-        if (!program) return;
-        state = { ...state, prodi: program.dataset.lrcProjectionProdi };
-        render();
-        back.focus();
-    });
-    back.addEventListener('click', () => {
-        const prodi = state.prodi;
-        state = { ...state, prodi: null };
-        render();
-        table.querySelector(`[data-lrc-projection-prodi="${prodi}"]`)?.focus();
-    });
     $('lrcProjectionClose').addEventListener('click', () => dialog.close());
     dialog.addEventListener('close', () => { document.body.classList.remove('pd-modal-open'); previousFocus?.focus({ preventScroll: true }); });
     dialog.addEventListener('click', event => {

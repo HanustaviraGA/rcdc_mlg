@@ -31,13 +31,13 @@ Sel yang memiliki catatan diberi segitiga biru di pojok kanan atas; catatannya t
 
 ## Proyeksi FM S3 di Dashboard LRC
 
-Halaman publik `/dashboard-lrc` menampilkan **Proyeksi FM S3** tepat di bawah chart Jenjang pendidikan dosen: satu kotak per tahun berisi Jml FM S3 / Total FM = persentase (satu angka desimal), dijumlahkan dari baris prodi roadmap di atas. Kotak berderet menyamping dan dapat digeser.
+Halaman publik `/dashboard-lrc` menampilkan **Proyeksi FM S3** sebagai section tersendiri (04 PROYEKSI FM S3) tepat di bawah section Jenjang Pendidikan: satu kotak per tahun berisi Jml FM S3 / Total FM = persentase (satu angka desimal), dijumlahkan dari baris prodi roadmap di atas. Kotak berderet menyamping dan dapat digeser.
 
 Roadmap dibuat per prodi, sehingga filter Fakultas, Gugus Binaan, dan Program mempersempit proyeksi ke prodi (gugus binaan) dosen yang lolos filter tersebut, misalnya Fakultas SOD → DKV dan DI. Filter Status Dosen tidak memengaruhi proyeksi. Bila tidak ada prodi roadmap yang cocok, halaman menampilkan "Belum ada roadmap untuk prodi pada filter ini."
 
-### Rincian per tahun dan per prodi
+### FM S3 eksisting dan proyeksi lulus per tahun, dikelompokkan per prodi
 
-Klik kotak tahun untuk membuka rincian tahun tersebut, dihitung oleh `App\Services\LrcDashboard\FmS3Projection`:
+Klik kotak tahun untuk membuka FM S3 eksisting dan proyeksi lulus S3 tahun tersebut, dihitung oleh `App\Services\LrcDashboard\FmS3Projection`:
 
 ```
 FM S3 = Eksisting + Proyeksi
@@ -52,4 +52,4 @@ Proyeksi = lulus S3 tahun tersebut + NR S3 tahun tersebut
 
 Contoh total seluruh prodi per 16 November 2026: 2027 = 18 + (17 + 1) = 36, 2028 = 36 + (7 + 1) = 44.
 
-Rincian tahun berisi tabel per prodi: Roadmap (FM, S2, S3), Data Center saat ini (FM, S2, On Going S3, S3), FM S3 (Eksisting, Lulus, NR S3, Total), dan jumlah New FM Recruit s/d tahun itu (S2 dan S3, rinciannya di tooltip). Klik prodi untuk melihat daftar FM-nya: nama, kode, pendidikan, status pendidikan, proyeksi lulus S3, dan pendidikan di tahun tersebut. NR roadmap s/d tahun itu ditambahkan sebagai baris **New FM Recruit** beserta jenjang dan tahun masuknya, sehingga jumlah baris = FM Data Center + NR.
+Klik tahun langsung menampilkan nama FM S3 tahun tersebut, dikelompokkan per prodi (urutan roadmap): **Eksisting** (dosen S3 saat ini dan dosen yang lulus pada tahun roadmap sebelumnya) lalu **Lulus** (dosen yang diproyeksikan lulus S3 pada tahun tersebut), sehingga jumlahnya sama dengan angka Eksisting dan Lulus pada rumus. Prodi tanpa FM S3 eksisting maupun lulusan tidak ditampilkan. Setiap kelompok dibuka dengan kode dan nama program studi beserta jumlah eksisting dan lulusnya, lalu daftar nama, kode, pendidikan, status pendidikan, proyeksi lulus S3, dan keterangan (Eksisting atau Lulus tahun tersebut; baris Lulus ditandai hijau). Pada tahun pertama roadmap, proyeksi lulus yang sudah lewat namun belum tercatat S3 masuk Lulus. NR tidak punya nama: NR S3 tahun sebelumnya hanya ditulis jumlahnya di judul prodi (ikut dihitung Eksisting), dan NR S3 tahun tersebut hanya ada di rumus. Di atas daftar tetap ada rumus FM S3 tahun tersebut dan catatan bila proyeksi berbeda dari roadmap.

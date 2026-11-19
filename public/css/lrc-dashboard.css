@@ -46,8 +46,7 @@
 .lrc-page .lrc-year-card > span { color: var(--pd-muted); font-size: 13px; }
 .lrc-page .lrc-year-empty { border-top-color: #8995a4; background: #f8f9fa; }
 .lrc-page .lrc-education-filters { margin-bottom: 18px; }
-.lrc-page .lrc-projection { margin-top: 18px; padding: 20px; border: 1px solid var(--pd-line); border-radius: 10px; background: #fff; box-shadow: 0 4px 18px #102a4905; }
-.lrc-page .lrc-projection h3 { margin: 0 0 4px; color: var(--heading-color); font-family: var(--default-font); font-size: 14px; font-weight: 600; }
+.lrc-page .lrc-projection { padding: 20px; border: 1px solid var(--pd-line); border-radius: 10px; background: #fff; box-shadow: 0 4px 18px #102a4905; }
 .lrc-page .lrc-projection-caption { margin: 0; color: var(--pd-muted); font-size: 12px; }
 .lrc-page .lrc-projection-list { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(200px, 1fr); gap: 12px; margin: 14px 0 0; padding: 0 0 8px; overflow-x: auto; list-style: none; scroll-snap-type: x proximity; }
 .lrc-page .lrc-projection-list:focus-visible { outline: 2px solid var(--brand-500); outline-offset: 2px; }
@@ -66,8 +65,6 @@
 .lrc-page .lrc-projection-result { color: var(--pd-muted); font-size: 14px; white-space: nowrap; }
 .lrc-page .lrc-projection-result strong { color: var(--brand-700); font-size: 22px; }
 .lrc-page .lrc-projection-legend { display: block; margin-top: 8px; color: var(--pd-muted); font-size: 11px; }
-.lrc-page .lrc-projection-back { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 10px; }
-.lrc-page .lrc-projection-back[hidden] { display: none; }
 .lrc-page .lrc-formula { margin: 4px 0 16px; padding: 14px 16px; border: 1px solid var(--pd-line); border-left: 3px solid var(--brand-500); border-radius: 8px; background: #f7faff; }
 .lrc-page .lrc-formula-terms { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 0 0 8px; }
 .lrc-page .lrc-formula-terms dt { color: var(--pd-muted); font-size: 11px; font-weight: 500; }
@@ -75,27 +72,25 @@
 .lrc-page .lrc-formula-total { margin: 0; color: var(--heading-color); font-size: 13px; }
 .lrc-page .lrc-formula-total strong { color: var(--brand-700); }
 .lrc-page .lrc-formula-note { margin: 6px 0 0; color: var(--pd-muted); font-size: 11px; }
-/* Projection tables: every cell bordered, centred vertically; numbers and their headers centred. */
+/* Projection list: every cell bordered and centred vertically; the column header stays on top while scrolling. */
 .lrc-page .lrc-projection-table { border-collapse: collapse; }
-.lrc-page .lrc-projection-table thead th, .lrc-page .lrc-projection-table tbody th, .lrc-page .lrc-projection-table tfoot th,
-.lrc-page .lrc-projection-table tbody td, .lrc-page .lrc-projection-table tfoot td { position: static; min-width: 0; padding: 9px 12px; border: 1px solid #dbe4ee; vertical-align: middle; text-align: left; }
+.lrc-page .lrc-projection-table thead th, .lrc-page .lrc-projection-table tbody th, .lrc-page .lrc-projection-table tbody td { min-width: 0; padding: 9px 12px; border: 1px solid #dbe4ee; vertical-align: middle; text-align: left; }
 .lrc-page .lrc-projection-table tbody tr:last-child td { border-bottom: 1px solid #dbe4ee; }
-.lrc-page .lrc-projection-table thead th { background: #f1f8fc; color: #526579; font-size: 11px; font-weight: 600; line-height: 1.35; white-space: nowrap; }
+.lrc-page .lrc-projection-table thead th { z-index: 2; background: #f1f8fc; box-shadow: inset 0 -1px 0 #dbe4ee; color: #526579; font-size: 11px; font-weight: 600; line-height: 1.35; white-space: nowrap; }
 .lrc-page .lrc-projection-table .lrc-name-cell { min-width: 220px; }
-.lrc-page .lrc-projection-table thead th[colspan], .lrc-page .lrc-projection-table .pd-numeric { text-align: center; }
-.lrc-page .lrc-projection-table .pd-numeric { min-width: 58px; font-variant-numeric: tabular-nums; }
-.lrc-page .lrc-projection-table .lrc-group-start { border-left: 2px solid #b8c7d6; }
-.lrc-page .lrc-projection-table .lrc-prodi-cell { min-width: 170px; color: var(--heading-color); font-size: 12px; }
-.lrc-page .lrc-projection-table tbody td.lrc-total-column { background: #f7faff; color: var(--brand-700); font-weight: 700; }
-.lrc-page .lrc-projection-table tbody td.lrc-cell-differs { background: #fff3d6; color: #8a5a00; cursor: help; }
+/* Each program (prodi) opens with a heading: code, name and the number of its existing S3 and graduates. */
+.lrc-page .lrc-projection-table .lrc-prodi-heading th { padding: 12px; border-top: 2px solid #b8c7d6; background: #eef5fb; color: var(--heading-color); font-size: 12px; font-weight: 400; line-height: 1.55; }
+.lrc-page .lrc-projection-table .lrc-prodi-heading th > span { display: inline-block; }
+.lrc-page .lrc-prodi-title { font-size: 13px; font-weight: 600; }
+.lrc-page .lrc-prodi-title strong { margin-right: 6px; color: var(--brand-700); font-size: 14px; }
+.lrc-page .lrc-prodi-count { margin-left: 10px; padding: 1px 9px; border-radius: 999px; background: #fff; color: var(--brand-700); font-size: 11px; font-weight: 600; }
 .lrc-page .lrc-formula-warning { color: #8a5a00; font-weight: 600; }
-.lrc-page .lrc-projection-table th .lrc-prodi-button { display: inline-flex; align-items: center; gap: 4px; width: auto; padding: 0; border: 0; background: none; color: var(--brand-700); font-size: 12px; font-weight: 700; white-space: nowrap; }
-.lrc-page .lrc-projection-table th .lrc-prodi-button i { font-size: 10px; }
-.lrc-page .lrc-projection-table small { display: block; margin-top: 2px; color: var(--pd-muted); font-size: 10px; font-weight: 400; }
-.lrc-page .lrc-projection-table tfoot th, .lrc-page .lrc-projection-table tfoot td { background: #f1f8fc; color: var(--heading-color); font-weight: 700; }
-.lrc-page .lrc-projection-table tbody tr:hover th, .lrc-page .lrc-projection-table tbody tr:hover td { background: #f7fbfe; }
-.lrc-page .lrc-recruit-row td { background: #fff8e8; }
-.lrc-page .lrc-recruit-row .lrc-name-cell { color: #8a5a00; font-weight: 600; }
+.lrc-page .lrc-projection-table tbody tr:hover td { background: #f7fbfe; }
+/* Keterangan: existing S3 or graduating in the year; graduates' rows are tinted too. */
+.lrc-page .lrc-status { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.lrc-page .lrc-status-existing { background: #e6f0fb; color: #1c5cab; }
+.lrc-page .lrc-status-graduate { background: #e1f3e6; color: #1b6b35; }
+.lrc-page .lrc-graduate-row td { background: #f4faf6; }
 @media (max-width: 767px) {
     .lrc-page .lrc-chart-grid, .lrc-page .lrc-detail-list { grid-template-columns: minmax(0, 1fr); }
     .lrc-page .lrc-kpi-card { padding: 20px; }
