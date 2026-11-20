@@ -52,9 +52,12 @@
             <div class="card-title flex-column align-items-start py-4">
                 <h3 class="mb-1">Roadmap Jumlah FM</h3>
                 <span class="text-muted fs-7 fw-normal">
-                    Rencana jumlah faculty member (FM) per prodi beserta jenjang pendidikan S2 dan S3, serta New FM Recruit (NR) yang masuk setiap tahun{{ $roadmap['years'] ? ', '.head($roadmap['years']).'–'.last($roadmap['years']) : '' }}.
+                    Rencana jumlah faculty member (FM) per prodi beserta jenjang pendidikan S2 dan S3, serta New FM Recruit (NR) yang masuk setiap tahun<span data-roadmap-period>{{ $roadmap['years'] ? ', '.head($roadmap['years']).'–'.last($roadmap['years']) : '' }}</span>.
                     Klik angka untuk mengubah nilai dan catatannya.
                 </span>
+            </div>
+            <div class="card-toolbar">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#roadmapUploadModal">Upload Roadmap</button>
             </div>
         </div>
         <div class="card-body">
@@ -65,5 +68,7 @@
         </div>
     </div>
     @include('roadmaplrc::modal')
+    @include('roadmaplrc::upload')
 </div>
 @include('roadmaplrc::javascript')
+@include('roadmaplrc::upload_javascript')

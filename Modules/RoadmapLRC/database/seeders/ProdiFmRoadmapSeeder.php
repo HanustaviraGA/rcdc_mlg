@@ -14,19 +14,6 @@ use Illuminate\Support\Facades\DB;
  */
 class ProdiFmRoadmapSeeder extends Seeder
 {
-    /** Program code on the sheet => program (nama_gugus_binaan) in the Data Center. */
-    private const PROGRAMS = [
-        'EBC' => 'Entrepreneurship',
-        'CS' => 'Computer Science',
-        'DP' => 'Psychology',
-        'DKV' => 'Visual Communication Design',
-        'DI' => 'Interior Design',
-        'PR' => 'Public Relations',
-        'COMM' => 'Communications',
-        'CBDC' => 'Character Building',
-        'ENG' => 'English Literature',
-    ];
-
     /** Program code => year => [FM count, S2, S3, NR S2, NR S3], in the row order of the sheet. */
     private const ROADMAP = [
         'EBC' => [2026 => [33, 21, 12, 0, 0], 2027 => [34, 15, 19, 1, 0], 2028 => [35, 15, 20, 1, 0], 2029 => [36, 15, 21, 0, 1], 2030 => [37, 14, 23, 0, 1], 2031 => [38, 12, 26, 0, 1], 2032 => [39, 4, 35, 0, 2], 2033 => [41, 2, 39, 0, 1], 2034 => [41, 0, 41, 0, 2], 2035 => [42, 0, 42, 0, 1]],
@@ -47,7 +34,7 @@ class ProdiFmRoadmapSeeder extends Seeder
         foreach (array_keys(self::ROADMAP) as $index => $prodi) {
             foreach (self::ROADMAP[$prodi] as $year => [$fm, $s2, $s3, $nrS2, $nrS3]) {
                 $rows[] = [
-                    'prodi' => $prodi, 'program_studi' => self::PROGRAMS[$prodi], 'urutan' => $index + 1, 'year' => $year,
+                    'prodi' => $prodi, 'program_studi' => ProdiFmRoadmap::PROGRAMS[$prodi], 'urutan' => $index + 1, 'year' => $year,
                     'jumlah_fm' => $fm, 'jumlah_s2' => $s2, 'jumlah_s3' => $s3, 'jumlah_nr_s2' => $nrS2, 'jumlah_nr_s3' => $nrS3,
                     'created_at' => $now, 'updated_at' => $now,
                 ];

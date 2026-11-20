@@ -18,6 +18,19 @@ class ProdiFmRoadmap
 {
     public const TABLE = 'prodi_fm_roadmaps';
 
+    /** Program code on sheet JJP => nama_gugus_binaan in the Data Center. */
+    public const PROGRAMS = [
+        'EBC' => 'Entrepreneurship',
+        'CS' => 'Computer Science',
+        'DP' => 'Psychology',
+        'DKV' => 'Visual Communication Design',
+        'DI' => 'Interior Design',
+        'PR' => 'Public Relations',
+        'COMM' => 'Communications',
+        'CBDC' => 'Character Building',
+        'ENG' => 'English Literature',
+    ];
+
     /** Editable numbers of a program year: field => [column, note column, label]. */
     public const FIELDS = [
         'fm' => ['column' => 'jumlah_fm', 'note' => 'catatan_fm', 'label' => 'Jumlah FM'],

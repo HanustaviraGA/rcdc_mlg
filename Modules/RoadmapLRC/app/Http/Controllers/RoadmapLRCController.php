@@ -5,10 +5,10 @@ namespace Modules\RoadmapLRC\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Services\Lecturers\ProdiFmRoadmap;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
+use Modules\RoadmapLRC\Services\RoadmapWorkbook;
 
 class RoadmapLRCController extends Controller
 {
@@ -18,6 +18,43 @@ class RoadmapLRCController extends Controller
     public function index(ProdiFmRoadmap $roadmap)
     {
         return loadPage('roadmaplrc::index', ['roadmap' => $roadmap->table()]);
+    }
+
+    public function previewUpload(Request $request, RoadmapWorkbook $workbook): JsonResponse
+    {
+        abort_unless(Auth::check(), 403, 'Silakan login untuk mengunggah roadmap.');
+        $request->validate(['roadmap' => ['required', 'file', 'mimes:xlsx', 'extensions:xlsx', 'max:20480']]);
+        $path = $request->file('roadmap')->getRealPath();
+        $parsed = $workbook->read($path);
+
+        return response()->json([
+            'summary' => $parsed['summary'], 'preview_hash' => hash_file('sha256', $path),
+            'preview_html' => view('roadmaplrc::upload_preview', $parsed)->render(),
+        ]);
+    }
+
+    public function importUpload(Request $request, RoadmapWorkbook $workbook, ProdiFmRoadmap $roadmap): JsonResponse
+    {
+        abort_unless(Auth::check(), 403, 'Silakan login untuk mengunggah roadmap.');
+        $validated = $request->validate([
+            'roadmap' => ['required', 'file', 'mimes:xlsx', 'extensions:xlsx', 'max:20480'],
+            'confirmed' => ['accepted'],
+            'preview_hash' => ['required', 'string', 'size:64', 'regex:/^[a-f0-9]{64}$/'],
+        ]);
+        $path = $request->file('roadmap')->getRealPath();
+        if (! hash_equals($validated['preview_hash'], hash_file('sha256', $path))) {
+            throw ValidationException::withMessages(['roadmap' => 'File berubah setelah pratinjau. Baca ulang pratinjau sebelum mengimpor.']);
+        }
+        $summary = $workbook->import($path);
+        $table = $roadmap->table();
+        $years = $table['years'];
+
+        return response()->json([
+            'summary' => $summary,
+            'message' => "Upload roadmap selesai: {$summary['inserted']} prodi/tahun ditambahkan, {$summary['updated']} diperbarui, {$summary['unchanged']} tetap sama. {$summary['mismatches']} isian memiliki S2 + S3 berbeda dari Jumlah FM.",
+            'table_html' => view('roadmaplrc::table', ['roadmap' => $table])->render(),
+            'period_label' => $years ? ', '.head($years).'–'.last($years) : '',
+        ]);
     }
 
     /**
@@ -38,16 +75,14 @@ class RoadmapLRCController extends Controller
 
     /**
      * Initialize a Datatable.
+     *
      * @return Renderable
      */
-    public function init_table()
-    {
-
-    }
+    public function init_table() {}
 
     /**
      * Store a newly created resource in storage.
-     * @param Request $request
+     *
      * @return Renderable
      */
     public function create(Request $request)
@@ -57,7 +92,8 @@ class RoadmapLRCController extends Controller
 
     /**
      * Show the specified resource.
-     * @param int $id
+     *
+     * @param  int  $id
      * @return Renderable
      */
     public function read(Request $request)
@@ -67,7 +103,8 @@ class RoadmapLRCController extends Controller
 
     /**
      * Remove the specified resource from storage.
-     * @param int $id
+     *
+     * @param  int  $id
      * @return Renderable
      */
     public function delete(Request $request)

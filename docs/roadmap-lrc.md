@@ -1,6 +1,6 @@
 # Roadmap LRC: Jumlah FM per Prodi
 
-Halaman backoffice `/dashboard/roadmaplrc` (modul `RoadmapLRC`) menampilkan rencana jumlah faculty member (FM) per prodi beserta jenjang pendidikannya (S2 dan S3), serta New FM Recruit (NR) yang masuk setiap tahun, untuk 2026–2035. Bentuk tabelnya mengikuti sheet **JJP** pada workbook `Tambahan data S3B.xlsx`: satu baris per prodi, lima kolom per tahun (Jumlah FM, S2, S3, NR S2, NR S3), dan baris Total per tahun.
+Halaman backoffice `/dashboard/roadmaplrc` (modul `RoadmapLRC`) menampilkan rencana jumlah faculty member (FM) per prodi beserta jenjang pendidikannya (S2 dan S3), serta New FM Recruit (NR) yang masuk setiap tahun. Bentuk tabelnya mengikuti sheet **JJP** pada workbook `Tambahan data S3 FIX yang ini.xlsx`: satu baris per prodi, kolom Jumlah FM, S2, dan S3 per tahun, serta baris Total. Halaman juga menyediakan kolom NR S2 dan NR S3. Data awal mencakup 2026–2035; tahun lain dapat ditambahkan melalui upload.
 
 ## Data
 
@@ -23,7 +23,19 @@ Halaman backoffice `/dashboard/roadmaplrc` (modul `RoadmapLRC`) menampilkan renc
 - Baris Total dihitung dari baris prodi, tidak disimpan.
 - Isi data awal: `php artisan module:seed RoadmapLRC` (`ProdiFmRoadmapSeeder`), yaitu roadmap yang disepakati per 16 November 2026: sheet JJP beserta koreksi yang dibuat di halaman ini, dan NR per tahun. Seeder hanya menambah prodi dan tahun yang belum ada, sehingga angka dan catatan yang sudah diubah di halaman tidak tertimpa.
 
-## Mengubah angka
+## Upload dan perubahan angka
+
+### Upload Excel
+
+Pada halaman Roadmap Jumlah FM, klik **Upload Roadmap**, pilih file `.xlsx` (maksimal 20 MB), lalu klik **Baca Pratinjau**. Periksa angka dan perbedaan yang ditandai kuning, centang konfirmasi, lalu klik **Impor Roadmap**. Upload memerlukan login.
+
+Format mengikuti sheet `JJP` pada `Tambahan data S3 FIX yang ini.xlsx`. Nama sheet dengan spasi di akhir (`JJP `) juga dikenali. Header `PRODI` dicari pada 30 baris pertama. Header pertama berisi `JUMLAH FM 2026`, `JUMLAH FM 2027`, dan seterusnya; dua kolom di kanan setiap Jumlah FM berisi `S2` dan `S3` pada baris header berikutnya. Tahun dibaca dari header (2000–2100), bukan dari posisi tetap. Kode prodi mengikuti tabel di atas; spasi dan kapitalisasi dinormalisasi. Baris Total beserta footer setelahnya diabaikan dan total dihitung dari data prodi.
+
+Setiap angka wajib berupa bilangan bulat 0–9999; isi `0` untuk nol, bukan sel kosong. Sheet yang hilang, header yang salah, prodi tidak dikenal/duplikat, tahun duplikat, dan angka tidak valid membatalkan seluruh impor. Jumlah S2 + S3 yang berbeda dari Jumlah FM menjadi peringatan pada pratinjau dan tabel; angka diimpor sesuai file tanpa koreksi otomatis. File contoh berisi 9 prodi × 10 tahun (90 isian), dengan 7 perbedaan tersebut.
+
+Impor menambah atau memperbarui berdasarkan kombinasi prodi dan tahun. Hanya Jumlah FM, S2, dan S3 yang diperbarui; NR serta seluruh catatan lama dipertahankan. Prodi/tahun di luar file tetap tersimpan, sedangkan baris baru mendapat NR = 0 dan catatan kosong. Mengimpor file yang sama kembali tidak membuat duplikat. Pratinjau tidak menulis ke database; file divalidasi ulang saat impor dan seluruh penyimpanan memakai transaksi. Mengganti file mengharuskan pratinjau ulang. Tidak ada migration atau dependency baru untuk fitur upload ini.
+
+### Mengubah angka satu per satu
 
 Setiap angka prodi, termasuk NR, tampil sebagai isian. Klik (atau tekan Enter/spasi pada) isian untuk membuka modal berisi **Nilai** (bilangan bulat 0–9999) dan **Catatan** (opsional, maksimal 1000 karakter; dikosongkan berarti catatan dihapus). Setelah disimpan, tabel dan baris Total dimuat ulang. Mengubah angka harus dalam keadaan login.
 

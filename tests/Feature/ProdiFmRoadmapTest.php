@@ -71,8 +71,8 @@ class ProdiFmRoadmapTest extends TestCase
         $page = $this->page();
 
         $this->assertStringContainsString('Roadmap Jumlah FM', $page);
-        $this->assertStringContainsString('beserta jenjang pendidikan S2 dan S3, serta New FM Recruit (NR) yang masuk setiap tahun, 2026–2035.', $page);
-        $this->assertStringNotContainsString('JJP<', $page);
+        $this->assertStringContainsString('beserta jenjang pendidikan S2 dan S3, serta New FM Recruit (NR) yang masuk setiap tahun, 2026–2035.', strip_tags($page));
+        $this->assertStringNotContainsString('<th scope="col">JJP', $page);
         preg_match_all('/<th scope="col"[^>]*>([^<]+(?:<br>\d{4})?)<\/th>/', $page, $headers);
         $this->assertSame(['Prodi', 'Jumlah FM<br>2026', 'S2', 'S3', 'NR S2', 'NR S3', 'Jumlah FM<br>2027'], array_slice($headers[1], 0, 7));
         $this->assertCount(51, $headers[1]);
