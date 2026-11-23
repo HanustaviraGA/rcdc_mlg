@@ -11,33 +11,39 @@ use Illuminate\Validation\ValidationException;
 
 class CommunityDevelopmentWorkbook
 {
-    public const SHEETS = ['rasio' => ['Rasio', 'pkm_ratio'], 'keterlibatan' => ['Keterlibatan', 'pkm_involvement']];
+    public const SHEETS_SEMESTER = ['rasio' => ['Rasio', 'pkm_ratio'], 'keterlibatan' => ['Keterlibatan', 'pkm_involvement']];
+    public const SHEETS_PERIODIC = ['keterlibatan' => ['Keterlibatan', 'pkm_involvement']];
 
     public function __construct(private ColumnMapperService $mapper) {}
 
-    /**
-     * @param  array<string, string|null>|null  $selection  Sheet name per role (rasio/keterlibatan).
-     */
-    public function preview(string $path, ?array $selection = null): array
+    private function getSheetsConfig(string $type): array
     {
-        $book = $this->sheets($path, $selection, 35, true);
+        return $type === 'periodic' ? self::SHEETS_PERIODIC : self::SHEETS_SEMESTER;
+    }
+
+    /**
+     * @param  array<string, string|null>|null  $selection  Sheet name per role.
+     */
+    public function preview(string $path, string $type = 'semester', ?array $selection = null): array
+    {
+        $sheetsConfig = $this->getSheetsConfig($type);
+        $book = $this->sheets($path, $sheetsConfig, $selection, 35, true);
         $preview = [];
-        foreach (self::SHEETS as $key => [, $type]) {
+        foreach ($sheetsConfig as $key => [, $sheetType]) {
             ['name' => $sheet, 'rows' => $rows] = $book['sheets'][$key];
-            $config = $this->mapper->getMappingConfig($type);
+            $config = $this->mapper->getMappingConfig($sheetType);
             if (! $rows) {
-                // An empty sheet only offers the sheet list, so another sheet can be chosen.
                 $preview[$key] = ['sheet' => $sheet, 'header_row' => 1, 'headers' => [], 'preview_data' => [],
                     'mapping_config' => $config, 'suggested_mapping' => []];
 
                 continue;
             }
-            [$headerRow] = $this->headerRow($rows, $type);
+            [$headerRow] = $this->headerRow($rows, $sheetType);
             $headers = $rows[$headerRow];
             $preview[$key] = [
                 'sheet' => $sheet, 'header_row' => $headerRow, 'headers' => $headers,
                 'preview_data' => array_values(array_slice(array_filter($rows, fn ($number) => $number > $headerRow, ARRAY_FILTER_USE_KEY), 0, 5)),
-                'mapping_config' => $config, 'suggested_mapping' => $this->mapper->suggestMapping($headers, $type),
+                'mapping_config' => $config, 'suggested_mapping' => $this->mapper->suggestMapping($headers, $sheetType),
             ];
         }
 
@@ -63,17 +69,17 @@ class CommunityDevelopmentWorkbook
         return [$headerRow, $best];
     }
 
-    public function read(string $path, array $mappings, array $headerRows, ?array $selection = null): array
+    public function read(string $path, string $type, array $mappings, array $headerRows, ?array $selection = null): array
     {
-        $book = $this->sheets($path, $selection);
+        $sheetsConfig = $this->getSheetsConfig($type);
+        $book = $this->sheets($path, $sheetsConfig, $selection);
         $sheets = array_map(fn ($sheet) => $sheet['rows'], $book['sheets']);
         $records = [];
         $resolved = [];
         $policy = new ImportPolicy('pkm', 'pkm');
         $duplicates = 0;
         $warnings = [];
-        foreach (self::SHEETS as $key => [$role, $type]) {
-            // Messages name the chosen sheet, plus its role when the names differ.
+        foreach ($sheetsConfig as $key => [$role, $sheetType]) {
             $sheetName = $book['sheets'][$key]['name'];
             $name = strcasecmp(trim($sheetName), $role) === 0 ? $role : "{$sheetName} ({$role})";
             $headerRow = $headerRows[$key] ?? null;
@@ -85,7 +91,7 @@ class CommunityDevelopmentWorkbook
             }
             $headers = $sheets[$key][$headerRow];
             try {
-                $mapping = $this->mapper->resolveMapping($headers, $type, $mappings[$key]);
+                $mapping = $this->mapper->resolveMapping($headers, $sheetType, $mappings[$key]);
             } catch (ValidationException $exception) {
                 $this->invalid("Sheet {$name}: ".implode(' ', array_merge(...array_values($exception->errors()))), "column_mapping.$key");
             }
@@ -100,7 +106,7 @@ class CommunityDevelopmentWorkbook
                     $value = $index === null ? '' : trim($cells[$index] ?? '');
                     $record[$field] = $value === '' ? null : $value;
                 }
-                foreach ($this->mapper->validateRow($record, $type, $number, $mapping, $headers)['errors'] as $error) {
+                foreach ($this->mapper->validateRow($record, $sheetType, $number, $mapping, $headers)['errors'] as $error) {
                     $policy->accept("Sheet {$name}: {$error}");
                 }
                 $identity = $key === 'rasio' ? trim($record['program'] ?? '') : strtoupper(trim($record['kode_dosen'] ?? ''));
@@ -144,11 +150,14 @@ class CommunityDevelopmentWorkbook
                 }
                 $records[$key][$id] = $record + ['source_row' => $number];
             }
-            if (! $records[$key] || ($key === 'rasio' && ! array_filter($records[$key], fn ($row) => ! $row['is_total']))) {
+            if ($key === 'rasio' && (! $records[$key] || ! array_filter($records[$key], fn ($row) => ! $row['is_total']))) {
+                $this->invalid("Sheet {$name} tidak berisi data yang dapat diimpor. Data lama tetap tersimpan.");
+            }
+            if ($key === 'keterlibatan' && ! $records[$key]) {
                 $this->invalid("Sheet {$name} tidak berisi data yang dapat diimpor. Data lama tetap tersimpan.");
             }
         }
-        $codes = array_keys($records['keterlibatan']);
+        $codes = array_keys($records['keterlibatan'] ?? []);
         $known = Schema::hasTable('database_dosen_new')
             ? DB::table('database_dosen_new')->pluck('kode_dosen')->map(fn ($code) => strtoupper(trim($code)))->all() : [];
         $unmatched = array_values(array_diff($codes, $known));
@@ -158,46 +167,76 @@ class CommunityDevelopmentWorkbook
 
         return ['records' => $records, 'mapping' => $resolved, 'summary' => $policy->summary([
             'sheets' => array_map(fn ($sheet) => $sheet['name'], $book['sheets']),
-            'selected' => count($records['keterlibatan']), 'programs' => count(array_filter($records['rasio'], fn ($row) => ! $row['is_total'])),
+            'selected' => count($records['keterlibatan'] ?? []), 'programs' => isset($records['rasio']) ? count(array_filter($records['rasio'], fn ($row) => ! $row['is_total'])) : 0,
             'duplicates' => $duplicates, 'matched' => count($codes) - count($unmatched), 'unmatched_codes' => $unmatched, 'warnings' => $warnings,
         ])];
     }
 
-    public function import(string $path, string $academicYear, string $semester, array $mappings, array $headerRows, string $filename, ?array $selection = null): array
+    public function import(string $path, string $type, array $params, array $mappings, array $headerRows, string $filename, ?array $selection = null): array
     {
-        if (! preg_match('/^(20\d{2}|2100)\/(20\d{2}|2101)$/', $academicYear, $parts) || (int) $parts[2] !== (int) $parts[1] + 1) {
-            $this->invalid('Tahun akademik harus berurutan, misalnya 2025/2026.', 'academic_year');
+        if ($type === 'semester') {
+            $academicYear = $params['academic_year'] ?? '';
+            $semester = $params['semester'] ?? '';
+            if (! preg_match('/^(20\d{2}|2100)\/(20\d{2}|2101)$/', $academicYear, $parts) || (int) $parts[2] !== (int) $parts[1] + 1) {
+                $this->invalid('Tahun akademik harus berurutan, misalnya 2025/2026.', 'academic_year');
+            }
+            if (! in_array($semester, ['Ganjil', 'Genap'], true)) {
+                $this->invalid('Pilih semester Ganjil atau Genap.', 'period');
+            }
+        } elseif ($type === 'periodic') {
+            $startDate = $params['start_date'] ?? '';
+            $endDate = $params['end_date'] ?? '';
+            if (! strtotime($startDate) || ! strtotime($endDate)) {
+                $this->invalid('Rentang tanggal mulai dan selesai harus valid.', 'start_date');
+            }
+        } else {
+            $this->invalid('Tipe import tidak valid.');
         }
-        if (! in_array($semester, ['Ganjil', 'Genap'], true)) {
-            $this->invalid('Pilih semester Ganjil atau Genap.', 'period');
-        }
-        $parsed = $this->read($path, $mappings, $headerRows, $selection);
+        $parsed = $this->read($path, $type, $mappings, $headerRows, $selection);
         foreach (['community_development_imports', 'community_development_programs', 'community_development_lecturers'] as $table) {
             if (! Schema::hasTable($table)) {
                 $this->invalid('Migrasi Community Development belum dijalankan.');
             }
         }
 
-        return DB::transaction(function () use ($parsed, $academicYear, $parts, $semester, $headerRows, $filename) {
-            $batch = DB::table('community_development_imports')->where('year_start', (int) $parts[1])->where('semester', $semester)->lockForUpdate()->first();
-            $values = ['filename' => $filename, 'column_mapping' => json_encode($parsed['mapping'], JSON_THROW_ON_ERROR),
-                'header_rows' => json_encode($headerRows, JSON_THROW_ON_ERROR), 'updated_at' => now()];
+        return DB::transaction(function () use ($parsed, $type, $params, $headerRows, $filename) {
+            if ($type === 'semester') {
+                $parts = [];
+                preg_match('/^(20\d{2}|2100)\/(20\d{2}|2101)$/', $params['academic_year'], $parts);
+                $yearStart = (int) $parts[1];
+                $semester = $params['semester'];
+                $batch = DB::table('community_development_imports')->where('type', 'semester')->where('year_start', $yearStart)->where('semester', $semester)->lockForUpdate()->first();
+                $values = ['filename' => $filename, 'column_mapping' => json_encode($parsed['mapping'], JSON_THROW_ON_ERROR),
+                    'header_rows' => json_encode($headerRows, JSON_THROW_ON_ERROR), 'updated_at' => now(), 'type' => 'semester', 'year_start' => $yearStart, 'semester' => $semester, 'start_date' => null, 'end_date' => null];
+            } else {
+                $startDate = $params['start_date'];
+                $endDate = $params['end_date'];
+                $batch = DB::table('community_development_imports')->where('type', 'periodic')->where('start_date', $startDate)->where('end_date', $endDate)->lockForUpdate()->first();
+                $values = ['filename' => $filename, 'column_mapping' => json_encode($parsed['mapping'], JSON_THROW_ON_ERROR),
+                    'header_rows' => json_encode($headerRows, JSON_THROW_ON_ERROR), 'updated_at' => now(), 'type' => 'periodic', 'year_start' => null, 'semester' => null, 'start_date' => $startDate, 'end_date' => $endDate];
+            }
+
             if ($batch) {
                 $id = $batch->id;
                 DB::table('community_development_imports')->where('id', $id)->update($values);
                 DB::table('community_development_programs')->where('import_id', $id)->delete();
                 DB::table('community_development_lecturers')->where('import_id', $id)->delete();
             } else {
-                $id = DB::table('community_development_imports')->insertGetId($values + ['year_start' => (int) $parts[1], 'semester' => $semester, 'created_at' => now()]);
+                $id = DB::table('community_development_imports')->insertGetId($values + ['created_at' => now()]);
             }
             foreach (['rasio' => 'community_development_programs', 'keterlibatan' => 'community_development_lecturers'] as $key => $table) {
+                if (! isset($parsed['records'][$key])) {
+                    continue;
+                }
                 foreach (array_chunk(array_values($parsed['records'][$key]), 100) as $rows) {
                     DB::table($table)->insert(array_map(fn ($row) => $row + ['import_id' => $id], $rows));
                 }
             }
 
-            return $parsed['summary'] + ['import_id' => $id, 'academic_year' => $academicYear, 'period' => $semester,
-                'period_label' => $academicYear.' '.$semester, 'replaced' => $batch !== null];
+            $periodLabel = $type === 'semester' ? $params['academic_year'].' '.$params['semester'] : 'Periode '.$params['start_date'].' s.d. '.$params['end_date'];
+
+            return $parsed['summary'] + ['import_id' => $id, 'type' => $type,
+                'period_label' => $periodLabel, 'replaced' => $batch !== null];
         });
     }
 
@@ -217,13 +256,9 @@ class CommunityDevelopmentWorkbook
     }
 
     /**
-     * Rows of the sheet used for each role. A chosen sheet must exist; otherwise the sheet
-     * named after the role is used. A preview falls back to the best-matching sheet (which
-     * may be empty) so the user can pick another one.
-     *
      * @return array{sheets: array<string, array{name: string, rows: array}>, names: list<string>}
      */
-    private function sheets(string $path, ?array $selection = null, ?int $limit = null, bool $preview = false): array
+    private function sheets(string $path, array $sheetsConfig, ?array $selection = null, ?int $limit = null, bool $preview = false): array
     {
         $reader = new Reader;
         $names = [];
@@ -234,77 +269,65 @@ class CommunityDevelopmentWorkbook
             foreach ($reader->getSheets() as $index => $sheet) {
                 $names[$index] = $sheet->getName();
             }
-            foreach (self::SHEETS as $key => [$role]) {
+            foreach ($sheetsConfig as $key => [$role]) {
                 $requested = $selection[$key] ?? null;
                 if ($requested !== null) {
                     $index = is_string($requested) ? array_search($requested, $names, true) : false;
-                    if ($index === false) {
-                        $this->invalid("Sheet untuk {$role} tidak ditemukan pada file.", "sheets.$key");
-                    }
-                    $chosen[$key] = $index;
+                    if ($index !== false) {
+                        $chosen[$key] = $index;
 
-                    continue;
-                }
-                $matches = array_keys(array_map(fn ($name) => strtolower(trim($name)), $names), $key, true);
-                if (count($matches) > 1) {
-                    $this->invalid('Nama sheet duplikat: '.$names[$matches[1]]);
-                }
-                if ($matches) {
-                    $chosen[$key] = $matches[0];
-                } elseif (! $preview) {
-                    $this->invalid("Sheet {$role} wajib tersedia dan berisi data. Pilih sheet {$role} pada pratinjau.");
-                }
-            }
-            // A preview without a named sheet compares every sheet to pick the closest match.
-            $needed = $preview && count($chosen) < count(self::SHEETS) ? array_keys($names) : array_unique($chosen);
-            foreach ($needed as $index) {
-                $reader->changeSheet($index);
-                $rows[$index] = [];
-                foreach ($reader as $number => $cells) {
-                    $cells = array_map(fn ($value) => trim((string) $value), $cells);
-                    if (! array_filter($cells, fn ($value) => $value !== '')) {
                         continue;
                     }
-                    $rows[$index][(int) $number] = $cells;
-                    if ($limit !== null && count($rows[$index]) >= $limit) {
+                }
+                foreach ($names as $index => $name) {
+                    if (strcasecmp(trim($name), $role) === 0) {
+                        $chosen[$key] = $index;
                         break;
                     }
                 }
+                if (! isset($chosen[$key])) {
+                    $chosen[$key] = $preview && $names ? 0 : null;
+                }
             }
-        } catch (ValidationException $exception) {
-            throw $exception;
-        } catch (\Throwable) {
-            $this->invalid('File Excel tidak dapat dibaca. Pastikan formatnya .xlsx yang valid.');
-        } finally {
-            $reader->close();
-        }
-        if (! $names) {
-            $this->invalid('Workbook tidak memiliki sheet.');
-        }
-        $result = [];
-        foreach (self::SHEETS as $key => [$role, $type]) {
-            if (! isset($chosen[$key])) {
-                $best = -1;
-                foreach ($rows as $index => $sheetRows) {
-                    $score = $sheetRows ? $this->headerRow($sheetRows, $type)[1] : -1;
-                    if ($score > $best) {
-                        $best = $score;
-                        $chosen[$key] = $index;
+            foreach ($sheetsConfig as $key => [$role]) {
+                $index = $chosen[$key];
+                if ($index === null || ! isset($names[$index])) {
+                    if ($preview) {
+                        $rows[$key] = ['name' => $role, 'rows' => []];
+
+                        continue;
+                    }
+                    $this->invalid("Sheet {$role} tidak ditemukan pada file Excel.");
+                }
+                $sheetName = $names[$index];
+                $reader->changeSheet($index);
+                $sheetRows = [];
+                $count = 0;
+                foreach ($reader as $rowIndex => $row) {
+                    if ($limit !== null && ++$count > $limit) {
+                        break;
+                    }
+                    $sheetRows[$rowIndex] = $row;
+                }
+                $rows[$key] = ['name' => $sheetName, 'rows' => $sheetRows];
+            }
+        } catch (\Exception $exception) {
+            if ($preview) {
+                foreach ($sheetsConfig as $key => [$role]) {
+                    if (! isset($rows[$key])) {
+                        $rows[$key] = ['name' => $role, 'rows' => []];
                     }
                 }
-                $chosen[$key] ??= array_key_first($names);
+            } else {
+                throw ValidationException::withMessages(['pkm' => 'File Excel tidak dapat dibaca: '.$exception->getMessage()]);
             }
-            if (! $preview && empty($rows[$chosen[$key]])) {
-                $this->invalid("Sheet {$names[$chosen[$key]]} untuk {$role} wajib berisi data.");
-            }
-            $result[$key] = ['name' => $names[$chosen[$key]], 'rows' => $rows[$chosen[$key]] ?? []];
         }
 
-        return ['sheets' => $result, 'names' => array_values($names)];
+        return ['sheets' => $rows, 'names' => $names];
     }
 
-    private function invalid(string $message, string $field = 'pkm'): never
+    private function invalid(string $message, ?string $key = null): void
     {
-        throw ValidationException::withMessages([$field => $message]);
+        throw ValidationException::withMessages([$key ?? 'pkm' => $message]);
     }
 }

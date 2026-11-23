@@ -12,12 +12,16 @@ class CommunityDevelopmentController extends Controller
     {
         $validated = $request->validate([
             'community_period' => ['nullable', 'integer', 'min:1'],
+            'periodic_start' => ['nullable', 'date'],
+            'periodic_end' => ['nullable', 'date'],
             'partner_year' => ['nullable', 'integer', 'between:2000,2100'],
         ]);
 
         return view('dashboard.comdev', ['communityDevelopment' => $dashboard->data(
             isset($validated['community_period']) ? (int) $validated['community_period'] : null,
             isset($validated['partner_year']) ? (int) $validated['partner_year'] : null,
+            $validated['periodic_start'] ?? null,
+            $validated['periodic_end'] ?? null,
         )]);
     }
 }

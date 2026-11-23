@@ -3,7 +3,7 @@
     const root = document.getElementById('partnerImport');
     if (!root) return;
     window.partnerImportState?.request?.abort();
-    const state = { file: null, preview: null, request: null, sequence: 0, loading: false, importing: false, confirmed: false };
+    const state = { file: null, preview: null, request: null, sequence: 0, loading: false, importing: false, deleting: false, confirmed: false };
     window.partnerImportState = state;
     const $ = id => root.querySelector('#' + id);
     const file = $('partnerWorkbook');
@@ -18,8 +18,9 @@
         return Object.keys(state.preview.mapping_config.required).every(field => Number.isInteger(values[field]));
     }
     function controls() {
-        const busy = state.loading || state.importing;
-        root.querySelectorAll('input, select').forEach(input => { input.disabled = state.importing || (state.loading && ['partnerSheet', 'partnerHeaderRow'].includes(input.id)); });
+        const busy = state.loading || state.importing || state.deleting;
+        root.querySelectorAll('input, select').forEach(input => { input.disabled = state.importing || state.deleting || (state.loading && ['partnerSheet', 'partnerHeaderRow'].includes(input.id)); });
+        root.querySelectorAll('[data-delete-import]').forEach(button => { button.disabled = busy; });
         $('partnerImportSubmit').disabled = busy || !state.confirmed || !valid();
         $('partnerImportSubmit').textContent = state.importing ? 'Mengimpor…' : 'Import data mitra';
         $('partnerMappingConfirm').disabled = busy || state.confirmed || !valid();
@@ -50,14 +51,14 @@
         preview.preview_data.forEach(values => { const row = document.createElement('tr'); preview.headers.forEach((_, index) => { const cell = document.createElement('td'); cell.className = 'text-nowrap'; cell.textContent = values[index] ?? ''; row.append(cell); }); $('partnerPreviewRows').append(row); });
         $('partnerMappingPanel').hidden = false;
     }
-    async function request(url, data, signal) {
-        const response = await fetch(url, { method: 'POST', body: data, signal, headers: { Accept: 'application/json', 'X-CSRF-TOKEN': root.dataset.csrf } });
+    async function request(url, data, signal, method = 'POST') {
+        const response = await fetch(url, { method, body: data, signal, headers: { Accept: 'application/json', 'X-CSRF-TOKEN': root.dataset.csrf } });
         const payload = await response.json().catch(() => { throw { message: 'Respons server tidak dapat dibaca. Silakan coba kembali.' }; });
         if (!response.ok || payload.success !== true) throw payload;
         return payload;
     }
     async function preview(options = {}) {
-        if (state.importing) return;
+        if (state.importing || state.deleting) return;
         const sequence = ++state.sequence;
         state.request?.abort(); state.file = file.files[0] || null;
         state.preview = null; state.confirmed = false; state.loading = false;
@@ -86,10 +87,10 @@
     $('partnerHeaderRow').addEventListener('input', () => { state.confirmed = false; state.preview = null; controls(); });
     $('partnerHeaderRow').addEventListener('change', () => preview({ sheet: $('partnerSheet').value, header: $('partnerHeaderRow').value }));
     $('partnerPreviewRetry').addEventListener('click', () => preview($('partnerSheetControls').hidden ? {} : { sheet: $('partnerSheet').value, header: $('partnerHeaderRow').value }));
-    $('partnerMappingConfirm').addEventListener('click', () => { if (!state.loading && !state.importing && valid()) { state.confirmed = true; controls(); } });
+    $('partnerMappingConfirm').addEventListener('click', () => { if (!state.loading && !state.importing && !state.deleting && valid()) { state.confirmed = true; controls(); } });
     $('partnerImportForm').addEventListener('submit', async event => {
         event.preventDefault();
-        if (state.loading || state.importing || !state.confirmed || !valid() || file.files[0] !== state.file) return;
+        if (state.loading || state.importing || state.deleting || !state.confirmed || !valid() || file.files[0] !== state.file) return;
         const sequence = state.sequence, data = new FormData();
         data.append('partners', state.file); data.append('data_year', $('partnerDataYear').value);
         data.append('sheet', state.preview.sheet); data.append('header_row', state.preview.header_row); data.append('column_mapping', JSON.stringify(mapping()));
@@ -104,6 +105,28 @@
         } catch (error) {
             if (current(sequence) && error.name !== 'AbortError') message('partnerImportErrors', errorText(error));
         } finally { if (current(sequence)) { state.importing = false; state.request = null; controls(); } }
+    });
+    root.addEventListener('click', async event => {
+        const button = event.target.closest('[data-delete-import]');
+        if (!button || state.loading || state.importing || state.deleting) return;
+        if (!window.confirm(`Hapus ${button.dataset.label} periode ${button.dataset.period} beserta seluruh data hasil importnya? Data yang dihapus tidak dapat dikembalikan.`)) return;
+
+        const sequence = state.sequence;
+        const originalLabel = button.textContent;
+        state.deleting = true; state.request = new AbortController(); controls();
+        button.textContent = 'Menghapus...';
+        message('partnerImportErrors', ''); message('partnerImportSummary', '');
+        try {
+            const result = await request(button.dataset.url, undefined, state.request.signal, 'DELETE');
+            if (!current(sequence)) return;
+            if (typeof result.history_html === 'string') $('partnerImportHistory').innerHTML = result.history_html;
+            message('partnerImportSummary', result.message);
+        } catch (error) {
+            if (current(sequence) && error.name !== 'AbortError') message('partnerImportErrors', errorText(error));
+        } finally {
+            button.textContent = originalLabel;
+            if (current(sequence)) { state.deleting = false; state.request = null; controls(); }
+        }
     });
     controls();
 })();

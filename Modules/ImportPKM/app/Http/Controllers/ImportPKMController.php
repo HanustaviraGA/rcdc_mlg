@@ -22,13 +22,16 @@ class ImportPKMController extends Controller
         $start = (int) now()->year - (now()->month < 9 ? 1 : 0);
         $years = collect(range($start + 1, $start - 5));
         $imports = Schema::hasTable('community_development_imports')
-            ? DB::table('community_development_imports')->orderByDesc('year_start')->orderBy('semester')->get() : collect();
+            ? DB::table('community_development_imports')->where(fn ($q) => $q->where('type', 'semester')->orWhereNull('type'))->orderByDesc('year_start')->orderBy('semester')->get() : collect();
         $years = $years->merge($imports->pluck('year_start'))->unique()->sortDesc()->values();
+
+        $periodicImports = Schema::hasTable('community_development_imports')
+            ? DB::table('community_development_imports')->where('type', 'periodic')->orderByDesc('start_date')->get() : collect();
 
         $partnerImports = Schema::hasTable('community_partner_imports')
             ? DB::table('community_partner_imports')->orderByDesc('data_year')->get() : collect();
 
-        return loadPage('importpkm::index', ['academicYears' => $years, 'defaultYear' => $start, 'imports' => $imports, 'partnerImports' => $partnerImports]);
+        return loadPage('importpkm::index', ['academicYears' => $years, 'defaultYear' => $start, 'imports' => $imports, 'periodicImports' => $periodicImports, 'partnerImports' => $partnerImports]);
     }
 
     public function preview(Request $request, CommunityDevelopmentWorkbook $workbook)
@@ -62,8 +65,11 @@ class ImportPKMController extends Controller
     {
         $validated = $request->validate([
             'pkm' => ['required', 'file', 'mimes:xlsx', 'max:20480'],
-            'academic_year' => ['required', 'string', 'max:9'],
-            'period' => ['required', 'in:Ganjil,Genap'],
+            'type' => ['required', 'in:semester,periodic'],
+            'academic_year' => ['required_if:type,semester', 'nullable', 'string', 'max:9'],
+            'period' => ['required_if:type,semester', 'nullable', 'in:Ganjil,Genap'],
+            'start_date' => ['required_if:type,periodic', 'nullable', 'date'],
+            'end_date' => ['required_if:type,periodic', 'nullable', 'date'],
             'column_mapping' => ['required', 'json'],
             'header_rows' => ['required', 'json'],
             'sheets' => ['nullable', 'json'],
@@ -74,14 +80,56 @@ class ImportPKMController extends Controller
             throw ValidationException::withMessages(['column_mapping' => 'Pemetaan dan baris header harus berupa objek JSON.']);
         }
         $file = $request->file('pkm');
-        $summary = $workbook->import($file->getRealPath(), $validated['academic_year'], $validated['period'],
+        $type = $validated['type'];
+        $params = $type === 'semester'
+            ? ['academic_year' => $validated['academic_year'], 'semester' => $validated['period']]
+            : ['start_date' => $validated['start_date'], 'end_date' => $validated['end_date']];
+
+        $summary = $workbook->import($file->getRealPath(), $type, $params,
             $mapping, $headers, $file->getClientOriginalName(), $this->sheetSelection($validated));
+
+        $imports = Schema::hasTable('community_development_imports')
+            ? DB::table('community_development_imports')->where(fn ($q) => $q->where('type', 'semester')->orWhereNull('type'))->orderByDesc('year_start')->orderBy('semester')->get() : collect();
+        $periodicImports = Schema::hasTable('community_development_imports')
+            ? DB::table('community_development_imports')->where('type', 'periodic')->orderByDesc('start_date')->get() : collect();
 
         return response()->json(['success' => true, 'summary' => $summary,
             'message' => 'Import '.$summary['period_label'].' selesai: '.$summary['programs'].' prodi, '.$summary['selected'].' dosen; '.$summary['matched'].' kode cocok dengan data dosen.',
             'warnings' => $summary['warnings'],
-            'history_html' => view('importpkm::history', ['imports' => DB::table('community_development_imports')->orderByDesc('year_start')->orderBy('semester')->get()])->render(),
+            'history_html' => view('importpkm::history', ['imports' => $imports])->render(),
+            'periodic_history_html' => view('importpkm::periodic_history', ['periodicImports' => $periodicImports])->render(),
         ]);
+    }
+
+    public function destroy(Request $request, int $id)
+    {
+        abort_unless(auth()->check(), 403);
+        $import = DB::table('community_development_imports')->where('id', $id)->first();
+        abort_unless($import, 404, 'Data import tidak ditemukan.');
+
+        DB::transaction(function () use ($id) {
+            DB::table('community_development_programs')->where('import_id', $id)->delete();
+            DB::table('community_development_lecturers')->where('import_id', $id)->delete();
+            DB::table('community_development_imports')->where('id', $id)->delete();
+        });
+
+        $label = ($import->type ?? 'semester') === 'periodic'
+            ? 'Periode '.$import->start_date.' s.d. '.$import->end_date
+            : $import->year_start.'/'.($import->year_start + 1).' '.$import->semester;
+
+        $imports = DB::table('community_development_imports')->where(fn ($q) => $q->where('type', 'semester')->orWhereNull('type'))->orderByDesc('year_start')->orderBy('semester')->get();
+        $periodicImports = DB::table('community_development_imports')->where('type', 'periodic')->orderByDesc('start_date')->get();
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Data import '.$label.' berhasil dihapus.',
+                'history_html' => view('importpkm::history', ['imports' => $imports])->render(),
+                'periodic_history_html' => view('importpkm::periodic_history', ['periodicImports' => $periodicImports])->render(),
+            ]);
+        }
+
+        return back()->with('success', 'Data import berhasil dihapus.');
     }
 
     /**
@@ -118,72 +166,59 @@ class ImportPKMController extends Controller
                     continue;
                 }
                 PKMDosen::create([
-                    'id_pkm' => md5(rand(0, 100).generateCode().date('Y-m-d H:i:s')),
-                    'periode' => $read[1],
-                    'kode_dosen' => $read[3],
-                    'judul_pkm' => $read[4],
-                    'jenis_pkm' => $read[5],
-                    'peserta' => $read[6],
-                    'skema_pendanaan' => $read[7],
-                    'nama_mahasiswa' => $read[8],
-                    'link_evidence' => $read[9],
                     'year' => $year,
                     'period' => $period,
-                    'created_at' => now(),
+                    'kode_dosen' => $read[0],
+                    'nama_dosen' => $read[1],
+                    'pkm_kegiatan' => $read[2],
+                    'skor' => $read[3],
                 ]);
             }
             fclose($handle);
         }
 
-        return response()->json(['success' => true], 200);
+        return redirect()->route('importpkm.index');
     }
 
     public function create(Request $request)
     {
-        $validated = $request->validate([
-            'pkm' => ['required', 'file', 'mimes:xlsx', 'max:20480'],
-            'year' => ['required', 'integer', 'between:2000,2100'],
-            'period' => ['required', 'string', 'max:50'],
-        ]);
-        $summary = app(\App\Services\Imports\PkmWorkbook::class)->import(
-            $request->file('pkm')->getRealPath(), (int) $validated['year'], $validated['period']
-        );
-
-        return response()->json(['success' => true, 'summary' => $summary,
-            'message' => 'Import PKM selesai: '.$summary['selected'].' baris; '.$summary['skipped_rows'].' baris dilewati.',
-            'warnings' => $summary['warnings']]);
+        return $this->create_old($request);
     }
 
-    /**
-     * Show the specified resource.
-     *
-     * @param  int  $id
-     * @return Renderable
-     */
     public function read(Request $request)
     {
         $data = $request->all();
+        $year = $data['year'] ?? null;
+        $period = $data['period'] ?? null;
+        $query = PKMDosen::query();
+        if ($year) {
+            $query->where('year', $year);
+        }
+        if ($period) {
+            $query->where('period', $period);
+        }
+        $pkmDosens = $query->get();
+
+        return response()->json($pkmDosens);
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  int  $id
-     * @return Renderable
-     */
     public function update(Request $request)
     {
         $data = $request->all();
+        $id = $data['id'];
+        $pkmDosen = PKMDosen::find($id);
+        $pkmDosen->update($data);
+
+        return response()->json($pkmDosen);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return Renderable
-     */
     public function delete(Request $request)
     {
         $data = $request->all();
+        $id = $data['id'];
+        $pkmDosen = PKMDosen::find($id);
+        $pkmDosen->delete();
+
+        return response()->json(['success' => true]);
     }
 }

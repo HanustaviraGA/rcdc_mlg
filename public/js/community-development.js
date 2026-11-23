@@ -118,16 +118,19 @@ function initializeCommunityDevelopment(source) {
         const handleSearch = () => {
             const kode = searchInput.value.trim().toUpperCase();
             if (!kode) {
-                searchResult.innerHTML = '<p style="color: #666;">Masukkan kode dosen terlebih dahulu.</p>';
+                searchResult.innerHTML = '<p style="color: #666; margin: 0;">Masukkan kode dosen terlebih dahulu.</p>';
                 return;
             }
 
             const findLecturer = (code) => {
-                for (const program of (source.programs || [])) {
+                const programs = source.periodicPrograms?.length ? source.periodicPrograms : (source.programs || []);
+                const unassigned = source.periodicPrograms?.length ? (source.periodicUnassignedLecturers || []) : (source.unassignedLecturers || []);
+
+                for (const program of programs) {
                     const lecturer = (program.lecturers || []).find(l => l.code && l.code.toUpperCase() === code);
-                    if (lecturer) return { ...lecturer, program: program.label };
+                    if (lecturer) return { ...lecturer, program: program.label || program.code };
                 }
-                const lecturer = (source.unassignedLecturers || []).find(l => l.code && l.code.toUpperCase() === code);
+                const lecturer = unassigned.find(l => l.code && l.code.toUpperCase() === code);
                 if (lecturer) return { ...lecturer, program: 'Belum terhubung ke prodi' };
                 return null;
             };
@@ -135,14 +138,14 @@ function initializeCommunityDevelopment(source) {
             const lecturer = findLecturer(kode);
             if (lecturer) {
                 searchResult.innerHTML = `
-                    <div class="cd-result" style="padding: 12px; border-left: 4px solid #0d6efd; background: #fff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                        <p style="margin: 0 0 4px 0;"><strong>Nama Dosen:</strong> ${escape(lecturer.name)}</p>
-                        <p style="margin: 0 0 4px 0;"><strong>Program Studi:</strong> ${escape(lecturer.program)}</p>
+                    <div class="cd-result" style="padding: 15px; border-left: 4px solid var(--brand-500); background: #f7faff; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <p style="margin: 0 0 6px 0;"><strong>Nama Dosen:</strong> ${escape(lecturer.name)}</p>
+                        <p style="margin: 0 0 6px 0;"><strong>Program Studi:</strong> ${escape(lecturer.program)}</p>
                         <p style="margin: 0;"><strong>Skor KPI:</strong> <span class="pd-score ${lecturer.score === null ? '' : lecturer.score >= 6 ? 'is-good' : lecturer.score >= 5 ? 'is-warning' : 'is-low'}">Skor <strong>${number(lecturer.score)}</strong></span></p>
                     </div>
                 `;
             } else {
-                searchResult.innerHTML = '<p style="color: #dc3545; margin: 0;">Dosen dengan kode tersebut tidak ditemukan pada periode ini.</p>';
+                searchResult.innerHTML = '<p style="color: #dc3545; margin: 0;">Dosen dengan kode tersebut tidak ditemukan pada data periodik ini.</p>';
             }
         };
 

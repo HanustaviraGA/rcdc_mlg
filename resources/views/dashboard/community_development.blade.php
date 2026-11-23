@@ -1,28 +1,65 @@
 @php
     $communityNumber = fn ($value, $digits = 0) => $value === null ? '—' : number_format($value, $digits, ',', '.');
+    $formatDateId = function (?string $dateStr) {
+        if (!$dateStr) return '—';
+        try {
+            $date = new \DateTime($dateStr);
+            $months = [
+                1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 
+                5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus', 
+                9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+            ];
+            $day = $date->format('j');
+            $month = $months[(int)$date->format('n')] ?? $date->format('F');
+            $year = $date->format('Y');
+            return "{$day} {$month} {$year}";
+        } catch (\Exception $e) {
+            return $dateStr;
+        }
+    };
 @endphp
-<div class="cd-dashboard" id="communityDevelopment">
-    <section class="pd-section" aria-labelledby="communityHeading">
+<div class="performance-page cd-dashboard" id="communityDevelopment">
+    {{-- Section 1: Pengecekan Skor KPI PkM Dosen --}}
+    <section class="pd-section" aria-labelledby="kpiCheckHeading">
         <div class="pd-section-heading">
             <div class="pd-heading-copy">
                 <span class="pd-section-number">01</span>
-                <div><span class="pd-eyebrow">PENGABDIAN KEPADA MASYARAKAT</span><h2 id="communityHeading">Community Development FM</h2></div>
+                <div><span class="pd-eyebrow">PENGABDIAN KEPADA MASYARAKAT</span><h2 id="kpiCheckHeading">Skor KPI PkM Dosen</h2></div>
+            </div>
+            <span class="cd-demo-badge"><i class="bi bi-calendar-range" aria-hidden="true"></i> {{ ($community['selectedPeriodicStart'] && $community['selectedPeriodicEnd']) ? $formatDateId($community['selectedPeriodicStart']).' s.d. '.$formatDateId($community['selectedPeriodicEnd']) : 'Rentang Tanggal' }}</span>
+        </div>
+        <p class="cd-intro">Cek perolehan skor KPI PkM dosen berdasarkan kode dosen menggunakan data rentang tanggal.</p>
+        <p class="cd-hint mb-4">Sumber data pengecekan: <strong>{{ $community['periodicPeriodLabel'] ?? 'Belum ada data' }}</strong></p>
+
+        <div class="cd-lecturer-search" style="margin-bottom: 20px; padding: 20px; border: 1px solid var(--pd-line); border-radius: 8px; background: #fff;">
+            <div class="pd-field">
+                <label for="searchLecturer" style="font-weight: bold; margin-bottom: 8px; display: block;">Cari Skor KPI Dosen (Masukkan Kode Dosen)</label>
+                <div style="display: flex; gap: 10px; align-items: flex-end;">
+                    <input type="search" id="searchLecturer" placeholder="Contoh: D001" style="flex: 1; padding: 10px; border: 1px solid var(--pd-line); border-radius: 6px; font: inherit;">
+                    <button type="button" id="searchLecturerBtn" class="pd-button" style="padding: 10px 20px;">Cari</button>
+                </div>
+            </div>
+            <div id="searchLecturerResult" style="margin-top: 15px;"></div>
+        </div>
+
+        <div class="cd-kpi-guide" aria-label="Target KPI Community Development FM">
+            <span><i class="bi bi-bullseye" aria-hidden="true"></i> Target KPI FM</span>
+            <span><b>1 kegiatan</b> <span class="pd-score">Skor <strong>5</strong></span></span>
+            <span><b>2 kegiatan atau lebih</b> <span class="pd-score is-good">Skor <strong>6</strong></span></span>
+        </div>
+    </section>
+
+    {{-- Section 2: Rekap Data PkM Dosen / Community Development FM --}}
+    <section class="pd-section" aria-labelledby="communityHeading">
+        <div class="pd-section-heading">
+            <div class="pd-heading-copy">
+                <span class="pd-section-number">02</span>
+                <div><span class="pd-eyebrow">REKAPITULASI CAPAIAN</span><h2 id="communityHeading">Rekap Data PkM Dosen &amp; Komunitas Binaan</h2></div>
             </div>
             <span class="cd-demo-badge"><i class="bi {{ $community['isDemo'] ? 'bi-info-circle' : 'bi-file-earmark-spreadsheet' }}" aria-hidden="true"></i> {{ $community['isDemo'] ? 'Contoh rekap dosen' : $community['periodLabel'] }}</span>
         </div>
         <p class="cd-intro">Ringkasan kegiatan pengabdian, capaian dosen per prodi, dan komunitas binaan BINUS Malang.</p>
         <p class="cd-demo-note">{{ $community['isDemo'] ? 'Rekap dan rincian dosen masih menggunakan data contoh. Unggah data PKM untuk menampilkan capaian aktual.' : 'Rekap dan rincian dosen mengikuti periode akademik yang dipilih.' }} Data mitra menggunakan pilihan tahun data tersendiri.</p>
-
-        <div class="cd-lecturer-search" style="margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 8px;">
-            <div class="pd-field">
-                <label for="searchLecturer" style="font-weight: bold;">Cari Skor KPI Dosen (Masukkan Kode Dosen)</label>
-                <div style="display: flex; gap: 10px; align-items: flex-end;">
-                    <input type="search" id="searchLecturer" placeholder="Kode Dosen (misal: D001)" style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-                    <button type="button" id="searchLecturerBtn" class="pd-button" style="padding: 8px 16px;">Cari</button>
-                </div>
-            </div>
-            <div id="searchLecturerResult" style="margin-top: 10px;"></div>
-        </div>
 
         @if(count($community['periods']))
             <form method="get" action="{{ route('community-dashboard') }}#communityDevelopment" class="cd-period-form" aria-label="Filter periode Community Development">
@@ -35,12 +72,6 @@
                 <button type="submit" class="pd-button">Tampilkan</button>
             </form>
         @endif
-
-        <div class="cd-kpi-guide" aria-label="Target KPI Community Development FM">
-            <span><i class="bi bi-bullseye" aria-hidden="true"></i> Target KPI FM</span>
-            <span><b>1 kegiatan</b> <span class="pd-score">Skor <strong>5</strong></span></span>
-            <span><b>2 kegiatan atau lebih</b> <span class="pd-score is-good">Skor <strong>6</strong></span></span>
-        </div>
 
         <div class="cd-overview-grid">
             <article class="cd-panel">
@@ -74,7 +105,7 @@
                     </form>
                 @endif
                 @if(! $community['partnersImported'])
-                    <p class="pd-context">Belum ada data mitra binaan{{ $community['selectedPartnerYear'] ? ' untuk tahun '.$community['selectedPartnerYear'] : '' }}.</p>
+                    <p class="cd-context">Belum ada data mitra binaan{{ $community['selectedPartnerYear'] ? ' untuk tahun '.$community['selectedPartnerYear'] : '' }}.</p>
                 @else
                     <p class="cd-hint">Sumber: {{ $community['partnerFilename'] }} · Tahun data {{ $community['selectedPartnerYear'] }}</p>
                 @endif
@@ -133,7 +164,7 @@
 
     <section class="pd-section" aria-labelledby="communityProgramsHeading">
         <div class="pd-section-heading">
-            <div class="pd-heading-copy"><span class="pd-section-number">02</span><div><span class="pd-eyebrow">CAPAIAN PER PRODI</span><h2 id="communityProgramsHeading">Kegiatan dan kontribusi dosen</h2></div></div>
+            <div class="pd-heading-copy"><span class="pd-section-number">03</span><div><span class="pd-eyebrow">CAPAIAN PER PRODI</span><h2 id="communityHeading">Kegiatan dan kontribusi dosen</h2></div></div>
             <span class="pd-period-label">{{ count($community['programs']) }} prodi / unit &middot; {{ $communityNumber($community['totals']['activities']) }} kegiatan</span>
         </div>
         <div class="pd-department-grid cd-program-grid">

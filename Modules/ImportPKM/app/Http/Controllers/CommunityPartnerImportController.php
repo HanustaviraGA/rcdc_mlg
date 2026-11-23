@@ -43,4 +43,28 @@ class CommunityPartnerImportController extends Controller
             'message' => 'Import mitra tahun '.$summary['data_year'].' selesai: '.$summary['selected'].' mitra; '.$summary['duplicates'].' duplikat identik dilewati.',
             'history_html' => view('importpkm::partner_history', ['partnerImports' => DB::table('community_partner_imports')->orderByDesc('data_year')->get()])->render()]);
     }
+
+    public function destroy(Request $request, int $id)
+    {
+        abort_unless(auth()->check(), 403);
+        $import = DB::table('community_partner_imports')->where('id', $id)->first();
+        abort_unless($import, 404, 'Data import mitra tidak ditemukan.');
+
+        DB::transaction(function () use ($id) {
+            DB::table('community_partners')->where('import_id', $id)->delete();
+            DB::table('community_partner_imports')->where('id', $id)->delete();
+        });
+
+        $partnerImports = DB::table('community_partner_imports')->orderByDesc('data_year')->get();
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Data import mitra tahun '.$import->data_year.' berhasil dihapus.',
+                'history_html' => view('importpkm::partner_history', ['partnerImports' => $partnerImports])->render(),
+            ]);
+        }
+
+        return back()->with('success', 'Data import mitra berhasil dihapus.');
+    }
 }
