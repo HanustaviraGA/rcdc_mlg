@@ -1,11 +1,11 @@
 {{-- The planned share of S3 FM per year (Roadmap LRC), the body of the Proyeksi FM S3 section: a box per year with
-     S3 FM / total FM = percentage. A box opens the FM S3 of that year by name, grouped per program: the existing S3
+     the year on top (blue), S3 FM / total FM below left (white) and the percentage below right. A box opens the FM S3 of that year by name, grouped per program: the existing S3
      and the lecturers projected to graduate S3 that year. --}}
 @php($projection = $lrc['projection'])
 @php($number = fn ($value) => number_format($value, 0, ',', '.'))
 <article class="lrc-projection">
     <p class="lrc-projection-caption">
-        Persentase FM bergelar S3 terhadap total FM per tahun berdasarkan roadmap jumlah FM ·
+        Persentase FM bergelar S3 terhadap total FM per tahun berdasarkan roadmap jumlah FM (Jml FM S3 / Total FM) ·
         @if(empty($projection['prodi']))
             Belum ada roadmap untuk prodi pada filter ini.
         @elseif($projection['narrowed'])
@@ -25,15 +25,8 @@
                     <button type="button" class="lrc-projection-card" data-lrc-projection="{{ $item['year'] }}" aria-haspopup="dialog">
                         <span class="lrc-projection-year">{{ $item['year'] }}</span>
                         <span class="visually-hidden">: {{ $number($item['s3']) }} dari {{ $number($item['fm']) }} FM bergelar S3, {{ $percent }}. Lihat FM S3 eksisting dan proyeksi lulus S3 per prodi.</span>
-                        <span class="lrc-projection-formula" aria-hidden="true">
-                            <span class="lrc-ratio">
-                                <strong class="lrc-ratio-top" data-lrc-projection-s3>{{ $number($item['s3']) }}</strong>
-                                <span class="lrc-ratio-slash">/</span>
-                                <strong class="lrc-ratio-bottom" data-lrc-projection-fm>{{ $number($item['fm']) }}</strong>
-                            </span>
-                            <span class="lrc-projection-result">= <strong data-lrc-projection-percent>{{ $percent }}</strong></span>
-                        </span>
-                        <small class="lrc-projection-legend" aria-hidden="true">Jml FM S3 / Total FM</small>
+                        <span class="lrc-projection-ratio" aria-hidden="true"><strong data-lrc-projection-s3>{{ $number($item['s3']) }}</strong>/<strong data-lrc-projection-fm>{{ $number($item['fm']) }}</strong></span>
+                        <span class="lrc-projection-percent" aria-hidden="true"><strong data-lrc-projection-percent>{{ $percent }}</strong></span>
                     </button>
                 </li>
             @endforeach

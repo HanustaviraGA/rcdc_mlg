@@ -51,20 +51,15 @@
 .lrc-page .lrc-projection-list { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(200px, 1fr); gap: 12px; margin: 14px 0 0; padding: 0 0 8px; overflow-x: auto; list-style: none; scroll-snap-type: x proximity; }
 .lrc-page .lrc-projection-list:focus-visible { outline: 2px solid var(--brand-500); outline-offset: 2px; }
 .lrc-page .lrc-projection-list > li { display: flex; scroll-snap-align: start; }
-.lrc-page .lrc-projection-card { display: block; flex: 1; padding: 14px 16px; border: 1px solid var(--pd-line); border-top: 3px solid var(--brand-500); border-radius: 8px; background: #f7faff; color: inherit; font: inherit; text-align: left; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
-.lrc-page .lrc-projection-card:hover { border-color: var(--brand-500); box-shadow: 0 6px 18px #102a4914; }
+/* A year box: the year across the top (blue), then S3 FM / total FM (white) beside the percentage (green). */
+.lrc-page .lrc-projection-card { --lrc-projection-line: #c9d6e2; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); flex: 1; padding: 0; overflow: hidden; border: 1px solid var(--lrc-projection-line); border-radius: 8px; background: #fff; color: inherit; font: inherit; text-align: center; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.lrc-page .lrc-projection-card:hover { border-color: var(--brand-700); box-shadow: 0 6px 18px #102a4914; }
 .lrc-page .lrc-projection-card:focus-visible { outline: 2px solid var(--brand-500); outline-offset: 2px; }
-.lrc-page .lrc-projection-year { display: block; margin: 0 0 12px; color: var(--heading-color); font-family: var(--heading-font); font-size: 15px; font-weight: 700; }
-.lrc-page .lrc-projection-formula { display: flex; align-items: center; gap: 12px; }
-/* A slanted fraction: S3 FM raised, a slash, total FM lowered. */
-.lrc-page .lrc-ratio { display: inline-flex; align-items: center; height: 40px; color: var(--heading-color); line-height: 1; white-space: nowrap; }
-.lrc-page .lrc-ratio-top, .lrc-page .lrc-ratio-bottom { font-size: 17px; font-weight: 700; }
-.lrc-page .lrc-ratio-top { align-self: flex-start; }
-.lrc-page .lrc-ratio-bottom { align-self: flex-end; }
-.lrc-page .lrc-ratio-slash { margin: 0 3px; color: var(--pd-muted); font-size: 32px; font-weight: 300; }
-.lrc-page .lrc-projection-result { color: var(--pd-muted); font-size: 14px; white-space: nowrap; }
-.lrc-page .lrc-projection-result strong { color: var(--brand-700); font-size: 22px; }
-.lrc-page .lrc-projection-legend { display: block; margin-top: 8px; color: var(--pd-muted); font-size: 11px; }
+.lrc-page .lrc-projection-year { grid-column: 1 / -1; padding: 9px 14px; background: var(--brand-700); color: #fff; font-family: var(--heading-font); font-size: 15px; font-weight: 700; text-align: left; transition: background .15s; }
+.lrc-page .lrc-projection-card:hover .lrc-projection-year { background: var(--brand-800); }
+.lrc-page .lrc-projection-ratio, .lrc-page .lrc-projection-percent { display: flex; align-items: center; justify-content: center; min-height: 64px; padding: 14px 10px; font-weight: 700; line-height: 1.1; white-space: nowrap; }
+.lrc-page .lrc-projection-ratio { border-right: 1px solid var(--lrc-projection-line); background: #fff; color: var(--heading-color); font-size: 18px; }
+.lrc-page .lrc-projection-percent { background: #e3f4e9; color: #1d6b3f; font-size: 19px; }
 .lrc-page .lrc-formula { margin: 4px 0 16px; padding: 14px 16px; border: 1px solid var(--pd-line); border-left: 3px solid var(--brand-500); border-radius: 8px; background: #f7faff; }
 .lrc-page .lrc-formula-terms { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 0 0 8px; }
 .lrc-page .lrc-formula-terms dt { color: var(--pd-muted); font-size: 11px; font-weight: 500; }

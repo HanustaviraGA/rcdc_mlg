@@ -109,6 +109,52 @@ function initializeCommunityDevelopment(source) {
         $('communityCategoryList').querySelector('button')?.focus();
     });
     search.addEventListener('input', renderDetail);
+    
+    const searchInput = $('searchLecturer');
+    const searchBtn = $('searchLecturerBtn');
+    const searchResult = $('searchLecturerResult');
+
+    if (searchBtn && searchInput && searchResult) {
+        const handleSearch = () => {
+            const kode = searchInput.value.trim().toUpperCase();
+            if (!kode) {
+                searchResult.innerHTML = '<p style="color: #666;">Masukkan kode dosen terlebih dahulu.</p>';
+                return;
+            }
+
+            const findLecturer = (code) => {
+                for (const program of (source.programs || [])) {
+                    const lecturer = (program.lecturers || []).find(l => l.code && l.code.toUpperCase() === code);
+                    if (lecturer) return { ...lecturer, program: program.label };
+                }
+                const lecturer = (source.unassignedLecturers || []).find(l => l.code && l.code.toUpperCase() === code);
+                if (lecturer) return { ...lecturer, program: 'Belum terhubung ke prodi' };
+                return null;
+            };
+
+            const lecturer = findLecturer(kode);
+            if (lecturer) {
+                searchResult.innerHTML = `
+                    <div class="cd-result" style="padding: 12px; border-left: 4px solid #0d6efd; background: #fff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <p style="margin: 0 0 4px 0;"><strong>Nama Dosen:</strong> ${escape(lecturer.name)}</p>
+                        <p style="margin: 0 0 4px 0;"><strong>Program Studi:</strong> ${escape(lecturer.program)}</p>
+                        <p style="margin: 0;"><strong>Skor KPI:</strong> <span class="pd-score ${lecturer.score === null ? '' : lecturer.score >= 6 ? 'is-good' : lecturer.score >= 5 ? 'is-warning' : 'is-low'}">Skor <strong>${number(lecturer.score)}</strong></span></p>
+                    </div>
+                `;
+            } else {
+                searchResult.innerHTML = '<p style="color: #dc3545; margin: 0;">Dosen dengan kode tersebut tidak ditemukan pada periode ini.</p>';
+            }
+        };
+
+        searchBtn.addEventListener('click', handleSearch);
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSearch();
+            }
+        });
+    }
+
     $('communityDetailClose').addEventListener('click', () => dialog.close());
     dialog.addEventListener('close', () => {
         if (!document.querySelector('dialog[open]')) document.body.classList.remove('pd-modal-open');

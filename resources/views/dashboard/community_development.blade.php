@@ -12,6 +12,18 @@
         </div>
         <p class="cd-intro">Ringkasan kegiatan pengabdian, capaian dosen per prodi, dan komunitas binaan BINUS Malang.</p>
         <p class="cd-demo-note">{{ $community['isDemo'] ? 'Rekap dan rincian dosen masih menggunakan data contoh. Unggah data PKM untuk menampilkan capaian aktual.' : 'Rekap dan rincian dosen mengikuti periode akademik yang dipilih.' }} Data mitra menggunakan pilihan tahun data tersendiri.</p>
+
+        <div class="cd-lecturer-search" style="margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 8px;">
+            <div class="pd-field">
+                <label for="searchLecturer" style="font-weight: bold;">Cari Skor KPI Dosen (Masukkan Kode Dosen)</label>
+                <div style="display: flex; gap: 10px; align-items: flex-end;">
+                    <input type="search" id="searchLecturer" placeholder="Kode Dosen (misal: D001)" style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    <button type="button" id="searchLecturerBtn" class="pd-button" style="padding: 8px 16px;">Cari</button>
+                </div>
+            </div>
+            <div id="searchLecturerResult" style="margin-top: 10px;"></div>
+        </div>
+
         @if(count($community['periods']))
             <form method="get" action="{{ route('community-dashboard') }}#communityDevelopment" class="cd-period-form" aria-label="Filter periode Community Development">
                 @if($community['selectedPartnerYear'])<input type="hidden" name="partner_year" value="{{ $community['selectedPartnerYear'] }}">@endif
