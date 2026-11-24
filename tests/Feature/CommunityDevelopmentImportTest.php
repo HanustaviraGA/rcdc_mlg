@@ -37,6 +37,7 @@ class CommunityDevelopmentImportTest extends TestCase
             ['kode_dosen' => 'D3', 'nama_dosen' => 'English lecturer', 'nama_gugus_binaan' => 'English Literature'],
         ]);
         (require database_path('migrations/2026_10_23_000000_create_community_development_imports.php'))->up();
+        (require database_path('migrations/2026_11_24_000000_add_type_and_date_range_to_community_development_imports.php'))->up();
     }
 
     protected function tearDown(): void
@@ -63,7 +64,7 @@ class CommunityDevelopmentImportTest extends TestCase
     {
         $preview = app(CommunityDevelopmentWorkbook::class)->preview($path);
 
-        return ['pkm' => new UploadedFile($path, 'comdev.xlsx', null, null, true), 'academic_year' => $year, 'period' => $semester,
+        return ['pkm' => new UploadedFile($path, 'comdev.xlsx', null, null, true), 'type' => 'semester', 'academic_year' => $year, 'period' => $semester,
             'column_mapping' => json_encode(array_map(fn ($sheet) => $sheet['suggested_mapping'], $preview['sheets'])),
             'header_rows' => json_encode(array_map(fn ($sheet) => $sheet['header_row'], $preview['sheets']))];
     }
@@ -72,7 +73,7 @@ class CommunityDevelopmentImportTest extends TestCase
     {
         $data = $this->payload($path, $year, $semester);
 
-        return app(CommunityDevelopmentWorkbook::class)->import($path, $year, $semester, json_decode($data['column_mapping'], true), json_decode($data['header_rows'], true), $filename);
+        return app(CommunityDevelopmentWorkbook::class)->import($path, 'semester', ['academic_year' => $year, 'semester' => $semester], json_decode($data['column_mapping'], true), json_decode($data['header_rows'], true), $filename);
     }
 
     public function test_preview_and_upload_require_authentication(): void
@@ -115,6 +116,57 @@ class CommunityDevelopmentImportTest extends TestCase
         $this->assertSame(1, $ebc['lecturers'][0]['activities']);
         $this->assertSame('Name from Data Center', $ebc['lecturers'][0]['name']);
         $this->assertSame('EBC', $ebc['code']);
+    }
+
+    public function test_preview_defaults_to_semester_when_type_is_omitted(): void
+    {
+        $this->actingAs((new User)->forceFill(['id' => 1]));
+        $payload = $this->payload($this->workbook());
+        unset($payload['type']);
+
+        $this->postJson(route('importpkm.preview'), $payload)->assertOk()
+            ->assertJsonPath('sheets.rasio.sheet', 'Rasio')
+            ->assertJsonPath('sheets.keterlibatan.sheet', 'Keterlibatan');
+
+        $this->postJson(route('importpkm.preview'), $payload + ['type' => 'periodic'])->assertOk()
+            ->assertJsonMissingPath('sheets.rasio')
+            ->assertJsonPath('sheets.keterlibatan.sheet', 'Keterlibatan');
+    }
+
+    public function test_preview_rejects_invalid_import_types(): void
+    {
+        $this->actingAs((new User)->forceFill(['id' => 1]));
+        $payload = $this->payload($this->workbook());
+        foreach (['partners', '', null, ['semester']] as $type) {
+            $this->postJson(route('importpkm.preview'), array_replace($payload, ['type' => $type]))
+                ->assertUnprocessable()->assertJsonValidationErrors('type');
+        }
+    }
+
+    public function test_periodic_preview_and_upload_use_only_the_selected_involvement_sheet(): void
+    {
+        $this->actingAs((new User)->forceFill(['id' => 1]));
+        $path = $this->makeWorkbook([
+            'Cover' => [['Laporan Community Development']],
+            'Data FM' => [['Kode Dosen', 'Jumlah kegiatan yang dilaporkan ke binusmaya', 'Skor KPI comdev FM', 'Keterangan : Minimal 1 Kegiatan PkM'], ['D1', 2, 6, 'Sudah PkM']],
+        ]);
+        $payload = ['pkm' => new UploadedFile($path, 'periodic.xlsx', null, null, true), 'type' => 'periodic',
+            'sheets' => json_encode(['keterlibatan' => 'Data FM'])];
+
+        $preview = $this->postJson(route('importpkm.preview'), $payload)->assertOk()
+            ->assertJsonMissingPath('sheets.rasio')
+            ->assertJsonPath('sheets.keterlibatan.sheet', 'Data FM')
+            ->assertJsonPath('sheets.keterlibatan.suggested_mapping.kode_dosen', 0);
+        $this->assertSame(0, DB::table('community_development_imports')->count());
+
+        $this->postJson(route('importpkm.upload'), $payload + [
+            'start_date' => '2026-11-01', 'end_date' => '2026-11-24',
+            'column_mapping' => json_encode(array_map(fn ($sheet) => $sheet['suggested_mapping'], $preview->json('sheets'))),
+            'header_rows' => json_encode(array_map(fn ($sheet) => $sheet['header_row'], $preview->json('sheets'))),
+        ])->assertOk()->assertJsonPath('summary.type', 'periodic')->assertJsonPath('summary.selected', 1);
+        $this->assertSame('periodic', DB::table('community_development_imports')->sole()->type);
+        $this->assertSame(0, DB::table('community_development_programs')->count());
+        $this->assertSame(2, DB::table('community_development_lecturers')->sole()->reported_activities);
     }
 
     public function test_reupload_replaces_only_the_same_academic_year_and_semester(): void
@@ -167,18 +219,22 @@ class CommunityDevelopmentImportTest extends TestCase
             'Rekap Prodi' => [['Prodi', 'Jumlah FM', 'Jumlah Kegiatan', 'Rasio'], ['EBC', 1, 2, '2.0']],
         ]);
         $request = fn (string $route, array $data) => $this->postJson(route($route), ['pkm' => new UploadedFile($path, 'comdev.xlsx', null, null, true)] + $data);
-        // Without Rasio/Keterlibatan sheets each role uses the sheet whose header matches best.
-        $preview = $request('importpkm.preview', [])->assertOk()
+        // Without the standard sheet names, preview starts with the first sheet.
+        $request('importpkm.preview', [])->assertOk()
             ->assertJsonPath('available_sheets', ['Cover', 'Data FM', 'Rekap Prodi'])
+            ->assertJsonPath('sheets.rasio.sheet', 'Cover')->assertJsonPath('sheets.keterlibatan.sheet', 'Cover');
+        $preview = $request('importpkm.preview', ['sheets' => json_encode(['rasio' => 'Rekap Prodi', 'keterlibatan' => 'Data FM'])])->assertOk()
             ->assertJsonPath('sheets.rasio.sheet', 'Rekap Prodi')->assertJsonPath('sheets.keterlibatan.sheet', 'Data FM');
         $this->assertSame(['program' => 0, 'faculty' => 1, 'activities' => 2, 'ratio' => 3], $preview->json('sheets.rasio.suggested_mapping'));
         $request('importpkm.preview', ['sheets' => json_encode(['keterlibatan' => 'Cover'])])->assertOk()
-            ->assertJsonPath('sheets.keterlibatan.sheet', 'Cover')->assertJsonPath('sheets.rasio.sheet', 'Rekap Prodi');
-        foreach (['{"keterlibatan":"Missing"}', '{"other":"Cover"}', '{"rasio":5}', '[broken'] as $sheets) {
+            ->assertJsonPath('sheets.keterlibatan.sheet', 'Cover')->assertJsonPath('sheets.rasio.sheet', 'Cover');
+        $request('importpkm.preview', ['sheets' => json_encode(['keterlibatan' => 'Missing'])])->assertOk()
+            ->assertJsonPath('sheets.keterlibatan.sheet', 'Cover');
+        foreach (['{"other":"Cover"}', '{"rasio":5}', '[broken'] as $sheets) {
             $request('importpkm.preview', ['sheets' => $sheets])->assertUnprocessable();
         }
 
-        $upload = ['academic_year' => '2025/2026', 'period' => 'Ganjil',
+        $upload = ['type' => 'semester', 'academic_year' => '2025/2026', 'period' => 'Ganjil',
             'column_mapping' => json_encode(['rasio' => ['program' => 0, 'faculty' => 1, 'activities' => 2, 'ratio' => 3],
                 'keterlibatan' => ['kode_dosen' => 0, 'reported_activities' => 1, 'score' => 2, 'status' => 3]]),
             'header_rows' => json_encode(['rasio' => 1, 'keterlibatan' => 1])];
@@ -199,7 +255,7 @@ class CommunityDevelopmentImportTest extends TestCase
         // Faculty/activities share column 1 on Rasio; reported activities/score share column 1 on Keterlibatan.
         $mapping = ['rasio' => ['program' => 0, 'faculty' => 1, 'activities' => 1, 'ratio' => 2],
             'keterlibatan' => ['kode_dosen' => 0, 'reported_activities' => 1, 'score' => 1, 'status' => 2]];
-        $summary = app(CommunityDevelopmentWorkbook::class)->import($path, '2025/2026', 'Ganjil', $mapping, ['rasio' => 1, 'keterlibatan' => 1], 'shared.xlsx');
+        $summary = app(CommunityDevelopmentWorkbook::class)->import($path, 'semester', ['academic_year' => '2025/2026', 'semester' => 'Ganjil'], $mapping, ['rasio' => 1, 'keterlibatan' => 1], 'shared.xlsx');
         $this->assertSame(1, $summary['selected']);
         $program = DB::table('community_development_programs')->sole();
         $this->assertEquals([2, 2], [$program->faculty, $program->activities]);
@@ -215,7 +271,7 @@ class CommunityDevelopmentImportTest extends TestCase
             'Keterlibatan' => [['Title line'], ['ID', 'Reported', 'Other activities', 'Grade', 'My status'], ['D1', 2, 999, 6, 'Sudah PkM']],
         ]);
         $mapping = ['rasio' => ['program' => 1, 'faculty' => 2, 'activities' => 0, 'ratio' => 3], 'keterlibatan' => ['kode_dosen' => 0, 'reported_activities' => 1, 'score' => 3, 'status' => 4]];
-        $summary = app(CommunityDevelopmentWorkbook::class)->import($path, '2025/2026', 'Ganjil', $mapping, ['rasio' => 2, 'keterlibatan' => 2], 'moved.xlsx');
+        $summary = app(CommunityDevelopmentWorkbook::class)->import($path, 'semester', ['academic_year' => '2025/2026', 'semester' => 'Ganjil'], $mapping, ['rasio' => 2, 'keterlibatan' => 2], 'moved.xlsx');
         $this->assertSame(1, $summary['selected']);
         $this->assertSame(2, DB::table('community_development_lecturers')->sole()->reported_activities);
         $this->assertSame('Sudah PkM', DB::table('community_development_lecturers')->sole()->status);

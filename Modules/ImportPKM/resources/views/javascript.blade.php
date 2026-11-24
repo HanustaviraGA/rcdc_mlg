@@ -106,6 +106,7 @@
         $('pkmPreviewStatus').textContent = 'Membaca sheet data…';
         updateControls();
         const data = new FormData(); data.append('pkm', state.file);
+        data.append('type', importTypeSelect.value);
         if (sheets) data.append('sheets', JSON.stringify(sheets));
         try {
             const result = await request(root.dataset.previewUrl, data, state.request.signal);

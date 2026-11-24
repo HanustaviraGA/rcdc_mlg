@@ -38,10 +38,11 @@ class ImportPKMController extends Controller
     {
         $validated = $request->validate([
             'pkm' => ['required', 'file', 'mimes:xlsx', 'max:20480'],
+            'type' => ['sometimes', 'required', 'in:semester,periodic'],
             'sheets' => ['nullable', 'json'],
         ]);
 
-        return response()->json($workbook->preview($request->file('pkm')->getRealPath(), $this->sheetSelection($validated)));
+        return response()->json($workbook->preview($request->file('pkm')->getRealPath(), $validated['type'] ?? 'semester', $this->sheetSelection($validated)));
     }
 
     /**
@@ -53,7 +54,7 @@ class ImportPKMController extends Controller
             return null;
         }
         $sheets = json_decode($validated['sheets'], true);
-        if (! is_array($sheets) || array_diff_key($sheets, CommunityDevelopmentWorkbook::SHEETS)
+        if (! is_array($sheets) || array_diff_key($sheets, CommunityDevelopmentWorkbook::SHEETS_SEMESTER)
             || array_filter($sheets, fn ($sheet) => $sheet !== null && (! is_string($sheet) || mb_strlen($sheet) > 255))) {
             throw ValidationException::withMessages(['sheets' => 'Pilihan sheet tidak valid.']);
         }
