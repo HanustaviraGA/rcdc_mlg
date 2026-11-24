@@ -392,6 +392,54 @@ class CommunityDevelopmentImportTest extends TestCase
         $this->get('/dashboard-comdev?community_period=999')->assertOk()->assertSee('Belum ada data Community Development untuk periode ini.');
     }
 
+    public function test_self_check_has_no_semester_fallback_when_periodic_data_is_missing(): void
+    {
+        $this->import($this->workbook());
+
+        $this->get('/dashboard-comdev')->assertOk()->assertSee('Belum ada data periodik')
+            ->assertViewHas('communityDevelopment', function ($data) {
+                $this->assertSame([], $data['periodicPrograms']);
+                $this->assertSame([], $data['periodicUnassignedLecturers']);
+                $this->assertNull($data['selectedPeriodicStart']);
+                $this->assertNull($data['selectedPeriodicEnd']);
+                $this->assertSame(5.0, $data['programs'][0]['lecturers'][0]['score']);
+
+                return true;
+            });
+    }
+
+    public function test_self_check_uses_latest_periodic_import_independently_of_selected_semester(): void
+    {
+        $semester = $this->import($this->workbook());
+        $workbook = app(CommunityDevelopmentWorkbook::class);
+        foreach ([['2026-10-01', '2026-10-31', 1, 5], ['2026-11-01', '2026-11-24', 2, 6]] as [$start, $end, $activities, $score]) {
+            $path = $this->makeWorkbook([
+                'Keterlibatan' => [
+                    ['Kode Dosen', 'Jumlah kegiatan yang dilaporkan ke binusmaya', 'Skor KPI comdev FM', 'Keterangan : Minimal 1 Kegiatan PkM'],
+                    ['D1', $activities, $score, 'Sudah PkM'],
+                ],
+            ]);
+            $preview = $workbook->preview($path, 'periodic');
+            $workbook->import($path, 'periodic', ['start_date' => $start, 'end_date' => $end],
+                array_map(fn ($sheet) => $sheet['suggested_mapping'], $preview['sheets']),
+                array_map(fn ($sheet) => $sheet['header_row'], $preview['sheets']), 'periodic.xlsx');
+        }
+
+        $this->get('/dashboard-comdev?community_period='.$semester['import_id'])->assertOk()
+            ->assertViewHas('communityDevelopment', function ($data) use ($semester) {
+                $this->assertSame($semester['import_id'], $data['selectedPeriod']);
+                $this->assertSame(5.0, $data['programs'][0]['lecturers'][0]['score']);
+                $this->assertSame('2026-11-01', $data['selectedPeriodicStart']);
+                $this->assertSame('2026-11-24', $data['selectedPeriodicEnd']);
+                $this->assertSame([], $data['periodicPrograms']);
+                $this->assertCount(1, $data['periodicUnassignedLecturers']);
+                $this->assertSame('D1', $data['periodicUnassignedLecturers'][0]['code']);
+                $this->assertSame(6.0, $data['periodicUnassignedLecturers'][0]['score']);
+
+                return true;
+            });
+    }
+
     public function test_module_offers_academic_year_options_and_mapping_for_both_sheets(): void
     {
         $response = $this->get(route('importpkm.index'))->assertOk();

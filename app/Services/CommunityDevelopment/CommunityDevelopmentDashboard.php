@@ -12,7 +12,7 @@ class CommunityDevelopmentDashboard
     public function data(?int $period = null, ?int $partnerYear = null, ?string $periodicStart = null, ?string $periodicEnd = null): array
     {
         $data = array_replace($this->demo->data(), $this->partners($partnerYear));
-        
+
         // Semester batches for Section 2 (Rekap Data PkM Dosen)
         $batches = Schema::hasTable('community_development_imports')
             ? DB::table('community_development_imports')->where(fn ($q) => $q->where('type', 'semester')->orWhereNull('type'))->orderByDesc('year_start')->orderBy('semester')->get() : collect();
@@ -47,12 +47,6 @@ class CommunityDevelopmentDashboard
             $periodicLecturersData = $this->loadBatchLecturers($periodicBatch);
             $data['periodicPrograms'] = $periodicLecturersData['programs'];
             $data['periodicUnassignedLecturers'] = $periodicLecturersData['unassigned'];
-        } elseif ($batches->isNotEmpty()) {
-            $fallbackBatch = $batches->first();
-            $fallbackLecturersData = $this->loadBatchLecturers($fallbackBatch);
-            $data['periodicPeriodLabel'] = 'Semester '.$this->periodLabel($fallbackBatch).' (Fallback)';
-            $data['periodicPrograms'] = $fallbackLecturersData['programs'];
-            $data['periodicUnassignedLecturers'] = $fallbackLecturersData['unassigned'];
         }
 
         if ($batches->isEmpty() && $period === null) {

@@ -131,6 +131,7 @@ class CommunityPartnerImportTest extends TestCase
     public function test_year_snapshots_are_independent_and_public_filters_keep_both_periods(): void
     {
         (require database_path('migrations/2026_10_23_000000_create_community_development_imports.php'))->up();
+        (require database_path('migrations/2026_11_24_000000_add_type_and_date_range_to_community_development_imports.php'))->up();
         $id = DB::table('community_development_imports')->insertGetId(['year_start' => 2025, 'semester' => 'Genap', 'filename' => 'pkm.xlsx', 'column_mapping' => '{}', 'header_rows' => '{}', 'created_at' => now(), 'updated_at' => now()]);
         $this->import($this->workbook(), 2025);
         $this->import($this->workbook(rows: [['New A', 'Kota Malang', 'Batik', 'Menengah', '', '', '']]), 2026);

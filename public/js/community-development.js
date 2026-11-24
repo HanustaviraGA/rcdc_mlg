@@ -122,10 +122,14 @@ function initializeCommunityDevelopment(source) {
                 return;
             }
 
-            const findLecturer = (code) => {
-                const programs = source.periodicPrograms?.length ? source.periodicPrograms : (source.programs || []);
-                const unassigned = source.periodicPrograms?.length ? (source.periodicUnassignedLecturers || []) : (source.unassignedLecturers || []);
+            const programs = source.periodicPrograms || [];
+            const unassigned = source.periodicUnassignedLecturers || [];
+            if (!programs.some(program => program.lecturers?.length) && !unassigned.length) {
+                searchResult.innerHTML = '<p style="color: #666; margin: 0;">Belum ada data periodik untuk pengecekan mandiri.</p>';
+                return;
+            }
 
+            const findLecturer = (code) => {
                 for (const program of programs) {
                     const lecturer = (program.lecturers || []).find(l => l.code && l.code.toUpperCase() === code);
                     if (lecturer) return { ...lecturer, program: program.label || program.code };
